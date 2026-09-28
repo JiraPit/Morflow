@@ -1,22 +1,20 @@
 # Morflow
 
-> **The Unified, High-Performance Media & Data Processing Engine for AI and Production Systems.**
+**Morflow** is a data processing engine that allows developers to define processing pipelines as human-readable `.morf` files.
 
-Morflow is a modular dataflow engine designed to bridge the gap between AI experimentation and production deployment. By defining data transformations in clean, human-readable `.morf` pipeline files, Morflow allows teams to author data and media preprocessing once and execute it anywhere with native Rust performance and zero train-serve skew.
+Instead of hardcoding data transformations into application code or manually copying training scripts into production backends, Morflow provides a portable, high-performance runtime that executes the exact same `.morf` pipeline anywhere.
 
 ---
 
-## 🎯 The Problem Morflow Solves
+## 🎯 Why Morflow?
 
-In modern machine learning and data engineering workflows, preprocessing code written in Python training notebooks is frequently re-implemented or copy-pasted into production services. This leads to subtle numerical drift (**train-serve skew**), performance bottlenecks, complex dependency bloat, and coupled release cycles.
+Morflow was created to solve core challenges in modern data and AI engineering:
 
-Morflow solves this by decoupling the data pipeline from the host application:
-
-- **🔒 Zero Train-Serve Skew**: Guarantees identical, deterministic mathematical operations across training, validation, and production serving—regardless of whether the host environment is Python, Rust, or C++.
-- **⚡ Native Rust Performance**: Engineered in Rust with zero-copy tensor slicing, multi-core work-stealing parallelism (Rayon), and SIMD-friendly layout transformations. Get native throughput even when invoked from Python.
-- **📄 Human-Readable & Transparent**: The declarative `.morf` dataflow format is intuitive and self-explanatory. Unlike opaque computational graphs (such as TorchScript or ONNX runtime graphs), `.morf` pipelines can be reviewed, diffed, and understood across multidisciplinary teams in seconds.
-- **📦 Lean, Modular Production Deployments**: Dynamic action plugins (`cdylib`) ensure that production containers load only the specific processing kernels required by active pipelines, dramatically reducing container image sizes and security attack surfaces.
-- **🚀 Decoupled Pipeline Shipping**: Update, test, and ship new data pipelines and transformations alongside AI model artifacts without rebuilding or redeploying server binaries.
+- **🔒 Guaranteed Identical Operations (Solving Train-Serve Skew)**: In typical AI workflows, preprocessing code written in Python training notebooks is copy-pasted or rewritten for production services. This introduces subtle discrepancies (**train-serve skew**) and maintenance bugs. With Morflow, you define the pipeline once in a `.morf` file and run it identically in both training and production serving across multiple languages.
+- **⚡ High Performance Regardless of Host Language**: Written in Rust, Morflow provides zero-copy memory operations, automatic flow parallelism, and multi-threaded CPU execution. When calling Morflow from Python or another host language, you get the full speed and multi-core scalability of native Rust.
+- **📄 Developer-Friendly & Self-Explanatory Pipelines**: Graph formats like TorchScript or ONNX are difficult to inspect, debug, or understand without specialized tools. A `.morf` file is clean, declarative, and easily understood by developers across different teams (data science, backend, infra) at a glance.
+- **📦 Modular Actions & Lean Production Images**: Rather than bundling massive, monolithic dependencies, Morflow dynamically loads only the specific action plugins required by a pipeline. Through the Morflow package ecosystem, production images stay lightweight and minimal by including only the actions they actually use.
+- **🚀 Ship AI & Data Pipelines Together Without Server Rebuilds**: Because `.morf` pipelines and action plugins are loaded dynamically at runtime, data processing pipelines can be updated and shipped alongside AI models without requiring server code recompilation or backend service rebuilds.
 
 ---
 
