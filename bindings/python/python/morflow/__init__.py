@@ -13,4 +13,4 @@ except ImportError as e:
     ) from e
 
 __all__ = ["load", "from_str", "Pipeline"]
-__version__ = "0.1.1"
+__version__ = "0.1.2"

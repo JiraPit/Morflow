@@ -222,7 +222,7 @@ async function fetchLatestPackVersion(pack, repo) {
 
   try {
     const resp = await fetch(url, {
-      headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' },
+      headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' },
       signal: AbortSignal.timeout(5000),
     });
     if (resp.ok) {
@@ -308,7 +308,7 @@ async function cmdPrep(args) {
     let downloaded = false;
     for (const url of urls) {
       try {
-        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
         if (resp.ok) {
           const buffer = Buffer.from(await resp.arrayBuffer());
           fs.writeFileSync(targetFilePack, buffer);
@@ -424,7 +424,7 @@ async function cmdSpec(args) {
   ];
   for (const url of releaseUrls) {
     try {
-      const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
       if (resp.ok) {
         const content = await resp.text();
         process.stdout.write(content);
@@ -436,7 +436,7 @@ async function cmdSpec(args) {
   // 4. Fallback: Fetch from Git Tag
   const tagUrl = `https://raw.githubusercontent.com/${repo}/action_packs/${pack}/v${version}/actions/${pack}/${actionName}/SPEC.md`;
   try {
-    const resp = await fetch(tagUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+    const resp = await fetch(tagUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
     if (resp.ok) {
       const content = await resp.text();
       process.stdout.write(content);
@@ -447,7 +447,7 @@ async function cmdSpec(args) {
   // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
   const mainUrl = `https://raw.githubusercontent.com/${repo}/main/actions/${pack}/${actionName}/SPEC.md`;
   try {
-    const resp = await fetch(mainUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+    const resp = await fetch(mainUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
     if (resp.ok) {
       const content = await resp.text();
       process.stdout.write(content);
@@ -617,7 +617,7 @@ async function cmdInstall(args) {
     let downloaded = false;
     for (const url of urls) {
       try {
-        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
         if (resp.ok) {
           const buffer = Buffer.from(await resp.arrayBuffer());
           fs.writeFileSync(targetFilePack, buffer);
@@ -705,7 +705,7 @@ async function cmdInstall(args) {
       let downloaded = false;
       for (const url of urls) {
         try {
-          const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+          const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.2' } });
           if (resp.ok) {
             const buffer = Buffer.from(await resp.arrayBuffer());
             fs.writeFileSync(targetFilePack, buffer);

@@ -43,7 +43,7 @@ enum Commands {
 
     /// Views the raw SPEC.md documentation for a specified action
     Spec {
-        /// Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.1/identity)
+        /// Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.2/identity)
         action: String,
     },
 
@@ -247,7 +247,7 @@ fn fetch_latest_pack_version(pack: &str, repo: &str) -> String {
     let prefix_no_v = format!("action_packs/{}/", pack);
 
     if let Ok(response) = ureq::get(&url)
-        .set("User-Agent", "Morflow-CLI/0.1.1")
+        .set("User-Agent", "Morflow-CLI/0.1.2")
         .call()
     {
         if let Ok(body) = response.into_string() {
@@ -544,7 +544,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ];
 
             for url in &release_urls {
-                if let Ok(response) = ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.1").call() {
+                if let Ok(response) = ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.2").call() {
                     let mut content = String::new();
                     if response.into_reader().read_to_string(&mut content).is_ok() {
                         print!("{}", content);
@@ -559,7 +559,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 repo, pack, version, pack, action_name
             );
             if let Ok(response) = ureq::get(&tag_url)
-                .set("User-Agent", "Morflow-CLI/0.1.1")
+                .set("User-Agent", "Morflow-CLI/0.1.2")
                 .call()
             {
                 let mut content = String::new();
@@ -576,7 +576,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             match ureq::get(&main_url)
-                .set("User-Agent", "Morflow-CLI/0.1.1")
+                .set("User-Agent", "Morflow-CLI/0.1.2")
                 .call()
             {
                 Ok(response) => {

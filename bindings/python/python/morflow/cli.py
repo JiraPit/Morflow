@@ -219,7 +219,7 @@ def fetch_latest_pack_version(pack: str, repo: str) -> str:
     prefix_no_v = f"action_packs/{pack}/"
 
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             import json
             releases = json.loads(resp.read().decode("utf-8"))
@@ -296,7 +296,7 @@ def cmd_prep(args):
         downloaded = False
         for url in urls:
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
                 with urllib.request.urlopen(req) as resp:
                     data = resp.read()
                     target_file_pack.write_bytes(data)
@@ -409,7 +409,7 @@ def cmd_spec(args):
     ]
     for url in release_urls:
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
             with urllib.request.urlopen(req) as resp:
                 content = resp.read().decode("utf-8")
                 print(content, end="")
@@ -420,7 +420,7 @@ def cmd_spec(args):
     # 4. Fallback: Fetch from Git Tag
     tag_url = f"https://raw.githubusercontent.com/{repo}/action_packs/{pack}/v{version}/actions/{pack}/{action_name}/SPEC.md"
     try:
-        req = urllib.request.Request(tag_url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+        req = urllib.request.Request(tag_url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
         with urllib.request.urlopen(req) as resp:
             content = resp.read().decode("utf-8")
             print(content, end="")
@@ -431,7 +431,7 @@ def cmd_spec(args):
     # 5. Fallback: Fetch raw SPEC.md from GitHub main branch
     main_url = f"https://raw.githubusercontent.com/{repo}/main/actions/{pack}/{action_name}/SPEC.md"
     try:
-        req = urllib.request.Request(main_url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+        req = urllib.request.Request(main_url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
         with urllib.request.urlopen(req) as resp:
             content = resp.read().decode("utf-8")
             print(content, end="")
@@ -555,7 +555,7 @@ def cmd_install(args):
         downloaded = False
         for url in urls:
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
                 with urllib.request.urlopen(req) as resp:
                     data = resp.read()
                     target_file_pack.write_bytes(data)
@@ -635,7 +635,7 @@ def cmd_install(args):
             downloaded = False
             for url in urls:
                 try:
-                    req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+                    req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.2"})
                     with urllib.request.urlopen(req) as resp:
                         data = resp.read()
                         target_file_pack.write_bytes(data)
@@ -695,7 +695,7 @@ def main():
     )
     spec_parser.add_argument(
         "action",
-        help="Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.1/identity)",
+        help="Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.2/identity)",
     )
 
     # Search command
