@@ -111,17 +111,6 @@ Explore end-to-end host examples in both Rust and Python under [`examples/`](exa
 - **Audio DSP Mastering**: Dynamic range compression, biquad EQ, multi-channel stereo widening, and peak limiting.
 - **Audio Split**: Parallel stereo channel extraction with multiple named stream outputs.
 
----
-
-## 🧪 Testing
-
-```bash
-# Run Rust workspace integration tests
-cargo test --workspace
-
-# Run Python bindings test suite
-pytest bindings/python/tests
-```
 
 ---
 
