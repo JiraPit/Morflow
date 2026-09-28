@@ -44,7 +44,16 @@ pipeline = morflow.load("pipeline.morf")
 output_array = pipeline.run(input_numpy_array)
 ```
 
-### 3. Or run in Rust
+### 3. Or run in JavaScript / TypeScript (Node.js)
+```javascript
+import morflow from 'morflow';
+
+// Load pipeline and execute asynchronously without blocking the event loop
+const pipeline = morflow.load('pipeline.morf');
+const outputTensor = await pipeline.run(inputTypedArray);
+```
+
+### 4. Or run in Rust
 ```rust
 use pipeline::{Morflow, Payload};
 
@@ -59,6 +68,7 @@ let output = pipeline.run(Payload::Image(image))?.into_single()?;
 ### Prerequisites
 - [Rust toolchain](https://rustup.rs/) (edition 2021+)
 - Python 3.8+ (optional, for Python bindings)
+- Node.js 18+ (optional, for JavaScript/TypeScript bindings)
 
 ### Build Everything (Engine & Action Plugins)
 ```bash
@@ -70,6 +80,12 @@ This compiles the engine and builds action plugins into `target/release/actions/
 ```bash
 cd bindings/python
 maturin develop --release
+```
+
+### Install JavaScript / TypeScript (Node.js) Bindings
+```bash
+cd bindings/js
+npm install && npm run build
 ```
 
 ---
@@ -105,10 +121,10 @@ Compile to `.so`/`.dll` and drop it into your actions directory—Morflow discov
 
 ## 📂 Examples
 
-Explore end-to-end host examples in both Rust and Python under [`examples/`](examples/):
-- **Image Processing**: Color grading, spatial resampling, and spatial filtering.
-- **Audio DSP Mastering**: Dynamic range compression, biquad EQ, multi-channel stereo widening, and peak limiting.
-- **Audio Split**: Parallel stereo channel extraction with multiple named stream outputs.
+Explore end-to-end host implementations in Rust, Python, and JavaScript under [`examples/`](examples/):
+- **Image Processing** ([`rust`](examples/rust/image_processing), [`python`](examples/python/image_processing), [`js`](examples/js/image_processing)): Color grading, spatial resampling, and spatial filtering.
+- **Audio DSP Mastering** ([`rust`](examples/rust/audio_processing), [`python`](examples/python/audio_processing), [`js`](examples/js/audio_processing)): Dynamic range compression, biquad EQ, multi-channel stereo widening, and peak limiting.
+- **Audio Split** ([`rust`](examples/rust/audio_split), [`python`](examples/python/audio_split), [`js`](examples/js/audio_split)): Parallel stereo channel extraction with multiple named stream outputs.
 
 
 ---

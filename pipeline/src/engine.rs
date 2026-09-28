@@ -76,6 +76,7 @@ impl Morflow {
 }
 
 /// An executable Morflow pipeline instance with auto-parallelization scheduling.
+#[derive(Clone)]
 pub struct MorflowPipeline {
     pub ast: Pipeline,
     pub registry: Arc<PluginRegistry>,

@@ -1,0 +1,17 @@
+[package]
+name = "morflow-node"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.16", default-features = false, features = ["napi4", "async", "tokio_rt"] }
+napi-derive = "2.16"
+core_types = { path = "../../core_types" }
+pipeline = { path = "../../pipeline" }
+abi_stable = "0.11"
+
+[build-dependencies]
+napi-build = "2.1"
