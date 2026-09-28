@@ -63,33 +63,6 @@ let output = pipeline.run(Payload::Image(image))?.into_single()?;
 
 ---
 
-## 🛠️ Installation & Building
-
-### Prerequisites
-- [Rust toolchain](https://rustup.rs/) (edition 2021+)
-- Python 3.8+ (optional, for Python bindings)
-- Node.js 18+ (optional, for JavaScript/TypeScript bindings)
-
-### Build Everything (Engine & Action Plugins)
-```bash
-./build-release.sh
-```
-This compiles the engine and builds action plugins into `target/release/actions/`.
-
-### Install Python Bindings
-```bash
-cd bindings/python
-maturin develop --release
-```
-
-### Install JavaScript / TypeScript (Node.js) Bindings
-```bash
-cd bindings/js
-npm install && npm run build
-```
-
----
-
 ## 🧩 Extending Morflow: Custom Actions
 
 Custom processing actions are written as lightweight Rust shared libraries:

@@ -65,11 +65,16 @@ fn tensor_to_morflow_tensor(tensor: &Tensor) -> MorflowTensor {
     }
     .to_string();
 
-    let bytes = tensor.to_contiguous_bytes().into_vec();
+    let data = if let Some(bytes) = tensor.as_bytes() {
+        Buffer::from(bytes)
+    } else {
+        Buffer::from(tensor.to_contiguous_bytes().as_slice())
+    };
+
     MorflowTensor {
         shape,
         dtype,
-        data: Buffer::from(bytes),
+        data,
     }
 }
 
@@ -81,9 +86,11 @@ fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
         Payload::Data { buffer } => Ok(MorflowTensor {
             shape: vec![buffer.len() as u32],
             dtype: "u8".to_string(),
-            data: Buffer::from(buffer.to_vec()),
+            data: Buffer::from(buffer.as_slice()),
         }),
-        Payload::WithArgs { payload, .. } => payload_to_morflow_tensor((&*payload).clone()),
+        Payload::WithArgs { payload, .. } => {
+            payload_to_morflow_tensor(abi_stable::std_types::RBox::into_inner(payload))
+        }
         Payload::Error(err) => Err(napi::Error::new(
             napi::Status::GenericFailure,
             err.to_string(),
@@ -127,21 +134,22 @@ fn tensor_input_to_payload(input: TensorInput) -> napi::Result<Payload> {
     if tensor.rank() == 3 {
         let channels = tensor.shape[2];
         let cs = match channels {
-            1 => ColorSpace::Grayscale,
-            3 => ColorSpace::Rgb,
-            4 => ColorSpace::Rgba,
-            _ => ColorSpace::Rgb,
+            1 => Some(ColorSpace::Grayscale),
+            3 => Some(ColorSpace::Rgb),
+            4 => Some(ColorSpace::Rgba),
+            _ => None,
         };
-        if let Ok(img) = Image::new(tensor.clone(), cs, ImageLayout::Hwc) {
+        if let Some(color_space) = cs {
+            let img = Image::new(tensor, color_space, ImageLayout::Hwc)
+                .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?;
             return Ok(Payload::Image(img));
         }
-    }
-    if tensor.rank() == 2 && tensor.shape[0] <= 8 {
+    } else if tensor.rank() == 2 && tensor.shape[0] <= 8 {
         let ch = tensor.shape[0];
         let layout = AudioChannelLayout::from_channel_count(ch);
-        if let Ok(aud) = Audio::new(tensor.clone(), 44100, layout, AudioLayout::Planar) {
-            return Ok(Payload::Audio(aud));
-        }
+        let aud = Audio::new(tensor, 44100, layout, AudioLayout::Planar)
+            .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?;
+        return Ok(Payload::Audio(aud));
     }
     Ok(Payload::Tensor(tensor))
 }
@@ -185,7 +193,8 @@ impl Task for AsyncRunTask {
     type JsValue = MorflowTensor;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let outputs = self.pipeline.run(self.payload.clone()).map_err(map_error)?;
+        let payload = std::mem::replace(&mut self.payload, Payload::Data { buffer: RVec::new() });
+        let outputs = self.pipeline.run(payload).map_err(map_error)?;
         let single = outputs.into_single().map_err(map_error)?;
         payload_to_morflow_tensor(single)
     }
@@ -206,11 +215,12 @@ impl Task for AsyncRunAllTask {
     type JsValue = napi::JsObject;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let outputs = self.pipeline.run(self.payload.clone()).map_err(map_error)?;
+        let payload = std::mem::replace(&mut self.payload, Payload::Data { buffer: RVec::new() });
+        let outputs = self.pipeline.run(payload).map_err(map_error)?;
         let mut list = Vec::with_capacity(outputs.len());
-        for (name, out_payload) in outputs.iter() {
-            let tensor_obj = payload_to_morflow_tensor(out_payload.clone())?;
-            list.push((name.to_string(), tensor_obj));
+        for (name, out_payload) in outputs.into_iter() {
+            let tensor_obj = payload_to_morflow_tensor(out_payload)?;
+            list.push((name, tensor_obj));
         }
         Ok(list)
     }
@@ -272,9 +282,9 @@ impl Pipeline {
         let payload = extract_input_payload(input)?;
         let outputs = self.inner.run(payload).map_err(map_error)?;
         let mut obj = env.create_object()?;
-        for (name, out_payload) in outputs.iter() {
-            let tensor_obj = payload_to_morflow_tensor(out_payload.clone())?;
-            obj.set_named_property(name, tensor_obj)?;
+        for (name, out_payload) in outputs.into_iter() {
+            let tensor_obj = payload_to_morflow_tensor(out_payload)?;
+            obj.set_named_property(&name, tensor_obj)?;
         }
         Ok(obj)
     }
