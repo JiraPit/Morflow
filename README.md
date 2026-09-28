@@ -19,10 +19,27 @@ Morflow was created to solve core challenges in modern data and AI engineering:
 
 ---
 
-## ⚡ 30-Second Quickstart
+## Quickstart
 
-### 1. Define your pipeline (`pipeline.morf`)
+### 1. Install Morflow
+
+```bash
+# Python
+pip install morflow
+
+# Node.js
+npm install morflow
+
+# Rust
+cargo add morflow
+```
+
+### 2. Define your pipeline (`pipeline.morf`)
+
 ```morf
+import base.latest
+from image_essentials.latest import to_tensor, resize, color_adjust, gaussian_blur, to_image
+
 accept $input
 
 $input
@@ -34,7 +51,15 @@ $input
     >> emit
 ```
 
-### 2. Run in Python (Zero-Copy NumPy)
+### 3. Prepare Actions
+
+```bash
+morflow prep pipeline.morf
+```
+
+### 4. Run in your application
+
+**Python (Zero-Copy NumPy)**:
 ```python
 import morflow
 import numpy as np
@@ -44,7 +69,7 @@ pipeline = morflow.load("pipeline.morf")
 output_array = pipeline.run(input_numpy_array)
 ```
 
-### 3. Or run in JavaScript / TypeScript (Node.js)
+**JavaScript / TypeScript (Node.js)**:
 ```javascript
 import morflow from 'morflow';
 
@@ -53,13 +78,7 @@ const pipeline = morflow.load('pipeline.morf');
 const outputTensor = await pipeline.run(inputTypedArray);
 ```
 
-### 4. Or run in Rust
-```rust
-use pipeline::{Morflow, Payload};
-
-let mut pipeline = Morflow::load("pipeline.morf")?;
-let output = pipeline.run(Payload::Image(image))?.into_single()?;
-```
+Full end-to-end examples across Rust, Python, and JavaScript are available in the [`examples/`](examples) directory.
 
 ---
 
@@ -89,16 +108,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 }
 ```
 Compile to `.so`/`.dll` and drop it into your actions directory—Morflow discovers and registers it dynamically at runtime with zero host recompilation.
-
----
-
-## 📂 Examples
-
-Explore end-to-end host implementations in Rust, Python, and JavaScript under [`examples/`](examples/):
-- **Image Processing** ([`rust`](examples/rust/image_processing), [`python`](examples/python/image_processing), [`js`](examples/js/image_processing)): Color grading, spatial resampling, and spatial filtering.
-- **Audio DSP Mastering** ([`rust`](examples/rust/audio_processing), [`python`](examples/python/audio_processing), [`js`](examples/js/audio_processing)): Dynamic range compression, biquad EQ, multi-channel stereo widening, and peak limiting.
-- **Audio Split** ([`rust`](examples/rust/audio_split), [`python`](examples/python/audio_split), [`js`](examples/js/audio_split)): Parallel stereo channel extraction with multiple named stream outputs.
-
 
 ---
 
