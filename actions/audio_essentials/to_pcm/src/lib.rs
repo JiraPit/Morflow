@@ -13,11 +13,12 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_dtype = "i16";
     let mut target_layout = "interleaved";
     let mut clip = true;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(dt) = args
             .get_named("dtype")
             .or_else(|| args.get_named("format"))
@@ -39,7 +40,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let is_interleaved = target_layout.eq_ignore_ascii_case("interleaved")
         || target_layout.eq_ignore_ascii_case("packed");
 
-    let (planar_f32, channels, num_samples) = match payload.unwrap_payload() {
+    let (planar_f32, channels, num_samples) = match inner_payload {
         Payload::Audio(audio) => {
             let ch = audio.channels().max(1);
             let samples = audio.num_samples();
@@ -62,11 +63,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             (f32_vec, ch, samples)
         }
         Payload::Data { buffer } => {
-            return Payload::Data {
-                buffer: buffer.clone(),
-            };
+            return Payload::Data { buffer };
         }
-        other => return other.clone(),
+        other => return other,
     };
 
     if num_samples == 0 || channels == 0 {

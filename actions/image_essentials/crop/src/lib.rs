@@ -12,12 +12,13 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut crop_x = 0usize;
     let mut crop_y = 0usize;
     let mut crop_w: Option<usize> = None;
     let mut crop_h: Option<usize> = None;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(x_str) = args
             .get_named("x")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -50,7 +51,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let in_w = img.width();
             let in_h = img.height();
@@ -62,7 +63,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             if let Ok(cropped) = img.crop(y0, y0 + h, x0, x0 + w) {
                 Payload::Image(cropped)
             } else {
-                payload.clone()
+                Payload::Image(img)
             }
         }
         Payload::Tensor(tensor) => {
@@ -79,7 +80,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 (2, _) => (shape[0], shape[1]),
                 (3, ImageLayout::Hwc) => (shape[0], shape[1]),
                 (3, ImageLayout::Chw) => (shape[1], shape[2]),
-                _ => return payload.clone(),
+                _ => return Payload::Tensor(tensor),
             };
 
             let x0 = crop_x.min(in_w);
@@ -100,9 +101,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 }
             }
 
-            payload.clone()
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 

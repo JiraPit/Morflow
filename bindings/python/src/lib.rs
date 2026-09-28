@@ -190,14 +190,19 @@ fn tensor_to_py<'py>(py: Python<'py>, tensor: &Tensor) -> PyResult<Bound<'py, Py
             Ok(py_arr.into_any())
         }
         TensorDType::I32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let i32_slice: &[i32] = unsafe {
-                std::slice::from_raw_parts(
-                    bytes.as_ptr() as *const i32,
-                    bytes.len() / std::mem::size_of::<i32>(),
-                )
+            let i32_vec = if let Some(slice) = tensor.as_i32_slice() {
+                slice.to_vec()
+            } else {
+                let bytes = tensor.to_contiguous_bytes();
+                let i32_slice: &[i32] = unsafe {
+                    std::slice::from_raw_parts(
+                        bytes.as_ptr() as *const i32,
+                        bytes.len() / std::mem::size_of::<i32>(),
+                    )
+                };
+                i32_slice.to_vec()
             };
-            let arr = ArrayD::from_shape_vec(shape_ix, i32_slice.to_vec())
+            let arr = ArrayD::from_shape_vec(shape_ix, i32_vec)
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
             let py_arr = arr.into_pyarray(py);
             Ok(py_arr.into_any())
@@ -252,13 +257,15 @@ impl PyPipeline {
             }
         }
 
-        let outputs = if positional_payloads.is_empty() {
-            self.inner.run_args(vec![]).map_err(map_error)?
-        } else {
-            self.inner
-                .run_args(positional_payloads)
-                .map_err(map_error)?
-        };
+        let outputs = py
+            .allow_threads(|| {
+                if positional_payloads.is_empty() {
+                    self.inner.run_args(vec![])
+                } else {
+                    self.inner.run_args(positional_payloads)
+                }
+            })
+            .map_err(map_error)?;
 
         // If pipeline has exactly 1 output (and unnamed or single emit), return the raw object directly
         if outputs.len() == 1 {

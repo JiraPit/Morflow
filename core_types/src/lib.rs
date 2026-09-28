@@ -66,6 +66,25 @@ impl Payload {
         }
     }
 
+    /// Consumes and extracts the core underlying payload if wrapped with arguments without cloning.
+    pub fn into_unwrapped(self) -> Payload {
+        match self {
+            Payload::WithArgs { payload, .. } => RBox::into_inner(payload).into_unwrapped(),
+            other => other,
+        }
+    }
+
+    /// Deconstructs the payload into its underlying payload and optional action arguments without cloning.
+    pub fn take_payload_and_args(self) -> (Payload, Option<ActionArgs>) {
+        match self {
+            Payload::WithArgs { payload, args } => {
+                let inner = RBox::into_inner(payload).into_unwrapped();
+                (inner, Some(args))
+            }
+            other => (other, None),
+        }
+    }
+
     /// Access optional action arguments if present.
     pub fn args(&self) -> Option<&ActionArgs> {
         match self {

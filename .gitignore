@@ -33,3 +33,19 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+
+# Java build outputs
+*.class
+.mvn/
+
+# Node.js & TypeScript
+node_modules/
+*.node
+native.d.ts
+
+# Example generated output media
+examples/**/output.wav
+examples/**/output.png
+examples/**/left_filtered.wav
+examples/**/right_filtered.wav
+

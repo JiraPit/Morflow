@@ -13,11 +13,12 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_dtype = "i16";
     let mut target_sample_rate: Option<u32> = None;
     let mut clip = true;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(dt) = args
             .get_named("dtype")
             .or_else(|| args.get_named("format"))
@@ -42,7 +43,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    let (planar_f32, channels, num_samples, sample_rate) = match payload.unwrap_payload() {
+    let (planar_f32, channels, num_samples, sample_rate) = match inner_payload {
         Payload::Audio(audio) => {
             let ch = audio.channels().max(1);
             let samples = audio.num_samples();
@@ -67,17 +68,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             (f32_vec, ch, samples, sr)
         }
         Payload::Data { buffer } => {
-            // If already a WAV file buffer, pass through
-            if buffer.len() >= 12 && &buffer[0..4] == b"RIFF" && &buffer[8..12] == b"WAVE" {
-                return Payload::Data {
-                    buffer: buffer.clone(),
-                };
-            }
-            return Payload::Data {
-                buffer: buffer.clone(),
-            };
+            return Payload::Data { buffer };
         }
-        other => return other.clone(),
+        other => return other,
     };
 
     let wav_bytes = encode_wav_binary(

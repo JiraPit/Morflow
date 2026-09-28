@@ -13,10 +13,11 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut flip_h = false;
     let mut flip_v = false;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(ax_str) = args
             .get_named("axis")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -34,10 +35,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     if !flip_h && !flip_v {
-        return payload.clone();
+        return inner_payload;
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let res = apply_flip(&img.tensor, img.layout, flip_h, flip_v);
             Payload::Image(Image {
@@ -54,10 +55,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_flip(tensor, layout, flip_h, flip_v);
+            let res = apply_flip(&tensor, layout, flip_h, flip_v);
             Payload::Tensor(res)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -72,9 +73,8 @@ fn apply_flip(tensor: &Tensor, layout: ImageLayout, flip_h: bool, flip_v: bool) 
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
             let mut out = vec![0.0f32; in_h * in_w * channels];
 
@@ -98,7 +98,7 @@ fn apply_flip(tensor: &Tensor, layout: ImageLayout, flip_h: bool, flip_v: bool) 
                     } else {
                         vec![in_h, in_w, channels]
                     };
-                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                    Tensor::from_f32_vec(out, out_shape).unwrap()
                 }
                 ImageLayout::Chw => {
                     let plane_size = in_h * in_w;
@@ -119,12 +119,14 @@ fn apply_flip(tensor: &Tensor, layout: ImageLayout, flip_h: bool, flip_v: bool) 
                     } else {
                         vec![channels, in_h, in_w]
                     };
-                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                    Tensor::from_f32_vec(out, out_shape).unwrap()
                 }
             }
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut out = vec![0u8; in_h * in_w * channels];
 
             match layout {

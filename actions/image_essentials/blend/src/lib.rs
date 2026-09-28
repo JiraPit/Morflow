@@ -1,4 +1,4 @@
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -26,11 +26,12 @@ enum BlendMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut mode = BlendMode::Alpha;
     let mut opacity = 1.0f32;
     let mut solid_color: Option<Vec<f32>> = None;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(m_str) = args
             .get_named("mode")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -68,22 +69,18 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
-        Payload::Image(img) => {
-            let res = apply_blend(
-                &img.tensor,
+    match inner_payload {
+        Payload::Image(mut img) => {
+            apply_blend_mut(
+                &mut img.tensor,
                 img.layout,
                 mode,
                 opacity,
                 solid_color.as_deref(),
             );
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
+            Payload::Image(img)
         }
-        Payload::Tensor(tensor) => {
+        Payload::Tensor(mut tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
             } else if tensor.shape.len() == 3 && tensor.shape[0] <= 4 {
@@ -91,38 +88,34 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_blend(tensor, layout, mode, opacity, solid_color.as_deref());
-            Payload::Tensor(res)
+            apply_blend_mut(&mut tensor, layout, mode, opacity, solid_color.as_deref());
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
-fn apply_blend(
-    tensor: &Tensor,
+fn apply_blend_mut(
+    tensor: &mut Tensor,
     layout: ImageLayout,
     mode: BlendMode,
     opacity: f32,
     solid_color: Option<&[f32]>,
-) -> Tensor {
+) {
     let shape = tensor.shape.as_slice();
     let channels = match (shape.len(), layout) {
         (2, _) => 1,
         (3, ImageLayout::Hwc) => shape[2],
         (3, ImageLayout::Chw) => shape[0],
-        _ => return tensor.clone(),
+        _ => return,
     };
+
+    let default_color = vec![1.0f32; channels];
+    let fg_color = solid_color.unwrap_or(&default_color);
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f32, bytes.len() / 4)
-            };
-
-            let default_color = vec![1.0f32; channels];
-            let fg_color = solid_color.unwrap_or(&default_color);
-
+            let slice = tensor.as_f32_slice_mut();
             slice.par_chunks_exact_mut(channels).for_each(|pixel| {
                 for c in 0..channels {
                     let a = pixel[c];
@@ -149,16 +142,9 @@ fn apply_blend(
                     pixel[c] = (1.0 - opacity) * a + opacity * blended;
                 }
             });
-
-            Tensor::from_f32_shape(slice, tensor.shape.to_vec()).unwrap()
         }
         TensorDType::U8 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [u8] = bytes.as_mut_slice();
-
-            let default_color = vec![1.0f32; channels];
-            let fg_color = solid_color.unwrap_or(&default_color);
-
+            let slice = tensor.as_u8_slice_mut();
             slice.par_chunks_exact_mut(channels).for_each(|pixel| {
                 for c in 0..channels {
                     let a = pixel[c] as f32 / 255.0;
@@ -186,10 +172,8 @@ fn apply_blend(
                     pixel[c] = (res * 255.0).clamp(0.0, 255.0).round() as u8;
                 }
             });
-
-            Tensor::from_rvec_u8(bytes, tensor.shape.to_vec(), TensorDType::U8).unwrap()
         }
-        _ => tensor.clone(),
+        _ => {}
     }
 }
 

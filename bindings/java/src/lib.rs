@@ -185,6 +185,54 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRun<'local>(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_org_morflow_Pipeline_nativeRunDirect<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    handle: jlong,
+    buffer_obj: JByteBuffer<'local>,
+    shape_obj: JIntArray<'local>,
+    dtype_jstr: JString<'local>,
+) -> jobject {
+    if handle == 0 {
+        throw_exception(&mut env, "Pipeline handle is null");
+        return std::ptr::null_mut();
+    }
+    let pipeline = unsafe { &mut *(handle as *mut MorflowPipeline) };
+
+    let input_payload = match direct_to_payload(&mut env, &buffer_obj, &shape_obj, &dtype_jstr) {
+        Ok(p) => p,
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to convert direct buffer: {}", e));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let outputs = match pipeline.run(input_payload) {
+        Ok(out) => out,
+        Err(e) => {
+            map_error_to_exception(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    let single_payload = match outputs.into_single() {
+        Ok(p) => p,
+        Err(e) => {
+            map_error_to_exception(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    match payload_to_java_tensor(&mut env, &single_payload) {
+        Ok(obj) => obj.into_raw(),
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to convert output payload: {}", e));
+            std::ptr::null_mut()
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "system" fn Java_org_morflow_Pipeline_nativeRunAll<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -267,6 +315,53 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeDestroy<'local>(
 // Conversion Helpers (Java <-> Rust Payload)
 // ---------------------------------------------------------------------------
 
+fn direct_to_payload<'local>(
+    env: &mut JNIEnv<'local>,
+    buffer_obj: &JByteBuffer<'local>,
+    shape_obj: &JIntArray<'local>,
+    dtype_jstr: &JString<'local>,
+) -> Result<Payload, String> {
+    if buffer_obj.is_null() {
+        return Ok(Payload::Data {
+            buffer: RVec::new(),
+        });
+    }
+
+    let ptr = env
+        .get_direct_buffer_address(buffer_obj)
+        .map_err(|e| format!("ByteBuffer must be direct: {}", e))?;
+    let capacity = env
+        .get_direct_buffer_capacity(buffer_obj)
+        .map_err(|e| format!("Failed to get direct buffer capacity: {}", e))?;
+
+    let byte_slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, capacity) };
+
+    let shape_len = if !shape_obj.is_null() {
+        env.get_array_length(shape_obj)
+            .map_err(|e| format!("Failed to get shape length: {}", e))? as usize
+    } else {
+        0
+    };
+
+    let mut shape = vec![0i32; shape_len];
+    if shape_len > 0 {
+        env.get_int_array_region(shape_obj, 0, &mut shape)
+            .map_err(|e| format!("Failed to read shape elements: {}", e))?;
+    }
+
+    let usize_shape: Vec<usize> = shape.into_iter().map(|d| d as usize).collect();
+
+    let dtype_str: String = if !dtype_jstr.is_null() {
+        env.get_string(dtype_jstr)
+            .map(|s| s.into())
+            .unwrap_or_else(|_| "raw".to_string())
+    } else {
+        "raw".to_string()
+    };
+
+    construct_payload_from_raw(byte_slice, usize_shape, &dtype_str)
+}
+
 fn java_tensor_to_payload<'local>(
     env: &mut JNIEnv<'local>,
     obj: &JObject<'local>,
@@ -292,19 +387,6 @@ fn java_tensor_to_payload<'local>(
 
     // Direct ByteBuffer zero-copy extraction
     let byte_buffer = JByteBuffer::from(data_obj);
-    let (ptr, capacity) = match env.get_direct_buffer_address(&byte_buffer) {
-        Ok(p) => {
-            let cap = env
-                .get_direct_buffer_capacity(&byte_buffer)
-                .map_err(|e| format!("Failed to get direct buffer capacity: {}", e))?;
-            (p, cap)
-        }
-        Err(_) => {
-            return Err("ByteBuffer must be direct (allocated via ByteBuffer.allocateDirect)".into());
-        }
-    };
-
-    let byte_slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, capacity) };
 
     // 2. Get `shape` int[]
     let shape_obj = env
@@ -314,15 +396,6 @@ fn java_tensor_to_payload<'local>(
         .map_err(|e| format!("getShape() did not return Object: {}", e))?;
 
     let shape_array = JIntArray::from(shape_obj);
-    let shape_len = env
-        .get_array_length(&shape_array)
-        .map_err(|e| format!("Failed to get shape length: {}", e))? as usize;
-
-    let mut shape = vec![0i32; shape_len];
-    env.get_int_array_region(&shape_array, 0, &mut shape)
-        .map_err(|e| format!("Failed to read shape elements: {}", e))?;
-
-    let usize_shape: Vec<usize> = shape.into_iter().map(|d| d as usize).collect();
 
     // 3. Get `dtype` String
     let dtype_obj = env
@@ -331,15 +404,16 @@ fn java_tensor_to_payload<'local>(
         .l()
         .map_err(|e| format!("getDtype() did not return Object: {}", e))?;
 
-    let dtype_str: String = if !dtype_obj.is_null() {
-        let jstr = JString::from(dtype_obj);
-        env.get_string(&jstr)
-            .map(|s| s.into())
-            .unwrap_or_else(|_| "raw".to_string())
-    } else {
-        "raw".to_string()
-    };
+    let dtype_jstr = JString::from(dtype_obj);
 
+    direct_to_payload(env, &byte_buffer, &shape_array, &dtype_jstr)
+}
+
+fn construct_payload_from_raw(
+    byte_slice: &[u8],
+    usize_shape: Vec<usize>,
+    dtype_str: &str,
+) -> Result<Payload, String> {
     // Construct Payload from byte slice, shape, and dtype
     let tensor = match dtype_str.to_lowercase().as_str() {
         "f32" | "float" | "float32" => {
@@ -422,9 +496,12 @@ fn tensor_to_java_morflow_tensor<'local>(
     };
 
     let shape: Vec<i32> = tensor.shape.iter().map(|&d| d as i32).collect();
-    let bytes = tensor.to_contiguous_bytes();
-
-    create_java_morflow_tensor(env, bytes.as_slice(), &shape, dtype_str)
+    if let Some(bytes) = tensor.as_bytes() {
+        create_java_morflow_tensor(env, bytes, &shape, dtype_str)
+    } else {
+        let bytes = tensor.to_contiguous_bytes();
+        create_java_morflow_tensor(env, bytes.as_slice(), &shape, dtype_str)
+    }
 }
 
 fn create_java_morflow_tensor<'local>(

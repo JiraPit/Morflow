@@ -1,4 +1,4 @@
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -13,13 +13,14 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut brightness = 0.0f32;
     let mut contrast = 1.0f32;
     let mut gamma = 1.0f32;
     let mut saturation = 1.0f32;
     let mut exposure = 0.0f32;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(b_str) = args.get_named("brightness") {
             if let Ok(b) = b_str.parse::<f32>() {
                 brightness = b;
@@ -50,10 +51,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
-        Payload::Image(img) => {
-            let adj = adjust_color_tensor(
-                &img.tensor,
+    match inner_payload {
+        Payload::Image(mut img) => {
+            adjust_color_tensor(
+                &mut img.tensor,
                 img.layout,
                 brightness,
                 contrast,
@@ -61,13 +62,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 saturation,
                 exposure,
             );
-            Payload::Image(Image {
-                tensor: adj,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
+            Payload::Image(img)
         }
-        Payload::Tensor(tensor) => {
+        Payload::Tensor(mut tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
             } else if tensor.shape.len() == 3 && tensor.shape[0] <= 4 {
@@ -75,30 +72,36 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let adj = adjust_color_tensor(
-                tensor, layout, brightness, contrast, gamma, saturation, exposure,
+            adjust_color_tensor(
+                &mut tensor,
+                layout,
+                brightness,
+                contrast,
+                gamma,
+                saturation,
+                exposure,
             );
-            Payload::Tensor(adj)
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
 fn adjust_color_tensor(
-    tensor: &Tensor,
+    tensor: &mut Tensor,
     layout: ImageLayout,
     brightness: f32,
     contrast: f32,
     gamma: f32,
     saturation: f32,
     exposure: f32,
-) -> Tensor {
+) {
     let shape = tensor.shape.as_slice();
     let (height, width, channels) = match (shape.len(), layout) {
         (2, _) => (shape[0], shape[1], 1),
         (3, ImageLayout::Hwc) => (shape[0], shape[1], shape[2]),
         (3, ImageLayout::Chw) => (shape[1], shape[2], shape[0]),
-        _ => return tensor.clone(),
+        _ => return,
     };
 
     let exposure_mult = 2.0f32.powf(exposure);
@@ -106,10 +109,7 @@ fn adjust_color_tensor(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f32, bytes.len() / 4)
-            };
+            let slice = tensor.as_f32_slice_mut();
 
             if layout == ImageLayout::Hwc {
                 slice.par_chunks_exact_mut(channels).for_each(|pixel| {
@@ -193,12 +193,9 @@ fn adjust_color_tensor(
                     });
                 }
             }
-
-            Tensor::from_f32_shape(slice, tensor.shape.to_vec()).unwrap()
         }
         TensorDType::U8 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [u8] = bytes.as_mut_slice();
+            let slice = tensor.as_u8_slice_mut();
 
             if layout == ImageLayout::Hwc {
                 slice.par_chunks_exact_mut(channels).for_each(|pixel| {
@@ -247,10 +244,8 @@ fn adjust_color_tensor(
                     *val = (v * 255.0).clamp(0.0, 255.0).round() as u8;
                 });
             }
-
-            Tensor::from_rvec_u8(bytes, tensor.shape.to_vec(), TensorDType::U8).unwrap()
         }
-        _ => tensor.clone(),
+        _ => {}
     }
 }
 

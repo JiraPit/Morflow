@@ -21,6 +21,7 @@ enum ResizeFilter {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_w: Option<usize> = None;
     let mut target_h: Option<usize> = None;
     let mut scale_x: Option<f32> = None;
@@ -28,7 +29,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let mut filter = ResizeFilter::Bilinear;
     let mut keep_aspect_ratio = false;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(w_str) = args
             .get_named("width")
             .or_else(|| args.get_named("w"))
@@ -68,7 +69,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let resized_tensor = resize_tensor(
                 &img.tensor,
@@ -95,7 +96,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 ImageLayout::Hwc
             };
             let resized = resize_tensor(
-                tensor,
+                &tensor,
                 layout,
                 target_w,
                 target_h,
@@ -106,7 +107,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(resized)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -158,9 +159,8 @@ fn resize_tensor(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
             let mut out = vec![0.0f32; out_h * out_w * channels];
 
@@ -172,7 +172,7 @@ fn resize_tensor(
                     } else {
                         vec![out_h, out_w, channels]
                     };
-                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                    Tensor::from_f32_vec(out, out_shape).unwrap()
                 }
                 ImageLayout::Chw => {
                     resize_chw_f32(src, in_w, in_h, channels, &mut out, out_w, out_h, filter);
@@ -181,17 +181,19 @@ fn resize_tensor(
                     } else {
                         vec![channels, out_h, out_w]
                     };
-                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                    Tensor::from_f32_vec(out, out_shape).unwrap()
                 }
             }
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut out = vec![0u8; out_h * out_w * channels];
 
             match layout {
                 ImageLayout::Hwc => {
-                    resize_hwc_u8(&bytes, in_w, in_h, channels, &mut out, out_w, out_h, filter);
+                    resize_hwc_u8(bytes, in_w, in_h, channels, &mut out, out_w, out_h, filter);
                     let out_shape = if channels == 1 && shape.len() == 2 {
                         vec![out_h, out_w]
                     } else {
@@ -201,7 +203,7 @@ fn resize_tensor(
                         .unwrap()
                 }
                 ImageLayout::Chw => {
-                    resize_chw_u8(&bytes, in_w, in_h, channels, &mut out, out_w, out_h, filter);
+                    resize_chw_u8(bytes, in_w, in_h, channels, &mut out, out_w, out_h, filter);
                     let out_shape = if channels == 1 && shape.len() == 2 {
                         vec![out_h, out_w]
                     } else {

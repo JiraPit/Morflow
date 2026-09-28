@@ -122,10 +122,11 @@ fn next_power_of_two(mut x: usize) -> usize {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut n_fft = 1024usize;
     let mut hop_size = 256usize;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(n) = args
             .get_named("n_fft")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -148,21 +149,14 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let num_bins = fft_size / 2 + 1;
     let window = compute_hann_window(n_fft);
 
-    let tensor_opt = match payload.unwrap_payload() {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => Some(audio.tensor.clone()),
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => Some(tensor.clone()),
+    let tensor_opt = match inner_payload {
+        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => Some(audio.tensor),
+        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => Some(tensor),
         _ => None,
     };
 
     if let Some(tensor) = tensor_opt {
-        let bytes = tensor.to_contiguous_bytes();
-        let samples: &[f32] = unsafe {
-            std::slice::from_raw_parts(
-                bytes.as_ptr() as *const f32,
-                bytes.len() / std::mem::size_of::<f32>(),
-            )
-        };
-
+        let samples = tensor.to_vec_f32();
         let shape = tensor.shape.as_slice();
         let (num_channels, channel_len) = if shape.len() == 2 {
             (shape[0], shape[1])
@@ -171,7 +165,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         };
 
         if channel_len < n_fft {
-            return Payload::Tensor(tensor.clone());
+            return Payload::Tensor(tensor);
         }
 
         let num_frames = (channel_len - n_fft) / hop_size + 1;
@@ -211,12 +205,12 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
         // Output tensor shape: [channels, freq_bins, time_frames]
         let out_tensor =
-            Tensor::from_f32_shape(&all_spectrograms, vec![num_channels, num_bins, num_frames])
+            Tensor::from_f32_vec(all_spectrograms, vec![num_channels, num_bins, num_frames])
                 .unwrap_or_else(|_| tensor.clone());
 
         Payload::Tensor(out_tensor)
     } else {
-        payload.clone()
+        Payload::Error(core_types::RString::from("STFT requires an Audio or F32 Tensor input"))
     }
 }
 

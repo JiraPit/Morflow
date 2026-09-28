@@ -11,6 +11,10 @@ import java.util.Map;
  * Implements {@link AutoCloseable} to safely manage native engine resources.
  */
 public class Pipeline implements AutoCloseable {
+    static {
+        NativeLoader.load();
+    }
+
     private final long nativeHandle;
     private boolean closed = false;
 
@@ -68,7 +72,10 @@ public class Pipeline implements AutoCloseable {
      */
     public MorflowTensor run(MorflowTensor input) {
         checkClosed();
-        return nativeRun(nativeHandle, input);
+        if (input == null) {
+            return nativeRun(nativeHandle, null);
+        }
+        return nativeRunDirect(nativeHandle, input.getData(), input.getShape(), input.getDtype());
     }
 
     /**
@@ -90,7 +97,8 @@ public class Pipeline implements AutoCloseable {
      * @return Single emitted output tensor.
      */
     public MorflowTensor run(ByteBuffer directBuffer, int[] shape, String dtype) {
-        return run(MorflowTensor.fromDirectBuffer(directBuffer, shape, dtype));
+        checkClosed();
+        return nativeRunDirect(nativeHandle, directBuffer, shape, dtype);
     }
 
     /**
@@ -155,6 +163,7 @@ public class Pipeline implements AutoCloseable {
     private static native String[] nativeGetParams(long handle);
     private static native void nativeWarmup(long handle);
     private static native MorflowTensor nativeRun(long handle, MorflowTensor input);
+    private static native MorflowTensor nativeRunDirect(long handle, ByteBuffer buffer, int[] shape, String dtype);
     private static native Map<String, MorflowTensor> nativeRunAll(long handle, MorflowTensor input);
     private static native void nativeDestroy(long handle);
 }

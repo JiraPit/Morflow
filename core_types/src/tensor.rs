@@ -139,6 +139,54 @@ impl Tensor {
         })
     }
 
+    /// Creates a tensor by taking ownership of an owned `Vec<f32>` with zero memory copy.
+    pub fn from_f32_vec(data: Vec<f32>, shape: Vec<usize>) -> Result<Self, RString> {
+        let num_elements: usize = shape.iter().product();
+        if data.len() != num_elements {
+            return Err(RString::from(format!(
+                "Element count mismatch: vec has {}, shape requires {}",
+                data.len(),
+                num_elements
+            )));
+        }
+        let strides = compute_c_contiguous_strides(&shape, 4);
+        let mut data = std::mem::ManuallyDrop::new(data);
+        let byte_len = data.len() * 4;
+        let byte_cap = data.capacity() * 4;
+        let byte_vec = unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
+        Ok(Self {
+            storage: RArc::new(RVec::from(byte_vec)),
+            byte_offset: 0,
+            shape: RVec::from(shape),
+            strides,
+            dtype: TensorDType::F32,
+        })
+    }
+
+    /// Creates a tensor by taking ownership of an owned `Vec<i32>` with zero memory copy.
+    pub fn from_i32_vec(data: Vec<i32>, shape: Vec<usize>) -> Result<Self, RString> {
+        let num_elements: usize = shape.iter().product();
+        if data.len() != num_elements {
+            return Err(RString::from(format!(
+                "Element count mismatch: vec has {}, shape requires {}",
+                data.len(),
+                num_elements
+            )));
+        }
+        let strides = compute_c_contiguous_strides(&shape, 4);
+        let mut data = std::mem::ManuallyDrop::new(data);
+        let byte_len = data.len() * 4;
+        let byte_cap = data.capacity() * 4;
+        let byte_vec = unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
+        Ok(Self {
+            storage: RArc::new(RVec::from(byte_vec)),
+            byte_offset: 0,
+            shape: RVec::from(shape),
+            strides,
+            dtype: TensorDType::I32,
+        })
+    }
+
     /// Returns the total number of elements represented by this view.
     #[inline]
     pub fn num_elements(&self) -> usize {
@@ -328,6 +376,70 @@ impl Tensor {
             return None;
         }
         Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4) })
+    }
+
+    /// Access contiguous u8 slice if this view is contiguous and of dtype U8.
+    pub fn as_u8_slice(&self) -> Option<&[u8]> {
+        if self.dtype != TensorDType::U8 {
+            return None;
+        }
+        self.as_bytes()
+    }
+
+    /// Access contiguous i32 slice if this view is contiguous and of dtype I32.
+    pub fn as_i32_slice(&self) -> Option<&[i32]> {
+        if self.dtype != TensorDType::I32 {
+            return None;
+        }
+        let bytes = self.as_bytes()?;
+        if bytes.len() % 4 != 0 {
+            return None;
+        }
+        Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const i32, bytes.len() / 4) })
+    }
+
+    /// Provides Copy-on-Write (COW) mutable access to contiguous F32 data.
+    ///
+    /// If the tensor uniquely owns its storage and is contiguous with 0 offset,
+    /// it returns a mutable slice into the existing buffer (0 allocations, 0 copies).
+    /// Otherwise, it re-allocates a new contiguous buffer, updates storage, and returns the slice.
+    pub fn as_f32_slice_mut(&mut self) -> &mut [f32] {
+        self.ensure_contiguous_storage();
+        let total_bytes = self.num_elements() * self.dtype.element_size();
+        let storage_mut = RArc::get_mut(&mut self.storage).unwrap();
+        let slice = &mut storage_mut[self.byte_offset..self.byte_offset + total_bytes];
+        unsafe { std::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut f32, slice.len() / 4) }
+    }
+
+    /// Provides Copy-on-Write (COW) mutable access to contiguous U8 data.
+    pub fn as_u8_slice_mut(&mut self) -> &mut [u8] {
+        self.ensure_contiguous_storage();
+        let total_bytes = self.num_elements() * self.dtype.element_size();
+        let storage_mut = RArc::get_mut(&mut self.storage).unwrap();
+        &mut storage_mut[self.byte_offset..self.byte_offset + total_bytes]
+    }
+
+    /// Provides Copy-on-Write (COW) mutable access to contiguous I32 data.
+    pub fn as_i32_slice_mut(&mut self) -> &mut [i32] {
+        self.ensure_contiguous_storage();
+        let total_bytes = self.num_elements() * self.dtype.element_size();
+        let storage_mut = RArc::get_mut(&mut self.storage).unwrap();
+        let slice = &mut storage_mut[self.byte_offset..self.byte_offset + total_bytes];
+        unsafe { std::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut i32, slice.len() / 4) }
+    }
+
+    /// Ensures that this tensor has unique ownership of a C-contiguous storage buffer.
+    pub fn ensure_contiguous_storage(&mut self) {
+        let is_unique_and_contig = RArc::get_mut(&mut self.storage).is_some()
+            && self.is_contiguous()
+            && self.byte_offset == 0;
+
+        if !is_unique_and_contig {
+            let contig_bytes = self.to_contiguous_bytes();
+            self.storage = RArc::new(contig_bytes);
+            self.byte_offset = 0;
+            self.strides = compute_c_contiguous_strides(&self.shape, self.dtype.element_size());
+        }
     }
 
     /// Converts non-contiguous or contiguous tensor into an owned Vec<f32>.
@@ -589,5 +701,38 @@ mod tests {
         assert_eq!(empty.peak_abs(), 0.0);
         assert_eq!(empty.mean(), 0.0);
         assert_eq!(empty.rms(), 0.0);
+    }
+
+    #[test]
+    fn test_tensor_from_vec_f32_zero_copy() {
+        let data = vec![1.0f32, 2.0, 3.0, 4.0];
+        let tensor = Tensor::from_f32_vec(data, vec![2, 2]).unwrap();
+        assert_eq!(tensor.rank(), 2);
+        assert_eq!(tensor.as_f32_slice().unwrap(), &[1.0, 2.0, 3.0, 4.0]);
+    }
+
+    #[test]
+    fn test_tensor_cow_in_place_mutation() {
+        let data = vec![10.0f32, 20.0, 30.0];
+        let mut tensor = Tensor::from_f32_vec(data, vec![3]).unwrap();
+        let original_ptr = tensor.storage.as_ptr();
+
+        // Unique owner: mutates directly in-place without reallocation
+        let slice = tensor.as_f32_slice_mut();
+        slice[0] = 99.0;
+        assert_eq!(tensor.storage.as_ptr(), original_ptr);
+        assert_eq!(tensor.as_f32_slice().unwrap(), &[99.0, 20.0, 30.0]);
+
+        // Cloned view: COW triggers reallocation on mutation
+        let cloned_view = tensor.clone();
+        assert_eq!(tensor.storage.as_ptr(), cloned_view.storage.as_ptr());
+
+        let slice_mut = tensor.as_f32_slice_mut();
+        slice_mut[1] = 88.0;
+        // Storage pointer changed due to COW
+        assert_ne!(tensor.storage.as_ptr(), cloned_view.storage.as_ptr());
+        assert_eq!(tensor.as_f32_slice().unwrap(), &[99.0, 88.0, 30.0]);
+        // Cloned view preserved original values
+        assert_eq!(cloned_view.as_f32_slice().unwrap(), &[99.0, 20.0, 30.0]);
     }
 }

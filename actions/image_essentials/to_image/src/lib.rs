@@ -13,12 +13,13 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_color: Option<ColorSpace> = None;
     let mut target_dtype = TensorDType::U8;
     let mut target_layout = ImageLayout::Hwc;
     let mut denormalize: Option<bool> = None;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(c) = args
             .get_named("color")
             .or_else(|| args.get_named("color_space"))
@@ -59,10 +60,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Tensor(tensor) => {
             let img = tensor_to_image(
-                tensor,
+                &tensor,
                 target_color,
                 target_dtype,
                 target_layout,
@@ -71,9 +72,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Payload::Image(img)
         }
         Payload::Image(img) => {
-            let tensor = &img.tensor;
             let converted = tensor_to_image(
-                tensor,
+                &img.tensor,
                 target_color.or(Some(img.color_space)),
                 target_dtype,
                 target_layout,
@@ -81,7 +81,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Image(converted)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -121,9 +121,12 @@ fn tensor_to_image(
     // Standardize input tensor to F32 HWC intermediate
     let hwc_f32: Vec<f32> = match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src_f32: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src_f32) = tensor.as_f32_slice() else {
+                return Image {
+                    tensor: tensor.clone(),
+                    color_space,
+                    layout: target_layout,
+                };
             };
             if in_layout == ImageLayout::Hwc {
                 src_f32.to_vec()
@@ -143,7 +146,13 @@ fn tensor_to_image(
             }
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return Image {
+                    tensor: tensor.clone(),
+                    color_space,
+                    layout: target_layout,
+                };
+            };
             let mut hwc = vec![0.0f32; height * width * in_channels];
             if in_layout == ImageLayout::Hwc {
                 hwc.par_iter_mut()

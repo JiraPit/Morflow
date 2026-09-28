@@ -73,14 +73,15 @@ fn resample_channel_sinc(
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut from_rate = 48000.0f32;
     let mut to_rate = 44100.0f32;
 
-    if let Payload::Audio(audio) = payload.unwrap_payload() {
+    if let Payload::Audio(audio) = &inner_payload {
         from_rate = audio.sample_rate as f32;
     }
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(fr) = args
             .get_named("from_rate")
             .or_else(|| args.get_named("source_rate"))
@@ -100,16 +101,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
-            let bytes = audio.tensor.to_contiguous_bytes();
-            let samples: &[f32] = unsafe {
-                std::slice::from_raw_parts(
-                    bytes.as_ptr() as *const f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+            let samples = audio.to_vec_f32();
             let shape = audio.tensor.shape.as_slice();
             if shape.len() == 2 {
                 let num_channels = shape[0];
@@ -131,7 +125,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 }
 
                 let out_tensor =
-                    Tensor::from_f32_shape(&combined, vec![num_channels, out_channel_len])
+                    Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
                         .unwrap_or_else(|_| audio.tensor.clone());
                 let out_audio = core_types::Audio {
                     tensor: out_tensor,
@@ -141,9 +135,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 };
                 Payload::Audio(out_audio)
             } else {
-                let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
+                let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8);
                 let out_len = resampled.len();
-                let out_tensor = Tensor::from_f32_shape(&resampled, vec![out_len])
+                let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
                     .unwrap_or_else(|_| audio.tensor.clone());
                 let out_audio = core_types::Audio {
                     tensor: out_tensor,
@@ -155,14 +149,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
         }
         Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let samples: &[f32] = unsafe {
-                std::slice::from_raw_parts(
-                    bytes.as_ptr() as *const f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+            let samples = tensor.to_vec_f32();
             let shape = tensor.shape.as_slice();
             if shape.len() == 2 {
                 let num_channels = shape[0];
@@ -185,18 +172,18 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 }
 
                 let out_tensor =
-                    Tensor::from_f32_shape(&combined, vec![num_channels, out_channel_len])
+                    Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
                         .unwrap_or_else(|_| tensor.clone());
                 Payload::Tensor(out_tensor)
             } else {
-                let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
+                let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8);
                 let out_len = resampled.len();
-                let out_tensor = Tensor::from_f32_shape(&resampled, vec![out_len])
+                let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
                     .unwrap_or_else(|_| tensor.clone());
                 Payload::Tensor(out_tensor)
             }
         }
-        other => other.clone(),
+        other => other,
     }
 }
 

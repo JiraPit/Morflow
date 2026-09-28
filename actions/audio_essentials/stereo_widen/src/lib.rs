@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -13,10 +13,11 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut width = 1.2f32; // 0.0 = mono, 1.0 = unchanged, >1.0 = wider
     let mut center_gain_db = 0.0f32;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(w) = args.get_named("width").or_else(|| args.get_named("amount")) {
             if let Ok(v) = w.parse::<f32>() {
                 width = v.max(0.0);
@@ -35,24 +36,15 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let mid_gain = 10.0f32.powf(center_gain_db / 20.0);
     let inv_sqrt2 = 1.0f32 / std::f32::consts::SQRT_2;
 
-    match payload.unwrap_payload() {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
+    match inner_payload {
+        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
             let shape = audio.tensor.shape.as_slice();
-            // Expecting [2, samples] or [channels, samples] with channels >= 2
             if shape.len() == 2 && shape[0] >= 2 {
                 let num_samples = shape[1];
-                let mut bytes = audio.tensor.to_contiguous_bytes();
-                let all_samples: &mut [f32] = unsafe {
-                    std::slice::from_raw_parts_mut(
-                        bytes.as_mut_ptr() as *mut f32,
-                        bytes.len() / std::mem::size_of::<f32>(),
-                    )
-                };
-
+                let all_samples = audio.tensor.as_f32_slice_mut();
                 let (left_channel, rest) = all_samples.split_at_mut(num_samples);
                 let (right_channel, _) = rest.split_at_mut(num_samples);
 
-                // Process Mid/Side matrix in parallel across sample chunks
                 left_channel
                     .par_iter_mut()
                     .zip(right_channel.par_iter_mut())
@@ -67,36 +59,19 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                         *r = (mid - side) * inv_sqrt2;
                     });
 
-                let out_tensor = Tensor::from_f32_shape(all_samples, audio.tensor.shape.to_vec())
-                    .unwrap_or_else(|_| audio.tensor.clone());
-                let out_audio = core_types::Audio {
-                    tensor: out_tensor,
-                    sample_rate: audio.sample_rate,
-                    channel_layout: audio.channel_layout,
-                    layout: audio.layout,
-                };
-                Payload::Audio(out_audio)
+                Payload::Audio(audio)
             } else {
-                Payload::Audio(audio.clone())
+                Payload::Audio(audio)
             }
         }
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
+        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
             let shape = tensor.shape.as_slice();
-            // Expecting [2, samples] or [channels, samples] with channels >= 2
             if shape.len() == 2 && shape[0] >= 2 {
                 let num_samples = shape[1];
-                let mut bytes = tensor.to_contiguous_bytes();
-                let all_samples: &mut [f32] = unsafe {
-                    std::slice::from_raw_parts_mut(
-                        bytes.as_mut_ptr() as *mut f32,
-                        bytes.len() / std::mem::size_of::<f32>(),
-                    )
-                };
-
+                let all_samples = tensor.as_f32_slice_mut();
                 let (left_channel, rest) = all_samples.split_at_mut(num_samples);
                 let (right_channel, _) = rest.split_at_mut(num_samples);
 
-                // Process Mid/Side matrix in parallel across sample chunks
                 left_channel
                     .par_iter_mut()
                     .zip(right_channel.par_iter_mut())
@@ -111,22 +86,19 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                         *r = (mid - side) * inv_sqrt2;
                     });
 
-                let out_tensor = Tensor::from_f32_shape(all_samples, tensor.shape.to_vec())
-                    .unwrap_or_else(|_| tensor.clone());
-                Payload::Tensor(out_tensor)
+                Payload::Tensor(tensor)
             } else {
-                // If mono or 1D tensor, widening is a no-op
-                Payload::Tensor(tensor.clone())
+                Payload::Tensor(tensor)
             }
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tuple2};
+    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
     fn test_stereo_widen_mono_collapse() {

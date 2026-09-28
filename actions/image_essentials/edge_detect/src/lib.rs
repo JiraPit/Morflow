@@ -22,10 +22,11 @@ enum EdgeMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut mode = EdgeMode::Sobel;
     let mut strength = 1.0f32;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(m_str) = args
             .get_named("mode")
             .or_else(|| args.get_named("filter"))
@@ -49,7 +50,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let res = apply_edge_detect(&img.tensor, img.layout, mode, strength);
             Payload::Image(Image {
@@ -66,10 +67,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_edge_detect(tensor, layout, mode, strength);
+            let res = apply_edge_detect(&tensor, layout, mode, strength);
             Payload::Tensor(res)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -93,9 +94,8 @@ fn apply_edge_detect(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
 
             let out_f32 = match mode {
@@ -117,10 +117,12 @@ fn apply_edge_detect(
             } else {
                 vec![channels, height, width]
             };
-            Tensor::from_f32_shape(&out_f32, out_shape).unwrap()
+            Tensor::from_f32_vec(out_f32, out_shape).unwrap()
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut src_f32 = vec![0.0f32; bytes.len()];
             src_f32
                 .par_iter_mut()
@@ -168,14 +170,30 @@ fn apply_edge_detect(
 }
 
 fn convolve_sobel_mag_f32(src: &[f32], w: usize, h: usize, c: usize, strength: f32) -> Vec<f32> {
-    let gx = convolve_sobel_x_f32(src, w, h, c, 1.0);
-    let gy = convolve_sobel_y_f32(src, w, h, c, 1.0);
     let mut out = vec![0.0f32; h * w * c];
-    out.par_iter_mut()
-        .zip(gx.par_iter())
-        .zip(gy.par_iter())
-        .for_each(|((dst, &x), &y)| {
-            *dst = (x * x + y * y).sqrt() * strength;
+    out.par_chunks_exact_mut(w * c)
+        .enumerate()
+        .for_each(|(y, row)| {
+            for x in 0..w {
+                for ch in 0..c {
+                    let mut gx = 0.0f32;
+                    let mut gy = 0.0f32;
+                    for dy in -1..=1 {
+                        let sy = (y as isize + dy).clamp(0, h as isize - 1) as usize;
+                        let weight_y = if dy == 0 { 2.0 } else { 1.0 };
+                        let sy_weight = dy as f32;
+                        for dx in -1..=1 {
+                            let sx = (x as isize + dx).clamp(0, w as isize - 1) as usize;
+                            let weight_x = if dx == 0 { 2.0 } else { 1.0 };
+                            let sx_weight = dx as f32;
+                            let val = src[(sy * w + sx) * c + ch];
+                            gx += weight_y * sx_weight * val;
+                            gy += sy_weight * weight_x * val;
+                        }
+                    }
+                    row[x * c + ch] = (gx * gx + gy * gy).sqrt() * strength;
+                }
+            }
         });
     out
 }

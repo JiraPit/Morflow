@@ -15,13 +15,14 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_sample_rate: Option<u32> = None;
     let mut target_channels: Option<usize> = None;
     let mut target_dtype = "i16";
     let mut target_layout = "interleaved";
     let mut normalize = true;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(sr_str) = args
             .get_named("sample_rate")
             .or_else(|| args.get_named("rate"))
@@ -56,7 +57,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Data { buffer } => {
             let bytes = buffer.as_slice();
             // 1. Check if buffer is a RIFF/WAVE file
@@ -72,21 +73,23 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
             let planar_f32 = decode_raw_pcm_to_planar_f32(bytes, ch, target_dtype, is_planar, normalize);
             if planar_f32.is_empty() {
-                return Payload::Audio(
-                    Audio::from_f32_planar(&[], ch, sr).unwrap_or_else(|_| {
-                        let dummy = Tensor::from_f32_shape(&[], vec![ch, 0]).unwrap();
-                        Audio {
-                            tensor: dummy,
-                            sample_rate: sr,
-                            channel_layout: AudioChannelLayout::from_channel_count(ch),
-                            layout: AudioLayout::Planar,
-                        }
-                    }),
-                );
+                let dummy = Tensor::from_f32_vec(Vec::new(), vec![ch, 0]).unwrap();
+                return Payload::Audio(Audio {
+                    tensor: dummy,
+                    sample_rate: sr,
+                    channel_layout: AudioChannelLayout::from_channel_count(ch),
+                    layout: AudioLayout::Planar,
+                });
             }
 
-            match Audio::from_f32_planar(&planar_f32, ch, sr) {
-                Ok(audio) => Payload::Audio(audio),
+            let shape = if ch == 1 { vec![planar_f32.len()] } else { vec![ch, planar_f32.len() / ch] };
+            match Tensor::from_f32_vec(planar_f32, shape) {
+                Ok(tensor) => Payload::Audio(Audio {
+                    tensor,
+                    sample_rate: sr,
+                    channel_layout: AudioChannelLayout::from_channel_count(ch),
+                    layout: AudioLayout::Planar,
+                }),
                 Err(err) => Payload::Error(err),
             }
         }
@@ -96,13 +99,12 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
             let (channels, planar_f32) = match shape.len() {
                 1 => {
-                    let _num_samples = shape[0];
-                    let f32_vec = tensor_to_f32_vec(tensor, normalize);
+                    let f32_vec = tensor_to_f32_vec(&tensor, normalize);
                     (1, f32_vec)
                 }
                 2 => {
                     let c = target_channels.unwrap_or(shape[0]);
-                    let f32_vec = tensor_to_f32_vec(tensor, normalize);
+                    let f32_vec = tensor_to_f32_vec(&tensor, normalize);
                     if c == shape[0] {
                         (c, f32_vec)
                     } else if shape[1] <= 8 && c == shape[1] {
@@ -124,24 +126,29 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                     }
                 }
                 _ => {
-                    let f32_vec = tensor_to_f32_vec(tensor, normalize);
+                    let f32_vec = tensor_to_f32_vec(&tensor, normalize);
                     (1, f32_vec)
                 }
             };
 
-            match Audio::from_f32_planar(&planar_f32, channels, sr) {
-                Ok(audio) => Payload::Audio(audio),
+            let shape = if channels == 1 { vec![planar_f32.len()] } else { vec![channels, planar_f32.len() / channels] };
+            match Tensor::from_f32_vec(planar_f32, shape) {
+                Ok(t) => Payload::Audio(Audio {
+                    tensor: t,
+                    sample_rate: sr,
+                    channel_layout: AudioChannelLayout::from_channel_count(channels),
+                    layout: AudioLayout::Planar,
+                }),
                 Err(err) => Payload::Error(err),
             }
         }
-        Payload::Audio(audio) => {
-            let mut out_audio = audio.clone();
+        Payload::Audio(mut audio) => {
             if let Some(sr) = target_sample_rate {
-                out_audio.sample_rate = sr;
+                audio.sample_rate = sr;
             }
-            Payload::Audio(out_audio)
+            Payload::Audio(audio)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -330,7 +337,18 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
         _ => return None,
     }
 
-    Audio::from_f32_planar(&planar, ch, sr).ok()
+    let shape = if ch == 1 {
+        vec![planar.len()]
+    } else {
+        vec![ch, planar.len() / ch]
+    };
+    let tensor = Tensor::from_f32_vec(planar, shape).ok()?;
+    Some(Audio {
+        tensor,
+        sample_rate: sr,
+        channel_layout: AudioChannelLayout::from_channel_count(ch),
+        layout: AudioLayout::Planar,
+    })
 }
 
 /// Decodes raw PCM byte buffer into planar Float32.

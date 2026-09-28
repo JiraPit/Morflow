@@ -1,4 +1,4 @@
-use core_types::{DataType, Image, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -23,11 +23,12 @@ enum ThreshMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut threshold_opt: Option<f32> = None;
     let mut max_val_opt: Option<f32> = None;
     let mut mode = ThreshMode::Binary;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(t_str) = args
             .get_named("threshold")
             .or_else(|| args.get_named("thresh"))
@@ -50,43 +51,36 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
-        Payload::Image(img) => {
-            let res = apply_threshold(&img.tensor, threshold_opt, max_val_opt, mode);
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
+    match inner_payload {
+        Payload::Image(mut img) => {
+            apply_threshold(&mut img.tensor, threshold_opt, max_val_opt, mode);
+            Payload::Image(img)
         }
-        Payload::Tensor(tensor) => {
-            let res = apply_threshold(tensor, threshold_opt, max_val_opt, mode);
-            Payload::Tensor(res)
+        Payload::Tensor(mut tensor) => {
+            apply_threshold(&mut tensor, threshold_opt, max_val_opt, mode);
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
 fn apply_threshold(
-    tensor: &Tensor,
+    tensor: &mut Tensor,
     thresh_opt: Option<f32>,
     max_opt: Option<f32>,
     mode: ThreshMode,
-) -> Tensor {
+) {
     match tensor.dtype {
         TensorDType::F32 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f32, bytes.len() / 4)
-            };
-
             let max_val = max_opt.unwrap_or(1.0);
             let threshold = if mode == ThreshMode::Otsu {
+                let slice = tensor.as_f32_slice().unwrap();
                 compute_otsu_threshold_f32(slice)
             } else {
                 thresh_opt.unwrap_or(0.5)
             };
 
+            let slice = tensor.as_f32_slice_mut();
             slice.par_iter_mut().for_each(|val| {
                 *val = match mode {
                     ThreshMode::Binary | ThreshMode::Otsu => {
@@ -126,17 +120,13 @@ fn apply_threshold(
                     }
                 };
             });
-
-            Tensor::from_f32_shape(slice, tensor.shape.to_vec()).unwrap()
         }
         TensorDType::U8 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let slice: &mut [u8] = bytes.as_mut_slice();
-
             let max_val = max_opt
                 .map(|m| m.clamp(0.0, 255.0).round() as u8)
                 .unwrap_or(255);
             let threshold = if mode == ThreshMode::Otsu {
+                let slice = tensor.as_u8_slice().unwrap();
                 compute_otsu_threshold_u8(slice)
             } else {
                 thresh_opt
@@ -144,6 +134,7 @@ fn apply_threshold(
                     .unwrap_or(128)
             };
 
+            let slice = tensor.as_u8_slice_mut();
             slice.par_iter_mut().for_each(|val| {
                 *val = match mode {
                     ThreshMode::Binary | ThreshMode::Otsu => {
@@ -183,10 +174,8 @@ fn apply_threshold(
                     }
                 };
             });
-
-            Tensor::from_rvec_u8(bytes, tensor.shape.to_vec(), TensorDType::U8).unwrap()
         }
-        _ => tensor.clone(),
+        _ => {}
     }
 }
 

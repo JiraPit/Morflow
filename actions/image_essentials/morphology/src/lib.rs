@@ -29,12 +29,13 @@ enum MorphShape {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut op = MorphOp::Dilate;
     let mut kernel_size = 3usize;
     let mut shape = MorphShape::Rect;
     let mut iterations = 1usize;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(op_str) = args
             .get_named("op")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -72,7 +73,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let res = apply_morphology(&img.tensor, img.layout, op, kernel_size, shape, iterations);
             Payload::Image(Image {
@@ -89,10 +90,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_morphology(tensor, layout, op, kernel_size, shape, iterations);
+            let res = apply_morphology(&tensor, layout, op, kernel_size, shape, iterations);
             Payload::Tensor(res)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -123,59 +124,11 @@ fn apply_morphology(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
 
-            let out_f32 = match op {
-                MorphOp::Dilate => {
-                    let mut cur = src.to_vec();
-                    for _ in 0..iterations {
-                        cur = dilate_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    cur
-                }
-                MorphOp::Erode => {
-                    let mut cur = src.to_vec();
-                    for _ in 0..iterations {
-                        cur = erode_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    cur
-                }
-                MorphOp::Open => {
-                    let mut cur = src.to_vec();
-                    for _ in 0..iterations {
-                        cur = erode_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    for _ in 0..iterations {
-                        cur = dilate_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    cur
-                }
-                MorphOp::Close => {
-                    let mut cur = src.to_vec();
-                    for _ in 0..iterations {
-                        cur = dilate_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    for _ in 0..iterations {
-                        cur = erode_f32(&cur, width, height, channels, radius, shape);
-                    }
-                    cur
-                }
-                MorphOp::Gradient => {
-                    let dilated = dilate_f32(src, width, height, channels, radius, shape);
-                    let eroded = erode_f32(src, width, height, channels, radius, shape);
-                    let mut grad = vec![0.0f32; src.len()];
-                    grad.par_iter_mut()
-                        .zip(dilated.par_iter())
-                        .zip(eroded.par_iter())
-                        .for_each(|((dst, &d), &e)| {
-                            *dst = (d - e).max(0.0);
-                        });
-                    grad
-                }
-            };
+            let out_f32 = apply_morph_ops(src, width, height, channels, radius, shape, op, iterations);
 
             let out_shape = if channels == 1 {
                 vec![height, width]
@@ -184,39 +137,103 @@ fn apply_morphology(
             } else {
                 vec![channels, height, width]
             };
-            Tensor::from_f32_shape(&out_f32, out_shape).unwrap()
+            Tensor::from_f32_vec(out_f32, out_shape).unwrap()
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut src_f32 = vec![0.0f32; bytes.len()];
             src_f32
                 .par_iter_mut()
                 .zip(bytes.par_iter())
                 .for_each(|(dst, &b)| *dst = b as f32 / 255.0);
 
-            let f32_tensor = Tensor::from_f32_shape(&src_f32, tensor.shape.to_vec()).unwrap();
-            let morphed_f32 = apply_morphology(&f32_tensor, layout, op, ksize, shape, iterations);
+            let out_f32 = apply_morph_ops(&src_f32, width, height, channels, radius, shape, op, iterations);
 
-            let out_bytes = morphed_f32.to_contiguous_bytes();
-            let out_slice: &[f32] = unsafe {
-                std::slice::from_raw_parts(out_bytes.as_ptr() as *const f32, out_bytes.len() / 4)
-            };
-            let mut out_u8 = vec![0u8; out_slice.len()];
+            let mut out_u8 = vec![0u8; out_f32.len()];
             out_u8
                 .par_iter_mut()
-                .zip(out_slice.par_iter())
+                .zip(out_f32.par_iter())
                 .for_each(|(dst, &f)| {
                     *dst = (f * 255.0).clamp(0.0, 255.0).round() as u8;
                 });
 
+            let out_shape = if channels == 1 {
+                vec![height, width]
+            } else if layout == ImageLayout::Hwc {
+                vec![height, width, channels]
+            } else {
+                vec![channels, height, width]
+            };
             Tensor::from_rvec_u8(
                 core_types::RVec::from(out_u8),
-                tensor.shape.to_vec(),
+                out_shape,
                 TensorDType::U8,
             )
             .unwrap()
         }
         _ => tensor.clone(),
+    }
+}
+
+fn apply_morph_ops(
+    src: &[f32],
+    width: usize,
+    height: usize,
+    channels: usize,
+    radius: usize,
+    shape: MorphShape,
+    op: MorphOp,
+    iterations: usize,
+) -> Vec<f32> {
+    match op {
+        MorphOp::Dilate => {
+            let mut cur = src.to_vec();
+            for _ in 0..iterations {
+                cur = dilate_f32(&cur, width, height, channels, radius, shape);
+            }
+            cur
+        }
+        MorphOp::Erode => {
+            let mut cur = src.to_vec();
+            for _ in 0..iterations {
+                cur = erode_f32(&cur, width, height, channels, radius, shape);
+            }
+            cur
+        }
+        MorphOp::Open => {
+            let mut cur = src.to_vec();
+            for _ in 0..iterations {
+                cur = erode_f32(&cur, width, height, channels, radius, shape);
+            }
+            for _ in 0..iterations {
+                cur = dilate_f32(&cur, width, height, channels, radius, shape);
+            }
+            cur
+        }
+        MorphOp::Close => {
+            let mut cur = src.to_vec();
+            for _ in 0..iterations {
+                cur = dilate_f32(&cur, width, height, channels, radius, shape);
+            }
+            for _ in 0..iterations {
+                cur = erode_f32(&cur, width, height, channels, radius, shape);
+            }
+            cur
+        }
+        MorphOp::Gradient => {
+            let dilated = dilate_f32(src, width, height, channels, radius, shape);
+            let eroded = erode_f32(src, width, height, channels, radius, shape);
+            let mut grad = vec![0.0f32; src.len()];
+            grad.par_iter_mut()
+                .zip(dilated.par_iter())
+                .zip(eroded.par_iter())
+                .for_each(|((dst, &d), &e)| {
+                    *dst = (d - e).max(0.0);
+                });
+            grad
+        }
     }
 }
 

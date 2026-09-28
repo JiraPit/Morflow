@@ -19,11 +19,12 @@ enum BlurType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut sigma = 1.0f32;
     let mut radius_opt: Option<usize> = None;
     let mut blur_type = BlurType::Gaussian;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(s_str) = args
             .get_named("sigma")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -46,7 +47,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     let radius = radius_opt.unwrap_or_else(|| (3.0 * sigma).ceil().max(1.0) as usize);
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let res = apply_blur(&img.tensor, img.layout, sigma, radius, blur_type);
             Payload::Image(Image {
@@ -63,10 +64,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_blur(tensor, layout, sigma, radius, blur_type);
+            let res = apply_blur(&tensor, layout, sigma, radius, blur_type);
             Payload::Tensor(res)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -91,9 +92,8 @@ fn apply_blur(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
 
             let out_f32 = match blur_type {
@@ -110,10 +110,12 @@ fn apply_blur(
             } else {
                 vec![channels, height, width]
             };
-            Tensor::from_f32_shape(&out_f32, out_shape).unwrap()
+            Tensor::from_f32_vec(out_f32, out_shape).unwrap()
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut src_f32 = vec![0.0f32; bytes.len()];
             src_f32
                 .par_iter_mut()

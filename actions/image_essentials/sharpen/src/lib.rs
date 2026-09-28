@@ -13,11 +13,12 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut strength = 1.0f32;
     let mut sigma = 1.0f32;
     let mut radius_opt: Option<usize> = None;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(st_str) = args
             .get_named("strength")
             .or_else(|| args.get_named("amount"))
@@ -41,7 +42,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     let radius = radius_opt.unwrap_or_else(|| (3.0 * sigma).ceil().max(1.0) as usize);
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let res = apply_sharpen(&img.tensor, img.layout, strength, sigma, radius);
             Payload::Image(Image {
@@ -58,10 +59,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             } else {
                 ImageLayout::Hwc
             };
-            let res = apply_sharpen(tensor, layout, strength, sigma, radius);
+            let res = apply_sharpen(&tensor, layout, strength, sigma, radius);
             Payload::Tensor(res)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -86,9 +87,8 @@ fn apply_sharpen(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
 
             let blurred = separable_gaussian_f32(src, width, height, channels, sigma, radius);
@@ -108,10 +108,12 @@ fn apply_sharpen(
             } else {
                 vec![channels, height, width]
             };
-            Tensor::from_f32_shape(&sharp, out_shape).unwrap()
+            Tensor::from_f32_vec(sharp, out_shape).unwrap()
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let mut src_f32 = vec![0.0f32; bytes.len()];
             src_f32
                 .par_iter_mut()

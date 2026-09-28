@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -84,6 +84,7 @@ impl NoiseGateParams {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut threshold_db = -45.0f32;
     let mut ratio = 10.0f32;
     let mut attack_ms = 2.0f32;
@@ -91,11 +92,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let mut release_ms = 50.0f32;
     let mut sample_rate = 44100.0f32;
 
-    if let Payload::Audio(audio) = payload.unwrap_payload() {
+    if let Payload::Audio(audio) = &inner_payload {
         sample_rate = audio.sample_rate as f32;
     }
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(t) = args
             .get_named("threshold_db")
             .or_else(|| args.get_named("threshold"))
@@ -149,71 +150,45 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         sample_rate,
     );
 
-    match payload.unwrap_payload() {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
-            let mut bytes = audio.tensor.to_contiguous_bytes();
-            let samples: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(
-                    bytes.as_mut_ptr() as *mut f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+    match inner_payload {
+        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
             let shape = audio.tensor.shape.as_slice();
-            if shape.len() == 2 {
-                let channel_len = shape[1];
-                if channel_len > 0 {
-                    samples
-                        .par_chunks_mut(channel_len)
-                        .for_each(|ch| params.process_channel(ch));
-                }
+            let channel_len = if shape.len() == 2 { shape[1] } else { 0 };
+            let samples = audio.tensor.as_f32_slice_mut();
+
+            if channel_len > 0 {
+                samples
+                    .par_chunks_mut(channel_len)
+                    .for_each(|ch| params.process_channel(ch));
             } else {
                 params.process_channel(samples);
             }
 
-            let out_tensor = Tensor::from_f32_shape(samples, audio.tensor.shape.to_vec())
-                .unwrap_or_else(|_| audio.tensor.clone());
-            let out_audio = core_types::Audio {
-                tensor: out_tensor,
-                sample_rate: audio.sample_rate,
-                channel_layout: audio.channel_layout,
-                layout: audio.layout,
-            };
-            Payload::Audio(out_audio)
+            Payload::Audio(audio)
         }
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
-            let mut bytes = tensor.to_contiguous_bytes();
-            let samples: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(
-                    bytes.as_mut_ptr() as *mut f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
             let shape = tensor.shape.as_slice();
-            if shape.len() == 2 {
-                let channel_len = shape[1];
-                if channel_len > 0 {
-                    samples
-                        .par_chunks_mut(channel_len)
-                        .for_each(|ch| params.process_channel(ch));
-                }
+            let channel_len = if shape.len() == 2 { shape[1] } else { 0 };
+            let samples = tensor.as_f32_slice_mut();
+
+            if channel_len > 0 {
+                samples
+                    .par_chunks_mut(channel_len)
+                    .for_each(|ch| params.process_channel(ch));
             } else {
                 params.process_channel(samples);
             }
 
-            let out_tensor = Tensor::from_f32_shape(samples, tensor.shape.to_vec())
-                .unwrap_or_else(|_| tensor.clone());
-            Payload::Tensor(out_tensor)
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tuple2};
+    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
     fn test_noise_gate_attenuation() {

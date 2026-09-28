@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -13,11 +13,12 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     // 1. Resolve normalization parameters
     let mut target_peak = 1.0f32;
     let mut mode = "peak";
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = &args_opt {
         if let Some(m) = args.get_named("mode") {
             mode = m;
         }
@@ -36,8 +37,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
+    match inner_payload {
+        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
             let current_level = if mode == "rms" {
                 audio.tensor.rms() as f32
             } else {
@@ -45,32 +46,15 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             };
 
             if current_level < 1e-8 {
-                return Payload::Audio(audio.clone());
+                return Payload::Audio(audio);
             }
 
             let scale = target_peak / current_level;
-
-            let mut bytes = audio.tensor.to_contiguous_bytes();
-            let samples: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(
-                    bytes.as_mut_ptr() as *mut f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+            let samples = audio.tensor.as_f32_slice_mut();
             samples.par_iter_mut().for_each(|s| *s *= scale);
-
-            let out_tensor = Tensor::from_f32_shape(samples, audio.tensor.shape.to_vec())
-                .unwrap_or_else(|_| audio.tensor.clone());
-            let out_audio = core_types::Audio {
-                tensor: out_tensor,
-                sample_rate: audio.sample_rate,
-                channel_layout: audio.channel_layout,
-                layout: audio.layout,
-            };
-            Payload::Audio(out_audio)
+            Payload::Audio(audio)
         }
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
+        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
             let current_level = if mode == "rms" {
                 tensor.rms() as f32
             } else {
@@ -78,33 +62,22 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             };
 
             if current_level < 1e-8 {
-                return Payload::Tensor(tensor.clone());
+                return Payload::Tensor(tensor);
             }
 
             let scale = target_peak / current_level;
-
-            let mut bytes = tensor.to_contiguous_bytes();
-            let samples: &mut [f32] = unsafe {
-                std::slice::from_raw_parts_mut(
-                    bytes.as_mut_ptr() as *mut f32,
-                    bytes.len() / std::mem::size_of::<f32>(),
-                )
-            };
-
+            let samples = tensor.as_f32_slice_mut();
             samples.par_iter_mut().for_each(|s| *s *= scale);
-
-            let out_tensor = Tensor::from_f32_shape(samples, tensor.shape.to_vec())
-                .unwrap_or_else(|_| tensor.clone());
-            Payload::Tensor(out_tensor)
+            Payload::Tensor(tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tuple2};
+    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
     fn test_normalize_peak() {

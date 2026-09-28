@@ -25,12 +25,13 @@ enum TargetLayout {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_color: Option<ColorSpace> = None;
     let mut target_dtype = TargetDType::F32;
     let mut target_layout = TargetLayout::Hwc;
     let mut normalize: Option<bool> = None;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(c) = args
             .get_named("color")
             .or_else(|| args.get_named("color_space"))
@@ -68,10 +69,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    match inner_payload {
         Payload::Image(img) => {
             let tensor = standardize_image_to_tensor(
-                img,
+                &img,
                 target_color,
                 target_dtype,
                 target_layout,
@@ -81,7 +82,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
         Payload::Tensor(tensor) => {
             let tensor = standardize_raw_tensor(
-                tensor,
+                &tensor,
                 target_color,
                 target_dtype,
                 target_layout,
@@ -89,8 +90,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(tensor)
         }
-        Payload::Audio(audio) => Payload::Tensor(audio.tensor.clone()),
-        other => other.clone(),
+        Payload::Audio(audio) => Payload::Tensor(audio.tensor),
+        other => other,
     }
 }
 
@@ -132,7 +133,9 @@ fn standardize_image_to_tensor(
     // Convert pixel data to F32 intermediate in HWC
     let hwc_f32: Vec<f32> = match img.dtype() {
         TensorDType::U8 => {
-            let bytes = img.to_contiguous_bytes();
+            let Some(bytes) = img.as_u8_slice() else {
+                return img.tensor.clone();
+            };
             let src_channels = src_color.channels();
             let dst_channels = dst_color.channels();
             let mut out = vec![0.0f32; height * width * dst_channels];
@@ -151,7 +154,7 @@ fn standardize_image_to_tensor(
                             ImageLayout::Chw => {
                                 let plane_size = height * width;
                                 let pixel_idx = y * width + x;
-                                extract_rgba_u8_chw(&bytes, pixel_idx, plane_size, src_color)
+                                extract_rgba_u8_chw(bytes, pixel_idx, plane_size, src_color)
                             }
                         };
 
@@ -169,9 +172,8 @@ fn standardize_image_to_tensor(
             out
         }
         TensorDType::F32 => {
-            let bytes = img.to_contiguous_bytes();
-            let src_f32: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src_f32) = img.as_f32_slice() else {
+                return img.tensor.clone();
             };
             let src_channels = src_color.channels();
             let dst_channels = dst_color.channels();
@@ -219,7 +221,7 @@ fn standardize_image_to_tensor(
             } else {
                 vec![height, width, dst_channels]
             };
-            Tensor::from_f32_shape(&hwc_f32, shape).unwrap()
+            Tensor::from_f32_vec(hwc_f32, shape).unwrap()
         }
         (TargetDType::F32, TargetLayout::Chw) => {
             let shape = if dst_channels == 1 {
@@ -228,7 +230,7 @@ fn standardize_image_to_tensor(
                 vec![dst_channels, height, width]
             };
             if dst_channels == 1 {
-                Tensor::from_f32_shape(&hwc_f32, shape).unwrap()
+                Tensor::from_f32_vec(hwc_f32, shape).unwrap()
             } else {
                 let mut chw = vec![0.0f32; dst_channels * height * width];
                 let plane_size = height * width;
@@ -241,7 +243,7 @@ fn standardize_image_to_tensor(
                             }
                         }
                     });
-                Tensor::from_f32_shape(&chw, shape).unwrap()
+                Tensor::from_f32_vec(chw, shape).unwrap()
             }
         }
         (TargetDType::U8, TargetLayout::Hwc) => {

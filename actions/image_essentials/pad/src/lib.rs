@@ -20,6 +20,7 @@ enum PadMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut pad_top = 0usize;
     let mut pad_bottom = 0usize;
     let mut pad_left = 0usize;
@@ -27,7 +28,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let mut pad_mode = PadMode::Constant;
     let mut fill_value = 0.0f32;
 
-    if let Some(args) = payload.args() {
+    if let Some(args) = args_opt {
         if let Some(p_str) = args
             .get_named("pad")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
@@ -89,7 +90,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match payload.unwrap_payload() {
+    if pad_top == 0 && pad_bottom == 0 && pad_left == 0 && pad_right == 0 {
+        return inner_payload;
+    }
+
+    match inner_payload {
         Payload::Image(img) => {
             let res_tensor = apply_pad(
                 &img.tensor,
@@ -116,11 +121,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 ImageLayout::Hwc
             };
             let res_tensor = apply_pad(
-                tensor, layout, pad_top, pad_bottom, pad_left, pad_right, pad_mode, fill_value,
+                &tensor, layout, pad_top, pad_bottom, pad_left, pad_right, pad_mode, fill_value,
             );
             Payload::Tensor(res_tensor)
         }
-        other => other.clone(),
+        other => other,
     }
 }
 
@@ -151,9 +156,8 @@ fn apply_pad(
 
     match tensor.dtype {
         TensorDType::F32 => {
-            let bytes = tensor.to_contiguous_bytes();
-            let src: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            let Some(src) = tensor.as_f32_slice() else {
+                return tensor.clone();
             };
             let mut out = vec![fill_value; out_h * out_w * channels];
 
@@ -218,10 +222,12 @@ fn apply_pad(
             } else {
                 vec![out_h, out_w, channels]
             };
-            Tensor::from_f32_shape(&out, out_shape).unwrap()
+            Tensor::from_f32_vec(out, out_shape).unwrap()
         }
         TensorDType::U8 => {
-            let bytes = tensor.to_contiguous_bytes();
+            let Some(bytes) = tensor.as_u8_slice() else {
+                return tensor.clone();
+            };
             let fill_u8 = fill_value.clamp(0.0, 255.0).round() as u8;
             let mut out = vec![fill_u8; out_h * out_w * channels];
 
