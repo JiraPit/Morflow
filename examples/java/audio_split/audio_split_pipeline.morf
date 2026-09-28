@@ -1,0 +1,12 @@
+# Morflow Multi-Channel Audio Split Pipeline (.morf)
+
+import audio_essentials.latest
+
+accept $input_audio
+
+# Ingest input audio/WAV to structured Audio stream and tap to $decoded
+$input_audio >> to_audio >> $decoded
+
+# Extract individual channels, apply separate DSP stages, convert to WAV, and emit named channel outputs
+$decoded[0] >> biquad_filter(type="lowpass", freq=1200.0) >> to_wav >> emit("left_filtered")
+$decoded[1] >> biquad_filter(type="highpass", freq=800.0) >> to_wav >> emit("right_filtered")

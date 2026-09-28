@@ -36,5 +36,6 @@ members = [
     "examples/rust/audio_split",
     "bindings/python",
     "bindings/js",
+    "bindings/java",
 ]
 resolver = "2"

@@ -1,0 +1,14 @@
+[package]
+name = "morflow-jni"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "morflow_jni"
+
+[dependencies]
+core_types = { path = "../../core_types" }
+pipeline = { path = "../../pipeline" }
+jni = { version = "0.21", default-features = false }
+abi_stable = "0.11"

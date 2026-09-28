@@ -32,6 +32,13 @@ npm install morflow
 
 # Rust
 cargo add morflow
+
+# Java (Maven)
+<dependency>
+    <groupId>org.morflow</groupId>
+    <artifactId>morflow</artifactId>
+    <version>0.1.0</version>
+</dependency>
 ```
 
 ### 2. Define your pipeline (`pipeline.morf`)
@@ -80,7 +87,17 @@ const pipeline = morflow.load('pipeline.morf');
 const outputTensor = await pipeline.run(inputTypedArray);
 ```
 
-Full end-to-end examples across Rust, Python, and JavaScript are available in the [`examples/`](examples) directory.
+**Java**:
+```java
+import org.morflow.*;
+
+// Load pipeline and execute with direct ByteBuffer zero-copy support
+try (Pipeline pipeline = Morflow.load("pipeline.morf")) {
+    MorflowTensor output = pipeline.run(inputTensor);
+}
+```
+
+Full end-to-end examples across Rust, Python, JavaScript, and Java are available in the [`examples/`](examples) directory.
 
 ---
 

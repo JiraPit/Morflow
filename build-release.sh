@@ -42,5 +42,12 @@ for act in to_audio to_pcm to_wav gain normalize biquad_filter compressor limite
     copy_action "audio_essentials" "$act"
 done
 
+echo "Building Java bindings JAR..."
+if command -v mvn &> /dev/null; then
+    (cd bindings/java && mvn package -DskipTests)
+    cp bindings/java/target/morflow-*.jar "$TARGET_DIR/" || true
+    echo "  Java JAR -> $TARGET_DIR/morflow-0.1.0.jar"
+fi
+
 echo "Done. Actions organized into ActionPacks in $TARGET_DIR/actions/"
 ls -la "$TARGET_DIR/actions/"
