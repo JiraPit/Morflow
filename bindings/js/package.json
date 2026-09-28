@@ -5,7 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "morflow"
+    "binaryName": "morflow"
   },
   "scripts": {
     "build": "napi build --platform --release --dts native.d.ts",
