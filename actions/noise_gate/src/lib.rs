@@ -1,0 +1,253 @@
+use core_types::{DataType, Payload, Tensor, TensorDType};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[derive(Clone, Copy)]
+struct NoiseGateParams {
+    threshold_db: f32,
+    ratio: f32,
+    alpha_attack: f32,
+    alpha_release: f32,
+    hold_samples: usize,
+}
+
+impl NoiseGateParams {
+    fn new(
+        threshold_db: f32,
+        ratio: f32,
+        attack_ms: f32,
+        hold_ms: f32,
+        release_ms: f32,
+        sample_rate: f32,
+    ) -> Self {
+        let att_sec = (attack_ms * 0.001).max(0.0001);
+        let rel_sec = (release_ms * 0.001).max(0.001);
+        let alpha_attack = (-1.0 / (att_sec * sample_rate)).exp();
+        let alpha_release = (-1.0 / (rel_sec * sample_rate)).exp();
+        let hold_samples = ((hold_ms * 0.001) * sample_rate) as usize;
+
+        Self {
+            threshold_db,
+            ratio: ratio.max(1.0),
+            alpha_attack,
+            alpha_release,
+            hold_samples,
+        }
+    }
+
+    fn process_channel(&self, samples: &mut [f32]) {
+        let mut envelope_gain = 0.0f32; // 0 = closed, 1 = open
+        let mut hold_counter = 0usize;
+
+        for x in samples.iter_mut() {
+            let input_mag = x.abs();
+            let input_db = if input_mag > 1e-6 {
+                20.0 * input_mag.log10()
+            } else {
+                -120.0
+            };
+
+            let target_gain = if input_db >= self.threshold_db {
+                hold_counter = self.hold_samples;
+                1.0f32
+            } else if hold_counter > 0 {
+                hold_counter -= 1;
+                1.0f32
+            } else {
+                // Downward expansion below threshold
+                let reduction_db = (self.threshold_db - input_db) * (self.ratio - 1.0);
+                10.0f32.powf(-reduction_db / 20.0).clamp(0.0, 1.0)
+            };
+
+            // Ballistics smoothing
+            if target_gain > envelope_gain {
+                envelope_gain =
+                    self.alpha_attack * envelope_gain + (1.0 - self.alpha_attack) * target_gain;
+            } else {
+                envelope_gain =
+                    self.alpha_release * envelope_gain + (1.0 - self.alpha_release) * target_gain;
+            }
+
+            *x *= envelope_gain;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let mut threshold_db = -45.0f32;
+    let mut ratio = 10.0f32;
+    let mut attack_ms = 2.0f32;
+    let mut hold_ms = 10.0f32;
+    let mut release_ms = 50.0f32;
+    let mut sample_rate = 44100.0f32;
+
+    if let Payload::Audio(audio) = payload.unwrap_payload() {
+        sample_rate = audio.sample_rate as f32;
+    }
+
+    if let Some(args) = payload.args() {
+        if let Some(t) = args
+            .get_named("threshold_db")
+            .or_else(|| args.get_named("threshold"))
+        {
+            if let Ok(v) = t.parse::<f32>() {
+                threshold_db = v;
+            }
+        }
+        if let Some(r) = args.get_named("ratio") {
+            if let Ok(v) = r.parse::<f32>() {
+                ratio = v;
+            }
+        }
+        if let Some(a) = args
+            .get_named("attack_ms")
+            .or_else(|| args.get_named("attack"))
+        {
+            if let Ok(v) = a.parse::<f32>() {
+                attack_ms = v;
+            }
+        }
+        if let Some(h) = args.get_named("hold_ms").or_else(|| args.get_named("hold")) {
+            if let Ok(v) = h.parse::<f32>() {
+                hold_ms = v;
+            }
+        }
+        if let Some(rel) = args
+            .get_named("release_ms")
+            .or_else(|| args.get_named("release"))
+        {
+            if let Ok(v) = rel.parse::<f32>() {
+                release_ms = v;
+            }
+        }
+        if let Some(sr) = args
+            .get_named("sample_rate")
+            .or_else(|| args.get_named("rate"))
+        {
+            if let Ok(v) = sr.parse::<f32>() {
+                sample_rate = v;
+            }
+        }
+    }
+
+    let params = NoiseGateParams::new(
+        threshold_db,
+        ratio,
+        attack_ms,
+        hold_ms,
+        release_ms,
+        sample_rate,
+    );
+
+    match payload.unwrap_payload() {
+        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
+            let mut bytes = audio.tensor.to_contiguous_bytes();
+            let samples: &mut [f32] = unsafe {
+                std::slice::from_raw_parts_mut(
+                    bytes.as_mut_ptr() as *mut f32,
+                    bytes.len() / std::mem::size_of::<f32>(),
+                )
+            };
+
+            let shape = audio.tensor.shape.as_slice();
+            if shape.len() == 2 {
+                let channel_len = shape[1];
+                if channel_len > 0 {
+                    samples
+                        .par_chunks_mut(channel_len)
+                        .for_each(|ch| params.process_channel(ch));
+                }
+            } else {
+                params.process_channel(samples);
+            }
+
+            let out_tensor = Tensor::from_f32_shape(samples, audio.tensor.shape.to_vec())
+                .unwrap_or_else(|_| audio.tensor.clone());
+            let out_audio = core_types::Audio {
+                tensor: out_tensor,
+                sample_rate: audio.sample_rate,
+                channel_layout: audio.channel_layout,
+                layout: audio.layout,
+            };
+            Payload::Audio(out_audio)
+        }
+        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
+            let mut bytes = tensor.to_contiguous_bytes();
+            let samples: &mut [f32] = unsafe {
+                std::slice::from_raw_parts_mut(
+                    bytes.as_mut_ptr() as *mut f32,
+                    bytes.len() / std::mem::size_of::<f32>(),
+                )
+            };
+
+            let shape = tensor.shape.as_slice();
+            if shape.len() == 2 {
+                let channel_len = shape[1];
+                if channel_len > 0 {
+                    samples
+                        .par_chunks_mut(channel_len)
+                        .for_each(|ch| params.process_channel(ch));
+                }
+            } else {
+                params.process_channel(samples);
+            }
+
+            let out_tensor = Tensor::from_f32_shape(samples, tensor.shape.to_vec())
+                .unwrap_or_else(|_| tensor.clone());
+            Payload::Tensor(out_tensor)
+        }
+        other => other.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::{ActionArgs, RBox, RString, Tuple2};
+
+    #[test]
+    fn test_noise_gate_attenuation() {
+        // Very low signal (-60 dBFS approx 0.001) below -30dB threshold
+        let input_samples = vec![0.001f32; 1000];
+        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 1000]).unwrap();
+
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(
+            RString::from("threshold_db"),
+            RString::from("-30.0"),
+        ));
+        named.push(Tuple2(RString::from("ratio"), RString::from("10.0")));
+        let args = ActionArgs {
+            positional: core_types::RVec::new(),
+            named,
+        };
+
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor)),
+            args,
+        };
+
+        let result = process(payload);
+        if let Payload::Tensor(out_t) = result {
+            let out_slice: &[f32] = out_t.as_f32_slice().unwrap();
+            let end_sample = out_slice[999];
+            assert!(
+                end_sample < 0.0001,
+                "Expected noise gate suppression, got {}",
+                end_sample
+            );
+        } else {
+            panic!("Expected Payload::Tensor");
+        }
+    }
+}

@@ -1,0 +1,9 @@
+[package]
+name = "image_processing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+morflow = { path = "../../../pipeline", package = "pipeline" }
+core_types = { path = "../../../core_types" }
+image = "0.25"

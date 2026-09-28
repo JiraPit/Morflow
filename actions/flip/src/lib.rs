@@ -1,0 +1,235 @@
+use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let mut flip_h = false;
+    let mut flip_v = false;
+
+    if let Some(args) = payload.args() {
+        if let Some(ax_str) = args
+            .get_named("axis")
+            .or_else(|| args.positional.first().map(|s| s.as_str()))
+        {
+            match ax_str.to_lowercase().trim() {
+                "horizontal" | "h" | "x" | "1" => flip_h = true,
+                "vertical" | "v" | "y" | "0" => flip_v = true,
+                "both" | "hv" | "xy" => {
+                    flip_h = true;
+                    flip_v = true;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if !flip_h && !flip_v {
+        return payload.clone();
+    }
+
+    match payload.unwrap_payload() {
+        Payload::Image(img) => {
+            let res = apply_flip(&img.tensor, img.layout, flip_h, flip_v);
+            Payload::Image(Image {
+                tensor: res,
+                color_space: img.color_space,
+                layout: img.layout,
+            })
+        }
+        Payload::Tensor(tensor) => {
+            let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
+                ImageLayout::Hwc
+            } else if tensor.shape.len() == 3 && tensor.shape[0] <= 4 {
+                ImageLayout::Chw
+            } else {
+                ImageLayout::Hwc
+            };
+            let res = apply_flip(tensor, layout, flip_h, flip_v);
+            Payload::Tensor(res)
+        }
+        other => other.clone(),
+    }
+}
+
+fn apply_flip(tensor: &Tensor, layout: ImageLayout, flip_h: bool, flip_v: bool) -> Tensor {
+    let shape = tensor.shape.as_slice();
+    let (in_h, in_w, channels) = match (shape.len(), layout) {
+        (2, _) => (shape[0], shape[1], 1),
+        (3, ImageLayout::Hwc) => (shape[0], shape[1], shape[2]),
+        (3, ImageLayout::Chw) => (shape[1], shape[2], shape[0]),
+        _ => return tensor.clone(),
+    };
+
+    match tensor.dtype {
+        TensorDType::F32 => {
+            let bytes = tensor.to_contiguous_bytes();
+            let src: &[f32] = unsafe {
+                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
+            };
+            let mut out = vec![0.0f32; in_h * in_w * channels];
+
+            match layout {
+                ImageLayout::Hwc => {
+                    out.par_chunks_exact_mut(in_w * channels)
+                        .enumerate()
+                        .for_each(|(y, row)| {
+                            let sy = if flip_v { in_h - 1 - y } else { y };
+                            for x in 0..in_w {
+                                let sx = if flip_h { in_w - 1 - x } else { x };
+                                let src_idx = (sy * in_w + sx) * channels;
+                                let dst_idx = x * channels;
+                                for c in 0..channels {
+                                    row[dst_idx + c] = src[src_idx + c];
+                                }
+                            }
+                        });
+                    let out_shape = if channels == 1 && shape.len() == 2 {
+                        vec![in_h, in_w]
+                    } else {
+                        vec![in_h, in_w, channels]
+                    };
+                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                }
+                ImageLayout::Chw => {
+                    let plane_size = in_h * in_w;
+                    out.par_chunks_exact_mut(plane_size)
+                        .enumerate()
+                        .for_each(|(c, plane)| {
+                            let src_plane = &src[c * plane_size..(c + 1) * plane_size];
+                            for y in 0..in_h {
+                                let sy = if flip_v { in_h - 1 - y } else { y };
+                                for x in 0..in_w {
+                                    let sx = if flip_h { in_w - 1 - x } else { x };
+                                    plane[y * in_w + x] = src_plane[sy * in_w + sx];
+                                }
+                            }
+                        });
+                    let out_shape = if channels == 1 && shape.len() == 2 {
+                        vec![in_h, in_w]
+                    } else {
+                        vec![channels, in_h, in_w]
+                    };
+                    Tensor::from_f32_shape(&out, out_shape).unwrap()
+                }
+            }
+        }
+        TensorDType::U8 => {
+            let bytes = tensor.to_contiguous_bytes();
+            let mut out = vec![0u8; in_h * in_w * channels];
+
+            match layout {
+                ImageLayout::Hwc => {
+                    out.par_chunks_exact_mut(in_w * channels)
+                        .enumerate()
+                        .for_each(|(y, row)| {
+                            let sy = if flip_v { in_h - 1 - y } else { y };
+                            for x in 0..in_w {
+                                let sx = if flip_h { in_w - 1 - x } else { x };
+                                let src_idx = (sy * in_w + sx) * channels;
+                                let dst_idx = x * channels;
+                                for c in 0..channels {
+                                    row[dst_idx + c] = bytes[src_idx + c];
+                                }
+                            }
+                        });
+                    let out_shape = if channels == 1 && shape.len() == 2 {
+                        vec![in_h, in_w]
+                    } else {
+                        vec![in_h, in_w, channels]
+                    };
+                    Tensor::from_rvec_u8(core_types::RVec::from(out), out_shape, TensorDType::U8)
+                        .unwrap()
+                }
+                ImageLayout::Chw => {
+                    let plane_size = in_h * in_w;
+                    out.par_chunks_exact_mut(plane_size)
+                        .enumerate()
+                        .for_each(|(c, plane)| {
+                            let src_plane = &bytes[c * plane_size..(c + 1) * plane_size];
+                            for y in 0..in_h {
+                                let sy = if flip_v { in_h - 1 - y } else { y };
+                                for x in 0..in_w {
+                                    let sx = if flip_h { in_w - 1 - x } else { x };
+                                    plane[y * in_w + x] = src_plane[sy * in_w + sx];
+                                }
+                            }
+                        });
+                    let out_shape = if channels == 1 && shape.len() == 2 {
+                        vec![in_h, in_w]
+                    } else {
+                        vec![channels, in_h, in_w]
+                    };
+                    Tensor::from_rvec_u8(core_types::RVec::from(out), out_shape, TensorDType::U8)
+                        .unwrap()
+                }
+            }
+        }
+        _ => tensor.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::{ActionArgs, RBox, RString, Tuple2};
+
+    #[test]
+    fn test_flip_horizontal() {
+        let f32_data = vec![1.0, 2.0, 3.0, 4.0];
+        let tensor = Tensor::from_f32_shape(&f32_data, vec![2, 2]).unwrap();
+
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("axis"), RString::from("horizontal")));
+
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor)),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named,
+            },
+        };
+
+        let result = process(payload);
+        if let Payload::Tensor(out_t) = result {
+            let slice: &[f32] = out_t.as_f32_slice().unwrap();
+            assert_eq!(slice, &[2.0, 1.0, 4.0, 3.0]);
+        } else {
+            panic!("Expected Payload::Tensor");
+        }
+    }
+
+    #[test]
+    fn test_flip_vertical_positional() {
+        let f32_data = vec![1.0, 2.0, 3.0, 4.0];
+        let tensor = Tensor::from_f32_shape(&f32_data, vec![2, 2]).unwrap();
+
+        let mut positional = core_types::RVec::new();
+        positional.push(RString::from("vertical"));
+
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor)),
+            args: ActionArgs {
+                positional,
+                named: core_types::RVec::new(),
+            },
+        };
+
+        let result = process(payload);
+        if let Payload::Tensor(out_t) = result {
+            let slice: &[f32] = out_t.as_f32_slice().unwrap();
+            assert_eq!(slice, &[3.0, 4.0, 1.0, 2.0]);
+        } else {
+            panic!("Expected Payload::Tensor");
+        }
+    }
+}

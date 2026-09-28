@@ -1,0 +1,8 @@
+[package]
+name = "core_types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+abi_stable = "0.11"
+rayon = "1.10"

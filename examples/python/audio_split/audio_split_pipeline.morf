@@ -1,0 +1,7 @@
+# Morflow Multi-Channel Audio Split Pipeline (.morf)
+
+accept $input_audio
+
+# Extract individual channels, apply separate DSP stages, and emit named channel outputs
+$input_audio[0] >> biquad_filter(type="lowpass", freq=1200.0) >> emit("left_filtered")
+$input_audio[1] >> biquad_filter(type="highpass", freq=800.0) >> emit("right_filtered")

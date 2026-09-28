@@ -1,0 +1,17 @@
+# Ignore build artifacts and temporary files
+/target/
+*.tmp
+temp/
+
+# Ignore generated outputs
+output.png
+output.jpg
+output.jpeg
+output_*.png
+output_*.jpg
+output_*.jpeg
+
+# Ensure input image is kept tracked in git
+!input.png
+!input.jpg
+!input.jpeg

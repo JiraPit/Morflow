@@ -1,0 +1,13 @@
+# Ignore build artifacts and temporary files
+/target/
+*.tmp
+temp/
+
+# Ignore generated outputs
+left_filtered.wav
+right_filtered.wav
+output.wav
+output_*.wav
+
+# Ensure input audio is kept tracked in git
+!input.wav

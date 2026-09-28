@@ -1,0 +1,11 @@
+[package]
+name = "pipeline"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_types = { path = "../core_types" }
+parser = { path = "../parser" }
+libloading = "0.8"
+abi_stable = "0.11"
+rayon = "1.10"

@@ -1,0 +1,287 @@
+use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let mut brightness = 0.0f32;
+    let mut contrast = 1.0f32;
+    let mut gamma = 1.0f32;
+    let mut saturation = 1.0f32;
+    let mut exposure = 0.0f32;
+
+    if let Some(args) = payload.args() {
+        if let Some(b_str) = args.get_named("brightness") {
+            if let Ok(b) = b_str.parse::<f32>() {
+                brightness = b;
+            }
+        }
+        if let Some(c_str) = args.get_named("contrast") {
+            if let Ok(c) = c_str.parse::<f32>() {
+                contrast = c;
+            }
+        }
+        if let Some(g_str) = args.get_named("gamma") {
+            if let Ok(g) = g_str.parse::<f32>() {
+                gamma = g.max(0.001);
+            }
+        }
+        if let Some(s_str) = args
+            .get_named("saturation")
+            .or_else(|| args.get_named("sat"))
+        {
+            if let Ok(s) = s_str.parse::<f32>() {
+                saturation = s;
+            }
+        }
+        if let Some(e_str) = args.get_named("exposure") {
+            if let Ok(e) = e_str.parse::<f32>() {
+                exposure = e;
+            }
+        }
+    }
+
+    match payload.unwrap_payload() {
+        Payload::Image(img) => {
+            let adj = adjust_color_tensor(
+                &img.tensor,
+                img.layout,
+                brightness,
+                contrast,
+                gamma,
+                saturation,
+                exposure,
+            );
+            Payload::Image(Image {
+                tensor: adj,
+                color_space: img.color_space,
+                layout: img.layout,
+            })
+        }
+        Payload::Tensor(tensor) => {
+            let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
+                ImageLayout::Hwc
+            } else if tensor.shape.len() == 3 && tensor.shape[0] <= 4 {
+                ImageLayout::Chw
+            } else {
+                ImageLayout::Hwc
+            };
+            let adj = adjust_color_tensor(
+                tensor, layout, brightness, contrast, gamma, saturation, exposure,
+            );
+            Payload::Tensor(adj)
+        }
+        other => other.clone(),
+    }
+}
+
+fn adjust_color_tensor(
+    tensor: &Tensor,
+    layout: ImageLayout,
+    brightness: f32,
+    contrast: f32,
+    gamma: f32,
+    saturation: f32,
+    exposure: f32,
+) -> Tensor {
+    let shape = tensor.shape.as_slice();
+    let (height, width, channels) = match (shape.len(), layout) {
+        (2, _) => (shape[0], shape[1], 1),
+        (3, ImageLayout::Hwc) => (shape[0], shape[1], shape[2]),
+        (3, ImageLayout::Chw) => (shape[1], shape[2], shape[0]),
+        _ => return tensor.clone(),
+    };
+
+    let exposure_mult = 2.0f32.powf(exposure);
+    let inv_gamma = 1.0f32 / gamma;
+
+    match tensor.dtype {
+        TensorDType::F32 => {
+            let mut bytes = tensor.to_contiguous_bytes();
+            let slice: &mut [f32] = unsafe {
+                std::slice::from_raw_parts_mut(bytes.as_mut_ptr() as *mut f32, bytes.len() / 4)
+            };
+
+            if layout == ImageLayout::Hwc {
+                slice.par_chunks_exact_mut(channels).for_each(|pixel| {
+                    if channels == 3 || channels == 4 {
+                        let mut r = (pixel[0] * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        let mut g = (pixel[1] * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        let mut b = (pixel[2] * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+
+                        if gamma != 1.0 {
+                            r = r.max(0.0).powf(inv_gamma);
+                            g = g.max(0.0).powf(inv_gamma);
+                            b = b.max(0.0).powf(inv_gamma);
+                        }
+
+                        if saturation != 1.0 {
+                            let luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                            r = luma + (r - luma) * saturation;
+                            g = luma + (g - luma) * saturation;
+                            b = luma + (b - luma) * saturation;
+                        }
+
+                        pixel[0] = r;
+                        pixel[1] = g;
+                        pixel[2] = b;
+                    } else if channels == 1 {
+                        let mut val =
+                            (pixel[0] * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        if gamma != 1.0 {
+                            val = val.max(0.0).powf(inv_gamma);
+                        }
+                        pixel[0] = val;
+                    }
+                });
+            } else {
+                // CHW layout
+                let plane_size = height * width;
+                if channels >= 3 {
+                    let (r_plane, rest) = slice.split_at_mut(plane_size);
+                    let (g_plane, b_plane) = rest.split_at_mut(plane_size);
+
+                    r_plane
+                        .par_iter_mut()
+                        .zip(g_plane.par_iter_mut())
+                        .zip(b_plane.par_iter_mut())
+                        .for_each(|((r, g), b)| {
+                            let r_in = *r;
+                            let g_in = *g;
+                            let b_in = *b;
+
+                            let mut r_val =
+                                (r_in * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                            let mut g_val =
+                                (g_in * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                            let mut b_val =
+                                (b_in * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+
+                            if gamma != 1.0 {
+                                r_val = r_val.max(0.0).powf(inv_gamma);
+                                g_val = g_val.max(0.0).powf(inv_gamma);
+                                b_val = b_val.max(0.0).powf(inv_gamma);
+                            }
+
+                            if saturation != 1.0 {
+                                let luma = 0.299 * r_val + 0.587 * g_val + 0.114 * b_val;
+                                r_val = luma + (r_val - luma) * saturation;
+                                g_val = luma + (g_val - luma) * saturation;
+                                b_val = luma + (b_val - luma) * saturation;
+                            }
+
+                            *r = r_val;
+                            *g = g_val;
+                            *b = b_val;
+                        });
+                } else {
+                    slice.par_iter_mut().for_each(|val| {
+                        let mut v = (*val * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        if gamma != 1.0 {
+                            v = v.max(0.0).powf(inv_gamma);
+                        }
+                        *val = v;
+                    });
+                }
+            }
+
+            Tensor::from_f32_shape(slice, tensor.shape.to_vec()).unwrap()
+        }
+        TensorDType::U8 => {
+            let mut bytes = tensor.to_contiguous_bytes();
+            let slice: &mut [u8] = bytes.as_mut_slice();
+
+            if layout == ImageLayout::Hwc {
+                slice.par_chunks_exact_mut(channels).for_each(|pixel| {
+                    if channels == 3 || channels == 4 {
+                        let rf = pixel[0] as f32 / 255.0;
+                        let gf = pixel[1] as f32 / 255.0;
+                        let bf = pixel[2] as f32 / 255.0;
+
+                        let mut r = (rf * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        let mut g = (gf * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        let mut b = (bf * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+
+                        if gamma != 1.0 {
+                            r = r.max(0.0).powf(inv_gamma);
+                            g = g.max(0.0).powf(inv_gamma);
+                            b = b.max(0.0).powf(inv_gamma);
+                        }
+
+                        if saturation != 1.0 {
+                            let luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                            r = luma + (r - luma) * saturation;
+                            g = luma + (g - luma) * saturation;
+                            b = luma + (b - luma) * saturation;
+                        }
+
+                        pixel[0] = (r * 255.0).clamp(0.0, 255.0).round() as u8;
+                        pixel[1] = (g * 255.0).clamp(0.0, 255.0).round() as u8;
+                        pixel[2] = (b * 255.0).clamp(0.0, 255.0).round() as u8;
+                    } else if channels == 1 {
+                        let vf = pixel[0] as f32 / 255.0;
+                        let mut val = (vf * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                        if gamma != 1.0 {
+                            val = val.max(0.0).powf(inv_gamma);
+                        }
+                        pixel[0] = (val * 255.0).clamp(0.0, 255.0).round() as u8;
+                    }
+                });
+            } else {
+                // CHW U8
+                slice.par_iter_mut().for_each(|val| {
+                    let vf = *val as f32 / 255.0;
+                    let mut v = (vf * exposure_mult - 0.5) * contrast + 0.5 + brightness;
+                    if gamma != 1.0 {
+                        v = v.max(0.0).powf(inv_gamma);
+                    }
+                    *val = (v * 255.0).clamp(0.0, 255.0).round() as u8;
+                });
+            }
+
+            Tensor::from_rvec_u8(bytes, tensor.shape.to_vec(), TensorDType::U8).unwrap()
+        }
+        _ => tensor.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::{ActionArgs, RBox, RString, Tuple2};
+
+    #[test]
+    fn test_color_adjust_brightness_contrast() {
+        let f32_data = vec![0.5f32, 0.5, 0.5];
+        let tensor = Tensor::from_f32_shape(&f32_data, vec![1, 1, 3]).unwrap();
+
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("brightness"), RString::from("0.2")));
+        named.push(Tuple2(RString::from("contrast"), RString::from("1.5")));
+
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor)),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named,
+            },
+        };
+
+        let result = process(payload);
+        if let Payload::Tensor(out_t) = result {
+            let slice: &[f32] = out_t.as_f32_slice().unwrap();
+            assert!((slice[0] - 0.7).abs() < 1e-4);
+        } else {
+            panic!("Expected Payload::Tensor");
+        }
+    }
+}

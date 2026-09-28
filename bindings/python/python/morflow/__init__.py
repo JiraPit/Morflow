@@ -1,0 +1,19 @@
+"""
+Morflow Python Interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+High-performance modular dataflow pipeline engine for image, audio, and tensor computing.
+"""
+
+from typing import Any, Dict, List, Optional, Union
+import numpy as np
+
+try:
+    from ._morflow import load, from_str, Pipeline
+except ImportError as e:
+    raise ImportError(
+        f"Failed to import Morflow native extension module: {e}. "
+        "Please build the extension using 'maturin develop' or 'pip install .'"
+    ) from e
+
+__all__ = ["load", "from_str", "Pipeline"]
+__version__ = "0.1.0"

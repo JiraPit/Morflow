@@ -1,0 +1,15 @@
+[package]
+name = "morflow-py"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_morflow"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module"] }
+numpy = "0.23"
+pipeline = { path = "../../pipeline" }
+core_types = { path = "../../core_types" }
+abi_stable = "0.11"
