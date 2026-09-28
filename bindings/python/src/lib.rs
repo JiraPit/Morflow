@@ -17,7 +17,7 @@ fn map_error(err: MorflowError) -> PyErr {
         MorflowError::Io(e) => PyIOError::new_err(e.to_string()),
         MorflowError::Parse(e) => PyValueError::new_err(format!("Parse error: {}", e)),
         MorflowError::Compile(e) => PyValueError::new_err(format!("Compile error: {}", e)),
-        MorflowError::Plugin(e) => PyRuntimeError::new_err(format!("Plugin error: {}", e)),
+        MorflowError::Action(e) => PyRuntimeError::new_err(format!("Action error: {}", e)),
         MorflowError::Execution(e) => PyRuntimeError::new_err(format!("Execution error: {}", e)),
         MorflowError::TypeMismatch(e) => PyTypeError::new_err(format!("Type error: {}", e)),
     }
@@ -229,7 +229,7 @@ impl PyPipeline {
         self.inner.params().iter().map(|p| p.name.clone()).collect()
     }
 
-    /// Preloads and warms up all declared action plugins in memory.
+    /// Preloads and warms up all declared actions in memory.
     fn warmup(&self) -> PyResult<()> {
         self.inner.warmup().map_err(map_error)
     }

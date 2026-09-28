@@ -19,7 +19,7 @@ The project is structured as a Cargo Workspace with three distinct domains:
 
     core_types (Library): The central source of truth. Defines the data structures and function signatures used to cross the FFI boundary.
 
-    actions/* (Dynamic Libraries): Precompiled plugins (.so/.dll). They depend only on core_types.
+    actions/* (Dynamic Libraries): Precompiled actions (.so/.dll). They depend only on core_types.
 
     pipeline (Executable): The host engine. It dynamically loads actions into memory and pushes data through them.
 
@@ -99,7 +99,7 @@ pub type GetTypeFn = extern "C" fn() -> DataType;
 
 Step 2: The Action (actions/identity)
 
-This plugin must be compiled as a C-dynamic library. It simply accepts a payload and returns it.
+This action must be compiled as a C-dynamic library. It simply accepts a payload and returns it.
 
 actions/identity/Cargo.toml
 Ini, TOML

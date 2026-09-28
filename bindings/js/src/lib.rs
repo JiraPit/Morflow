@@ -23,8 +23,8 @@ fn map_error(err: MorflowError) -> napi::Error {
         MorflowError::Compile(e) => {
             napi::Error::new(napi::Status::InvalidArg, format!("Compile error: {}", e))
         }
-        MorflowError::Plugin(e) => {
-            napi::Error::new(napi::Status::GenericFailure, format!("Plugin error: {}", e))
+        MorflowError::Action(e) => {
+            napi::Error::new(napi::Status::GenericFailure, format!("Action error: {}", e))
         }
         MorflowError::Execution(e) => napi::Error::new(
             napi::Status::GenericFailure,
@@ -248,7 +248,7 @@ impl Pipeline {
         self.inner.params().iter().map(|p| p.name.clone()).collect()
     }
 
-    /// Preloads and warms up all declared action plugins in memory.
+    /// Preloads and warms up all declared actions in memory.
     #[napi]
     pub fn warmup(&self) -> napi::Result<()> {
         self.inner.warmup().map_err(map_error)

@@ -7,8 +7,8 @@ use std::sync::{Arc, RwLock};
 use core_types::{DataType, GetTypeFn, Payload, ProcessFn};
 use libloading::{Library, Symbol};
 
-/// A compiled, dynamically loaded action plugin kept warm in memory.
-pub struct LoadedPlugin {
+/// A compiled, dynamically loaded action kept warm in memory.
+pub struct LoadedAction {
     pub name: String,
     pub path: PathBuf,
     pub input_type: DataType,
@@ -18,10 +18,10 @@ pub struct LoadedPlugin {
     _library: Arc<Library>,
 }
 
-unsafe impl Send for LoadedPlugin {}
-unsafe impl Sync for LoadedPlugin {}
+unsafe impl Send for LoadedAction {}
+unsafe impl Sync for LoadedAction {}
 
-impl LoadedPlugin {
+impl LoadedAction {
     /// Dispatches a payload to the dynamic library's `process` function via FFI.
     #[inline]
     pub fn process(&self, payload: Payload) -> Payload {
@@ -29,24 +29,24 @@ impl LoadedPlugin {
     }
 }
 
-/// Thread-safe in-memory cache and resolver for Morflow action plugins.
+/// Thread-safe in-memory cache and resolver for Morflow actions.
 /// Eliminates dynamic library open (`dlopen`) and symbol lookup (`dlsym`) overhead during pipeline execution.
-pub struct PluginRegistry {
+pub struct ActionRegistry {
     search_paths: Vec<PathBuf>,
-    cache: RwLock<HashMap<String, Arc<LoadedPlugin>>>,
+    cache: RwLock<HashMap<String, Arc<LoadedAction>>>,
 }
 
-unsafe impl Send for PluginRegistry {}
-unsafe impl Sync for PluginRegistry {}
+unsafe impl Send for ActionRegistry {}
+unsafe impl Sync for ActionRegistry {}
 
-impl Default for PluginRegistry {
+impl Default for ActionRegistry {
     fn default() -> Self {
         Self::new(Self::default_search_paths())
     }
 }
 
-impl PluginRegistry {
-    /// Creates a new plugin registry with specified search directories.
+impl ActionRegistry {
+    /// Creates a new action registry with specified search directories.
     pub fn new(search_paths: Vec<PathBuf>) -> Self {
         Self {
             search_paths,
@@ -201,20 +201,20 @@ impl PluginRegistry {
         None
     }
 
-    /// Loads or returns a cached plugin from a specific ActionPack.
+    /// Loads or returns a cached action from a specific ActionPack.
     pub fn get_or_load_in_pack(
         &self,
         pack: &str,
         action_name: &str,
-    ) -> Result<Arc<LoadedPlugin>, String> {
+    ) -> Result<Arc<LoadedAction>, String> {
         let key = format!("{}.{}", pack, action_name);
         {
             let guard = self.cache.read().unwrap();
-            if let Some(plugin) = guard.get(&key) {
-                return Ok(Arc::clone(plugin));
+            if let Some(action) = guard.get(&key) {
+                return Ok(Arc::clone(action));
             }
-            if let Some(plugin) = guard.get(action_name) {
-                return Ok(Arc::clone(plugin));
+            if let Some(action) = guard.get(action_name) {
+                return Ok(Arc::clone(action));
             }
         }
 
@@ -226,21 +226,21 @@ impl PluginRegistry {
         })?;
 
         let loaded = self.load_from_path(action_name, &path)?;
-        let arc_plugin = Arc::new(loaded);
+        let arc_action = Arc::new(loaded);
 
         let mut write_guard = self.cache.write().unwrap();
-        write_guard.insert(key, Arc::clone(&arc_plugin));
-        write_guard.insert(action_name.to_string(), Arc::clone(&arc_plugin));
+        write_guard.insert(key, Arc::clone(&arc_action));
+        write_guard.insert(action_name.to_string(), Arc::clone(&arc_action));
 
-        Ok(arc_plugin)
+        Ok(arc_action)
     }
 
-    /// Returns a cached plugin or loads it from disk, caching the symbols for future calls.
-    pub fn get_or_load(&self, action_name: &str) -> Result<Arc<LoadedPlugin>, String> {
+    /// Returns a cached action or loads it from disk, caching the symbols for future calls.
+    pub fn get_or_load(&self, action_name: &str) -> Result<Arc<LoadedAction>, String> {
         {
             let guard = self.cache.read().unwrap();
-            if let Some(plugin) = guard.get(action_name) {
-                return Ok(Arc::clone(plugin));
+            if let Some(action) = guard.get(action_name) {
+                return Ok(Arc::clone(action));
             }
         }
 
@@ -252,20 +252,20 @@ impl PluginRegistry {
         })?;
 
         let loaded = self.load_from_path(action_name, &path)?;
-        let arc_plugin = Arc::new(loaded);
+        let arc_action = Arc::new(loaded);
 
         let mut write_guard = self.cache.write().unwrap();
-        write_guard.insert(action_name.to_string(), Arc::clone(&arc_plugin));
+        write_guard.insert(action_name.to_string(), Arc::clone(&arc_action));
 
-        Ok(arc_plugin)
+        Ok(arc_action)
     }
 
     /// Alias for get_or_load for thread-safe cloned access.
-    pub fn get_or_load_cloned(&self, action_name: &str) -> Result<Arc<LoadedPlugin>, String> {
+    pub fn get_or_load_cloned(&self, action_name: &str) -> Result<Arc<LoadedAction>, String> {
         self.get_or_load(action_name)
     }
 
-    /// Explicitly preloads all action plugins found in the search directories.
+    /// Explicitly preloads all actions found in the search directories.
     pub fn preload_all(&self) -> Result<usize, String> {
         let mut count = 0;
         let mut found_actions = Vec::new();
@@ -326,7 +326,7 @@ impl PluginRegistry {
     }
 
     /// Low-level loader that inspects and caches symbols from a `.so` / `.dll` file.
-    fn load_from_path(&self, action_name: &str, path: &Path) -> Result<LoadedPlugin, String> {
+    fn load_from_path(&self, action_name: &str, path: &Path) -> Result<LoadedAction, String> {
         unsafe {
             let lib = Library::new(path).map_err(|e| {
                 format!(
@@ -359,7 +359,7 @@ impl PluginRegistry {
             let output_type = (*get_out_sym)();
             let process_fn = *process_sym;
 
-            Ok(LoadedPlugin {
+            Ok(LoadedAction {
                 name: action_name.to_string(),
                 path: path.to_path_buf(),
                 input_type,

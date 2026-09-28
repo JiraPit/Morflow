@@ -8,7 +8,7 @@ use core_types::Payload;
 use parser::ast::{FlowStep, Pipeline, PipelineParam, Statement, Value};
 
 use crate::outputs::PipelineOutputs;
-use crate::registry::PluginRegistry;
+use crate::registry::ActionRegistry;
 use crate::scheduler::AutoParallelScheduler;
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub enum MorflowError {
     Io(std::io::Error),
     Parse(String),
     Compile(String),
-    Plugin(String),
+    Action(String),
     Execution(String),
     TypeMismatch(String),
 }
@@ -27,7 +27,7 @@ impl fmt::Display for MorflowError {
             MorflowError::Io(e) => write!(f, "I/O error: {}", e),
             MorflowError::Parse(e) => write!(f, "Parse error: {}", e),
             MorflowError::Compile(e) => write!(f, "Compile error: {}", e),
-            MorflowError::Plugin(e) => write!(f, "Plugin error: {}", e),
+            MorflowError::Action(e) => write!(f, "Action error: {}", e),
             MorflowError::Execution(e) => write!(f, "Execution error: {}", e),
             MorflowError::TypeMismatch(e) => write!(f, "Type error: {}", e),
         }
@@ -48,7 +48,7 @@ pub struct Morflow;
 impl Morflow {
     /// Loads and compiles a `.morf` pipeline file from disk.
     ///
-    /// Plugin search paths are automatically discovered from the environment variable
+    /// Action search paths are automatically discovered from the environment variable
     /// `MORFLOW_ACTIONS_PATH`, binary directory, and target folders.
     pub fn load<P: AsRef<Path>>(path: P) -> Result<MorflowPipeline, MorflowError> {
         let content = std::fs::read_to_string(path.as_ref())?;
@@ -71,7 +71,7 @@ impl Morflow {
         // Perform strict static compile-time validation (SSA / emit rules)
         crate::validator::validate_pipeline(&ast)?;
 
-        let registry = Arc::new(PluginRegistry::default());
+        let registry = Arc::new(ActionRegistry::default());
         Ok(MorflowPipeline { ast, registry })
     }
 }
@@ -80,7 +80,7 @@ impl Morflow {
 #[derive(Clone)]
 pub struct MorflowPipeline {
     pub ast: Pipeline,
-    pub registry: Arc<PluginRegistry>,
+    pub registry: Arc<ActionRegistry>,
 }
 
 impl MorflowPipeline {
@@ -89,7 +89,7 @@ impl MorflowPipeline {
         &self.ast.params
     }
 
-    /// Preloads all plugins declared across all steps in this pipeline into memory.
+    /// Preloads all actions declared across all steps in this pipeline into memory.
     pub fn warmup(&self) -> Result<(), MorflowError> {
         let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
         let action_names = collect_action_names(&self.ast.statements);
@@ -98,11 +98,11 @@ impl MorflowPipeline {
             if let Some(pack) = target_pack {
                 self.registry
                     .get_or_load_in_pack(&pack, &real_action_name)
-                    .map_err(MorflowError::Plugin)?;
+                    .map_err(MorflowError::Action)?;
             } else {
                 self.registry
                     .get_or_load(&action)
-                    .map_err(MorflowError::Plugin)?;
+                    .map_err(MorflowError::Action)?;
             }
         }
         Ok(())

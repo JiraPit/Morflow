@@ -19,7 +19,7 @@ fn map_error_to_exception(env: &mut JNIEnv, err: MorflowError) {
         MorflowError::Io(e) => format!("IO error: {}", e),
         MorflowError::Parse(e) => format!("Parse error: {}", e),
         MorflowError::Compile(e) => format!("Compile error: {}", e),
-        MorflowError::Plugin(e) => format!("Plugin error: {}", e),
+        MorflowError::Action(e) => format!("Action error: {}", e),
         MorflowError::Execution(e) => format!("Execution error: {}", e),
         MorflowError::TypeMismatch(e) => format!("Type error: {}", e),
     };

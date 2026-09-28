@@ -60,7 +60,7 @@ $input
 
 ### 3. Prepare Actions
 
-Pre-downloads all action plugins required by your `.morf` file ahead of time, ensuring the runtime executes completely offline with zero dynamic downloads:
+Pre-downloads all actions required by your `.morf` file ahead of time, ensuring the runtime executes completely offline with zero dynamic downloads:
 
 ```bash
 morflow prep pipeline.morf

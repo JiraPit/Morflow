@@ -12,13 +12,13 @@ use rayon::prelude::*;
 
 use crate::engine::MorflowError;
 use crate::outputs::PipelineOutputs;
-use crate::registry::PluginRegistry;
+use crate::registry::ActionRegistry;
 use crate::resolver::ActionResolver;
 
 /// A high-performance, DAG-driven execution scheduler that auto-parallelizes independent
 /// flows in a pipeline and dynamically expands `each` loop iterations across Rayon's work-stealing pool.
 pub struct AutoParallelScheduler {
-    registry: Arc<PluginRegistry>,
+    registry: Arc<ActionRegistry>,
     resolver: ActionResolver,
 }
 
@@ -70,7 +70,7 @@ impl<'a> EnvRef<'a> {
 }
 
 impl AutoParallelScheduler {
-    pub fn new(registry: Arc<PluginRegistry>, resolver: ActionResolver) -> Self {
+    pub fn new(registry: Arc<ActionRegistry>, resolver: ActionResolver) -> Self {
         Self { registry, resolver }
     }
 
@@ -217,13 +217,13 @@ impl AutoParallelScheduler {
                         { self.prepare_action_input(call, env, current.take())? };
 
                     let (target_pack, real_action_name) = self.resolver.resolve(&call.name);
-                    let plugin = if let Some(pack) = target_pack {
+                    let action = if let Some(pack) = target_pack {
                         self.registry
                             .get_or_load_in_pack(&pack, &real_action_name)
                     } else {
                         self.registry.get_or_load_cloned(&call.name)
                     }
-                    .map_err(MorflowError::Plugin)?;
+                    .map_err(MorflowError::Action)?;
 
                     let final_payload_in = if args.positional.is_empty() && args.named.is_empty() {
                         payload_in
@@ -234,7 +234,7 @@ impl AutoParallelScheduler {
                         }
                     };
 
-                    let out = plugin.process(final_payload_in);
+                    let out = action.process(final_payload_in);
                     if let Payload::Error(err) = &out {
                         return Err(MorflowError::Execution(format!(
                             "Action '{}' returned error: {}",

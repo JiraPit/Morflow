@@ -57,7 +57,7 @@ public class Pipeline implements AutoCloseable {
     }
 
     /**
-     * Preloads and warms up all declared action plugins in memory.
+     * Preloads and warms up all declared actions in memory.
      */
     public void warmup() {
         checkClosed();

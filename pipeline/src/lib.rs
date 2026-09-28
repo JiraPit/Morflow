@@ -7,7 +7,7 @@ pub mod validator;
 
 pub use engine::{Morflow, MorflowError, MorflowPipeline};
 pub use outputs::PipelineOutputs;
-pub use registry::{LoadedPlugin, PluginRegistry};
+pub use registry::{ActionRegistry, LoadedAction};
 pub use resolver::ActionResolver;
 pub use scheduler::AutoParallelScheduler;
 

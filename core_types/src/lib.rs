@@ -39,7 +39,7 @@ impl ActionArgs {
     }
 }
 
-/// Universal payload enum passed between the engine host and dynamic action plugins across FFI.
+/// Universal payload enum passed between the engine host and dynamic actions across FFI.
 #[repr(C)]
 #[derive(StableAbi, Debug, Clone)]
 pub enum Payload {
