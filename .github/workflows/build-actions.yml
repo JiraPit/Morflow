@@ -71,11 +71,6 @@ jobs:
             ext: dylib
             prefix: lib
             platform: darwin-arm64
-          - os: macos-13
-            triple: x86_64-apple-darwin
-            ext: dylib
-            prefix: lib
-            platform: darwin-x86_64
           - os: windows-latest
             triple: x86_64-pc-windows-msvc
             ext: dll
