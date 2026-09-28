@@ -1,0 +1,331 @@
+name: Build and Release Engine & Bindings
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'parser/**'
+      - 'bindings/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even if version was not bumped'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  detect-engine:
+    name: Detect Engine Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.detector.outputs.version }}
+      tag_name: ${{ steps.detector.outputs.tag_name }}
+      should_build: ${{ steps.detector.outputs.should_build }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Version Detector
+        id: detector
+        run: |
+          python3 scripts/detect_engine_version.py \
+            --event "${{ github.event_name }}" \
+            --force "${{ github.event.inputs.force_build || 'false' }}"
+
+  build-cli:
+    name: Build CLI (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triple: x86_64-unknown-linux-gnu
+            platform: linux-x86_64
+            bin_name: pipeline
+            target_bin: morflow
+            archive_ext: tar.gz
+          - os: macos-latest
+            triple: aarch64-apple-darwin
+            platform: darwin-arm64
+            bin_name: pipeline
+            target_bin: morflow
+            archive_ext: tar.gz
+          - os: macos-13
+            triple: x86_64-apple-darwin
+            platform: darwin-x86_64
+            bin_name: pipeline
+            target_bin: morflow
+            archive_ext: tar.gz
+          - os: windows-latest
+            triple: x86_64-pc-windows-msvc
+            platform: windows-x86_64
+            bin_name: pipeline.exe
+            target_bin: morflow.exe
+            archive_ext: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Build CLI Binary
+        shell: bash
+        run: |
+          cargo build --release -p pipeline --target "${{ matrix.triple }}"
+          mkdir -p dist/bin
+          SRC="target/${{ matrix.triple }}/release/${{ matrix.bin_name }}"
+          DEST="dist/bin/${{ matrix.target_bin }}"
+          cp "$SRC" "$DEST"
+          
+          VERSION="${{ needs.detect-engine.outputs.version }}"
+          ARCHIVE_NAME="morflow-v${VERSION}-${{ matrix.platform }}"
+          
+          cd dist/bin
+          if [ "${{ matrix.archive_ext }}" = "tar.gz" ]; then
+            tar -czf "../${ARCHIVE_NAME}.tar.gz" "${{ matrix.target_bin }}"
+          else
+            7z a "../${ARCHIVE_NAME}.zip" "${{ matrix.target_bin }}"
+          fi
+
+      - name: Upload CLI Archive Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "engine-cli-${{ matrix.platform }}"
+          path: dist/*.${{ matrix.archive_ext }}
+          retention-days: 1
+
+  build-python-wheels:
+    name: Build Python Wheels (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            platform: darwin-arm64
+            target: aarch64-apple-darwin
+          - os: macos-13
+            platform: darwin-x86_64
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            platform: windows-x86_64
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Maturin
+        run: pip install maturin
+
+      - name: Build Wheel
+        shell: bash
+        run: |
+          cd bindings/python
+          maturin build --release --target "${{ matrix.target }}" --out ../../dist_python
+
+      - name: Upload Python Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "engine-python-${{ matrix.platform }}"
+          path: dist_python/*
+          retention-days: 1
+
+  build-node-bindings:
+    name: Build Node.js Addons (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64-gnu
+            triple: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            platform: darwin-arm64
+            triple: aarch64-apple-darwin
+          - os: macos-13
+            platform: darwin-x64
+            triple: x86_64-apple-darwin
+          - os: windows-latest
+            platform: win32-x64-msvc
+            triple: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Build N-API Addon
+        shell: bash
+        run: |
+          cd bindings/js
+          npm install
+          napi build --platform --release --target "${{ matrix.triple }}"
+          mkdir -p ../../dist_node
+          cp *.node ../../dist_node/ 2>/dev/null || true
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            npm pack --pack-destination ../../dist_node/
+          fi
+
+      - name: Upload Node Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "engine-node-${{ matrix.platform }}"
+          path: dist_node/*
+          retention-days: 1
+
+  build-java-bindings:
+    name: Build Java JAR & JNI (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            triple: x86_64-unknown-linux-gnu
+            lib_prefix: lib
+            lib_ext: so
+          - os: macos-latest
+            platform: darwin-arm64
+            triple: aarch64-apple-darwin
+            lib_prefix: lib
+            lib_ext: dylib
+          - os: macos-13
+            platform: darwin-x86_64
+            triple: x86_64-apple-darwin
+            lib_prefix: lib
+            lib_ext: dylib
+          - os: windows-latest
+            platform: windows-x86_64
+            triple: x86_64-pc-windows-msvc
+            lib_prefix: ""
+            lib_ext: dll
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Build Java JNI Native Library
+        shell: bash
+        run: |
+          cargo build --release -p morflow-jni --target "${{ matrix.triple }}"
+          mkdir -p dist_java
+          SRC="target/${{ matrix.triple }}/release/${{ matrix.lib_prefix }}morflow_jni.${{ matrix.lib_ext }}"
+          if [ ! -f "$SRC" ]; then
+            SRC="target/${{ matrix.triple }}/release/morflow_jni.${{ matrix.lib_ext }}"
+          fi
+          cp "$SRC" "dist_java/libmorflow_jni-${{ matrix.platform }}.${{ matrix.lib_ext }}"
+
+      - name: Build Java JAR (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd bindings/java
+          mvn package -DskipTests
+          cp target/morflow-*.jar ../../dist_java/
+
+      - name: Upload Java Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "engine-java-${{ matrix.platform }}"
+          path: dist_java/*
+          retention-days: 1
+
+  publish-engine-release:
+    name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
+    needs: [detect-engine, build-cli, build-python-wheels, build-node-bindings, build-java-bindings]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all Engine artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets/
+          pattern: "engine-*"
+          merge-multiple: true
+
+      - name: Generate Checksums
+        run: |
+          cd release_assets
+          sha256sum * > checksums.txt
+          echo "Release Assets Checksums:"
+          cat checksums.txt
+
+      - name: Create or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.detect-engine.outputs.tag_name }}"
+          VERSION="${{ needs.detect-engine.outputs.version }}"
+          TITLE="Morflow Engine & Bindings v${VERSION}"
+          
+          echo "Publishing release $TAG..."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists. Uploading new/updated assets..."
+            gh release upload "$TAG" release_assets/* --clobber
+          else
+            echo "Creating new release $TAG..."
+            gh release create "$TAG" release_assets/* \
+              --title "$TITLE" \
+              --notes "Official release of **Morflow Engine & Language Bindings** v${VERSION}. Includes multi-platform CLI binaries, Python wheels, Node.js packages, and Java JAR with JNI libraries."
+          fi
