@@ -11,6 +11,9 @@ dependencies = [
     "numpy>=1.20",
 ]
 
+[project.scripts]
+morflow = "morflow.cli:main"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "python"

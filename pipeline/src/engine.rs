@@ -166,7 +166,7 @@ impl MorflowPipeline {
     }
 }
 
-fn collect_action_names(statements: &[Statement]) -> Vec<String> {
+pub fn collect_action_names(statements: &[Statement]) -> Vec<String> {
     let mut names = Vec::new();
     for stmt in statements {
         let Statement::Flow(chain) = stmt;

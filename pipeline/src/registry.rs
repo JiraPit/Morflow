@@ -62,6 +62,10 @@ impl ActionRegistry {
             paths.push(PathBuf::from(env_path));
         }
 
+        if let Some(home) = dirs::home_dir() {
+            paths.push(home.join(".morflow").join("actions"));
+        }
+
         if let Ok(exe_path) = env::current_exe() {
             if let Some(exe_dir) = exe_path.parent() {
                 paths.push(exe_dir.join("actions"));

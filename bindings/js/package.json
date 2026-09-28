@@ -4,6 +4,9 @@
   "description": "High-performance dataflow pipeline engine for JavaScript and TypeScript",
   "main": "index.js",
   "types": "index.d.ts",
+  "bin": {
+    "morflow": "bin/morflow.mjs"
+  },
   "napi": {
     "binaryName": "morflow"
   },
