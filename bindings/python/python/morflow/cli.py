@@ -88,8 +88,9 @@ def parse_full_action_path(path_str: str):
 
     if len(parts) >= 3:
         pack = normalize_pack_name(parts[0])
-        version = parts[1]
-        action = parts[2]
+        action = parts[-1]
+        raw_version = ".".join(parts[1:-1])
+        version = raw_version.lstrip("v")
         return pack, version, action
     elif len(parts) == 2:
         pack = normalize_pack_name(parts[0])
@@ -407,6 +408,16 @@ def main():
     )
     list_parser.add_argument("--path", help="Custom action cache directory to inspect")
 
+    # Install command
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Installs a specific action binary into the local action cache based on full action path",
+    )
+    install_parser.add_argument("action", help="Full action path (e.g. image_essential.latest.color_adjust, audio_essentials.gain)")
+    install_parser.add_argument("--path", help="Custom action cache directory")
+    install_parser.add_argument("--repo", default="JiraPit/Morflow", help="GitHub repository to download action binaries from")
+    install_parser.add_argument("--force", action="store_true", help="Force re-download even if action is already installed")
+
     args = parser.parse_args()
     if args.command == "prep":
         cmd_prep(args)
@@ -418,7 +429,96 @@ def main():
         cmd_search(args)
     elif args.command == "list":
         cmd_list(args)
+    elif args.command == "install":
+        cmd_install(args)
+
+
+def cmd_install(args):
+    pack, path_version, action_name = parse_full_action_path(args.action)
+    if path_version != "latest" and path_version:
+        version = path_version
+    else:
+        version = "0.1.0"
+
+    platform_name, ext = get_host_platform()
+    cache_dir = resolve_action_cache_dir(args.path)
+    pack_dir = cache_dir / pack
+    pack_dir.mkdir(parents=True, exist_ok=True)
+
+    target_file_pack = pack_dir / f"{action_name}_action.{ext}"
+    target_file_root = cache_dir / f"{action_name}_action.{ext}"
+
+    if not args.force and (target_file_pack.exists() or target_file_root.exists()):
+        print(
+            f"Action '{pack}.latest.{action_name}' is already installed in {target_file_pack}. Use --force to reinstall."
+        )
+        return
+
+    print("==================================================")
+    print(" Morflow Action Installer (Python CLI)")
+    print(f" Action: {pack}.latest.{action_name}")
+    print(f" Version: v{version}")
+    print(f" Host Platform: {platform_name} (.{ext})")
+    print(f" Cache Directory: {cache_dir}")
+    print(f" Repository: {args.repo}")
+    print("==================================================")
+
+    print(f"  [↓ Downloading] [{pack}] {action_name} v{version}...")
+    binary_filename = f"{action_name}_action-{version}-{platform_name}.{ext}"
+
+    urls = [
+        f"https://github.com/{args.repo}/releases/download/action_packs%2F{pack}%2Fv{version}/{binary_filename}",
+        f"https://github.com/{args.repo}/releases/download/action_packs/{pack}/v{version}/{binary_filename}",
+    ]
+
+    downloaded = False
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.0"})
+            with urllib.request.urlopen(req) as resp:
+                data = resp.read()
+                target_file_pack.write_bytes(data)
+                target_file_root.write_bytes(data)
+                print(f"    ✓ Successfully installed to {target_file_pack}")
+                downloaded = True
+                break
+        except Exception:
+            continue
+
+    if not downloaded:
+        # Check local repository builds
+        local_candidates = [
+            Path(f"target/release/actions/{pack}/{action_name}_action.{ext}"),
+            Path(f"target/release/actions/{action_name}_action.{ext}"),
+            Path(f"actions/{pack}/{action_name}/target/release/lib{action_name}.{ext}"),
+        ]
+        copied = False
+        for cand in local_candidates:
+            if cand.exists():
+                shutil.copy2(cand, target_file_pack)
+                shutil.copy2(cand, target_file_root)
+                print(f"    ✓ Copied local build artifact from {cand}")
+                copied = True
+                break
+
+        if not copied:
+            print(
+                f"Error: Could not download remote binary or find local artifact for [{pack}] {action_name}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    # Cache SPEC.md if available
+    spec_dir = cache_dir / pack / action_name
+    spec_dir.mkdir(parents=True, exist_ok=True)
+    target_spec = spec_dir / "SPEC.md"
+    local_spec = Path(f"actions/{pack}/{action_name}/SPEC.md")
+    if local_spec.exists():
+        shutil.copy2(local_spec, target_spec)
+
+    print(f"\n✓ Installation complete: {pack}.latest.{action_name} is ready for runtime use.\n")
 
 
 if __name__ == "__main__":
     main()
+

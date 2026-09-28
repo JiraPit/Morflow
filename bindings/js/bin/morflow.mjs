@@ -83,8 +83,9 @@ function parseFullActionPath(pathStr) {
 
   if (parts.length >= 3) {
     const pack = normalizePackName(parts[0]);
-    const version = parts[1];
-    const action = parts[2];
+    const action = parts[parts.length - 1];
+    const rawVersion = parts.slice(1, parts.length - 1).join('.');
+    const version = rawVersion.replace(/^v/, '');
     return [pack, version, action];
   } else if (parts.length === 2) {
     const pack = normalizePackName(parts[0]);
@@ -397,6 +398,7 @@ Commands:
   spec <action>   Views the raw SPEC.md documentation for a specified action
   search <query>  Performs fuzzy search for actions by name and returns top matching full action paths
   list            Lists all action paths installed locally in the action cache
+  install <path>  Installs a specific action binary into the local action cache based on full action path
   help            Print this help message
 
 Options:
@@ -407,6 +409,93 @@ Options:
   --force                Force re-download even if already cached
   -h, --help             Show help
 `);
+}
+
+async function cmdInstall(args) {
+  const [pack, pathVersion, actionName] = parseFullActionPath(args.action);
+  const version = pathVersion !== 'latest' && pathVersion ? pathVersion : '0.1.0';
+
+  const [platformName, ext] = getHostPlatform();
+  const cacheDir = resolveActionCacheDir(args.path);
+  const packDir = path.join(cacheDir, pack);
+  fs.mkdirSync(packDir, { recursive: true });
+
+  const targetFilePack = path.join(packDir, `${actionName}_action.${ext}`);
+  const targetFileRoot = path.join(cacheDir, `${actionName}_action.${ext}`);
+
+  if (!args.force && (fs.existsSync(targetFilePack) || fs.existsSync(targetFileRoot))) {
+    console.log(`Action '${pack}.latest.${actionName}' is already installed in ${targetFilePack}. Use --force to reinstall.`);
+    return;
+  }
+
+  console.log('==================================================');
+  console.log(' Morflow Action Installer (Node.js CLI)');
+  console.log(` Action: ${pack}.latest.${actionName}`);
+  console.log(` Version: v${version}`);
+  console.log(` Host Platform: ${platformName} (.${ext})`);
+  console.log(` Cache Directory: ${cacheDir}`);
+  console.log(` Repository: ${args.repo}`);
+  console.log('==================================================');
+
+  console.log(`  [↓ Downloading] [${pack}] ${actionName} v${version}...`);
+  const binaryFilename = `${actionName}_action-${version}-${platformName}.${ext}`;
+
+  const urls = [
+    `https://github.com/${args.repo}/releases/download/action_packs%2F${pack}%2Fv${version}/${binaryFilename}`,
+    `https://github.com/${args.repo}/releases/download/action_packs/${pack}/v${version}/${binaryFilename}`,
+  ];
+
+  let downloaded = false;
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.0' } });
+      if (resp.ok) {
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        fs.writeFileSync(targetFilePack, buffer);
+        fs.writeFileSync(targetFileRoot, buffer);
+        console.log(`    ✓ Successfully installed to ${targetFilePack}`);
+        downloaded = true;
+        break;
+      }
+    } catch {}
+  }
+
+  if (!downloaded) {
+    const localCandidates = [
+      path.resolve(`target/release/actions/${pack}/${actionName}_action.${ext}`),
+      path.resolve(`target/release/actions/${actionName}_action.${ext}`),
+      path.resolve(`actions/${pack}/${actionName}/target/release/lib${actionName}.${ext}`),
+    ];
+
+    let copied = false;
+    for (const cand of localCandidates) {
+      if (fs.existsSync(cand)) {
+        fs.copyFileSync(cand, targetFilePack);
+        fs.copyFileSync(cand, targetFileRoot);
+        console.log(`    ✓ Copied local build artifact from ${cand}`);
+        copied = true;
+        break;
+      }
+    }
+
+    if (!copied) {
+      console.error(`Error: Could not download remote binary or find local artifact for [${pack}] ${actionName}.`);
+      process.exit(1);
+    }
+  }
+
+  // Cache SPEC.md if available
+  const specDir = path.join(cacheDir, pack, actionName);
+  fs.mkdirSync(specDir, { recursive: true });
+  const targetSpec = path.join(specDir, 'SPEC.md');
+  const localSpec = path.resolve(`actions/${pack}/${actionName}/SPEC.md`);
+  if (fs.existsSync(localSpec)) {
+    try {
+      fs.copyFileSync(localSpec, targetSpec);
+    } catch {}
+  }
+
+  console.log(`\n✓ Installation complete: ${pack}.latest.${actionName} is ready for runtime use.\n`);
 }
 
 async function main() {
@@ -472,6 +561,13 @@ async function main() {
     cmdSearch(args);
   } else if (command === 'list') {
     cmdList(args);
+  } else if (command === 'install') {
+    if (!args.action) {
+      console.error('Error: Missing required argument <action> for install command.\n');
+      printHelp();
+      process.exit(1);
+    }
+    await cmdInstall(args);
   } else {
     console.error(`Unknown command '${command}'.\n`);
     printHelp();
@@ -483,3 +579,4 @@ main().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
