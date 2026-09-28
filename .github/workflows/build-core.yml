@@ -181,7 +181,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -193,7 +193,7 @@ jobs:
         run: |
           cd bindings/js
           npm install
-          napi build --platform --release --target "${{ matrix.triple }}"
+          npx napi build --platform --release --target "${{ matrix.triple }}"
           mkdir -p ../../dist_node
           cp *.node ../../dist_node/ 2>/dev/null || true
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
