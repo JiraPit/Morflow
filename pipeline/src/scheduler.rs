@@ -145,6 +145,7 @@ impl AutoParallelScheduler {
         Ok(PipelineOutputs::new(outputs))
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn execute_flow_parallel(
         &self,
         flow: &FlowChain,
@@ -676,7 +677,7 @@ impl AutoParallelScheduler {
                                 aud.dtype()
                             )
                         }
-                        _ => format!("<Payload>"),
+                        _ => "<Payload>".to_string(),
                     }
                 } else {
                     format!("${}", v.name)

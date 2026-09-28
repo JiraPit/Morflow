@@ -151,7 +151,7 @@ impl Audio {
         if channels == 0 {
             return Err(RString::from("Channel count cannot be 0"));
         }
-        if data.len() % channels != 0 {
+        if !data.len().is_multiple_of(channels) {
             return Err(RString::from(format!(
                 "Data length {} is not divisible by channel count {}",
                 data.len(),
@@ -186,7 +186,7 @@ impl Audio {
         if channels == 0 {
             return Err(RString::from("Channel count cannot be 0"));
         }
-        if data.len() % channels != 0 {
+        if !data.len().is_multiple_of(channels) {
             return Err(RString::from(format!(
                 "Data length {} is not divisible by channel count {}",
                 data.len(),

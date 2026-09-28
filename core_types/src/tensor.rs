@@ -84,7 +84,7 @@ impl Tensor {
 
     /// Creates a 1D tensor from a slice of f32 values with bulk memory copy.
     pub fn from_f32_slice(data: &[f32]) -> Self {
-        let byte_len = data.len() * std::mem::size_of::<f32>();
+        let byte_len = std::mem::size_of_val(data);
         let mut bytes = Vec::with_capacity(byte_len);
         if byte_len > 0 {
             unsafe {
@@ -117,7 +117,7 @@ impl Tensor {
                 num_elements
             )));
         }
-        let byte_len = data.len() * std::mem::size_of::<f32>();
+        let byte_len = std::mem::size_of_val(data);
         let mut bytes = Vec::with_capacity(byte_len);
         if byte_len > 0 {
             unsafe {
@@ -189,7 +189,7 @@ impl Tensor {
         }
         let step = step.max(1);
         let new_len = if clamped_end > start {
-            (clamped_end - start + step - 1) / step
+            (clamped_end - start).div_ceil(step)
         } else {
             0
         };
@@ -545,8 +545,10 @@ mod tests {
 
         let contiguous_bytes = row2.to_contiguous_bytes();
         let f32_vals: Vec<f32> = contiguous_bytes
-            .chunks_exact(4)
-            .map(|chunk| f32::from_ne_bytes(chunk.try_into().unwrap()))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|chunk| f32::from_ne_bytes(*chunk))
             .collect();
         assert_eq!(
             f32_vals,

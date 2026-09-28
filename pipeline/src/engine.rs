@@ -56,6 +56,7 @@ impl Morflow {
     }
 
     /// Parses and compiles a `.morf` pipeline string.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(source: &str) -> Result<MorflowPipeline, MorflowError> {
         let ast = parser::parse(source).map_err(|errs| {
             MorflowError::Parse(format!(

@@ -338,7 +338,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     let from_import = text::keyword("from")
         .ignore_then(padded(ident))
         .then_ignore(just('.'))
-        .then(padded(version_str.clone()))
+        .then(padded(version_str))
         .then_ignore(padded(text::keyword("import")))
         .then(padded(import_items_list))
         .map(|((package, version), items)| {
