@@ -150,7 +150,7 @@ async function main() {
   const inputBuffer = fs.readFileSync('input.png');
   const img = decodePng(inputBuffer);
 
-  console.log(`Loaded pipeline: ${pipeline.name || 'image_pipeline'}`);
+  console.log('Loaded pipeline: image_pipeline.morf');
   console.log(`Input image: ${img.width}x${img.height}, RGB`);
 
   // 2. Prepare Morflow TensorInput [H, W, 3]

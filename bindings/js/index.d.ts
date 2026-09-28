@@ -30,7 +30,6 @@ export type PipelineInput =
   | boolean;
 
 export class Pipeline {
-  readonly name?: string;
   readonly params: string[];
 
   /**

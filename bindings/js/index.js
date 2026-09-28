@@ -82,10 +82,6 @@ class MorflowPipelineWrapper {
     this._native = nativePipeline;
   }
 
-  get name() {
-    return this._native.name;
-  }
-
   get params() {
     return this._native.params;
   }

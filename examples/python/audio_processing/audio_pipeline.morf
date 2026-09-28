@@ -1,5 +1,7 @@
 # Morflow Audio DSP Pipeline (.morf)
 
+import audio_essentials.latest
+
 accept $input_audio
 accept $sample_rate = 44100
 

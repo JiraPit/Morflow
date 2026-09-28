@@ -218,12 +218,6 @@ pub struct PyPipeline {
 
 #[pymethods]
 impl PyPipeline {
-    /// Pipeline name if declared in the .morf file.
-    #[getter]
-    fn name(&self) -> Option<String> {
-        self.inner.name().map(|s| s.to_string())
-    }
-
     /// Parameter names declared with `accept $param`.
     #[getter]
     fn params(&self) -> Vec<String> {
@@ -283,11 +277,7 @@ impl PyPipeline {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "<Morflow Pipeline name={:?} params={:?}>",
-            self.inner.name(),
-            self.params()
-        )
+        format!("<Morflow Pipeline params={:?}>", self.params())
     }
 }
 

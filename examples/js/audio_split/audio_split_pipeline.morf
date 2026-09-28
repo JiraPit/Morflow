@@ -1,5 +1,7 @@
 # Morflow Multi-Channel Audio Split Pipeline (.morf)
 
+import audio_essentials.latest
+
 accept $input_audio
 
 # Extract individual channels, apply separate DSP stages, and emit named channel outputs

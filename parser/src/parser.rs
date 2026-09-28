@@ -150,12 +150,21 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             (pos, named)
         });
 
-    // Action call: e.g. load_audio("in.wav") or identity
-    // Exclude reserved keywords: if, else, each, route, pipeline, accept
-    let action_ident = ident.try_map(|name, span| {
+    // Action call: e.g. load_audio("in.wav"), identity, or image_essentials.resize(512, 512)
+    // Exclude reserved keywords: if, else, each, route, pipeline, accept, import, from, as, true, false
+    let single_ident = ident.try_map(|name, span| {
         let is_reserved = matches!(
             name.as_str(),
-            "if" | "else" | "each" | "route" | "pipeline" | "accept" | "true" | "false"
+            "if" | "else"
+                | "each"
+                | "route"
+                | "pipeline"
+                | "accept"
+                | "import"
+                | "from"
+                | "as"
+                | "true"
+                | "false"
         );
         if is_reserved {
             Err(Simple::custom(
@@ -166,6 +175,21 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             Ok(name)
         }
     });
+
+    let action_ident = single_ident
+        .then(just('.').ignore_then(single_ident).repeated())
+        .map(|(first, rest)| {
+            if rest.is_empty() {
+                first
+            } else {
+                let mut full = first;
+                for part in rest {
+                    full.push('.');
+                    full.push_str(&part);
+                }
+                full
+            }
+        });
 
     let action_call = action_ident
         .then(padded(args_list))
@@ -294,51 +318,83 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             default_value,
         });
 
-    let pipeline_param = param_name
-        .then(padded(just('=')).ignore_then(value.clone()).or_not())
-        .map(|(name, default_value)| PipelineParam {
-            name,
-            default_value,
+    // Version string parser: e.g. "latest", "v1", "1.0.0"
+    let version_part = text::digits(10).or(ident);
+    let version_str = version_part
+        .separated_by(just('.'))
+        .at_least(1)
+        .map(|parts| parts.join("."));
+
+    // Import item: color_adjust [as ca]
+    let import_item = ident
+        .then(padded(text::keyword("as")).ignore_then(padded(ident)).or_not())
+        .map(|(name, alias)| ImportItem { name, alias });
+
+    let import_items_list = import_item
+        .separated_by(padded(just(',')))
+        .allow_trailing();
+
+    // from <package>.<version> import <item1>, <item2>
+    let from_import = text::keyword("from")
+        .ignore_then(padded(ident))
+        .then_ignore(just('.'))
+        .then(padded(version_str.clone()))
+        .then_ignore(padded(text::keyword("import")))
+        .then(padded(import_items_list))
+        .map(|((package, version), items)| {
+            ImportStmt::Items(ItemsImport {
+                package,
+                version,
+                items,
+            })
         });
 
-    let params_list = pipeline_param
-        .separated_by(padded(just(',')))
-        .allow_trailing()
-        .delimited_by(just('('), just(')'));
+    // import <package>.<version> [as <alias>]
+    let pkg_import = text::keyword("import")
+        .ignore_then(padded(ident))
+        .then_ignore(just('.'))
+        .then(padded(version_str))
+        .then(padded(text::keyword("as")).ignore_then(padded(ident)).or_not())
+        .map(|((package, version), alias)| {
+            ImportStmt::Package(PackageImport {
+                package,
+                version,
+                alias,
+            })
+        });
 
-    let pipeline_name_str = choice((
-        just('"')
-            .ignore_then(filter(|c| *c != '"').repeated())
-            .then_ignore(just('"'))
-            .collect::<String>(),
-        ident,
+    let import_stmt = choice((from_import, pkg_import));
+
+    enum TopLevel {
+        Import(ImportStmt),
+        Param(PipelineParam),
+        Stmt(Statement),
+    }
+
+    let top_level_item = choice((
+        padded(import_stmt).map(TopLevel::Import),
+        padded(accept_stmt).map(TopLevel::Param),
+        statement.clone().map(TopLevel::Stmt),
     ));
 
-    // Optional legacy wrapper: pipeline "Name" ($input) { ... }
-    let pipeline_explicit = text::keyword("pipeline")
-        .ignore_then(padded(pipeline_name_str).or_not())
-        .then(padded(params_list).or_not())
-        .then(
-            statement
-                .clone()
-                .repeated()
-                .delimited_by(padded(just('{')), padded(just('}'))),
-        )
-        .map(|((name, params_opt), statements)| Pipeline {
-            name,
-            params: params_opt.unwrap_or_default(),
-            statements,
-        });
-
-    // Clean top-level pipeline format with `accept $a` declarations and top-level flows
-    let pipeline_top_level = padded(accept_stmt)
-        .repeated()
-        .then(statement.clone().repeated())
-        .map(|(params, statements)| Pipeline {
-            name: None,
+    // Top-level pipeline format with imports, `accept $a` declarations and flows
+    let pipeline_top_level = top_level_item.repeated().map(|items| {
+        let mut imports = Vec::new();
+        let mut params = Vec::new();
+        let mut statements = Vec::new();
+        for item in items {
+            match item {
+                TopLevel::Import(imp) => imports.push(imp),
+                TopLevel::Param(param) => params.push(param),
+                TopLevel::Stmt(stmt) => statements.push(stmt),
+            }
+        }
+        Pipeline {
+            imports,
             params,
             statements,
-        });
+        }
+    });
 
-    padded(choice((pipeline_explicit, pipeline_top_level))).then_ignore(end())
+    padded(pipeline_top_level).then_ignore(end())
 }

@@ -1,12 +1,14 @@
 pub mod engine;
 pub mod outputs;
 pub mod registry;
+pub mod resolver;
 pub mod scheduler;
 pub mod validator;
 
 pub use engine::{Morflow, MorflowError, MorflowPipeline};
 pub use outputs::PipelineOutputs;
 pub use registry::{LoadedPlugin, PluginRegistry};
+pub use resolver::ActionResolver;
 pub use scheduler::AutoParallelScheduler;
 
 #[cfg(test)]
@@ -385,21 +387,17 @@ mod tests {
     }
 
     #[test]
-    fn test_error_on_multiple_pipelines_in_single_file() {
-        let multi_pipeline_morf = r#"
+    fn test_error_on_legacy_pipeline_wrapper() {
+        let legacy_pipeline_morf = r#"
             pipeline "FirstPipeline" ($a) {
-                $a >> identity
-            }
-
-            pipeline "SecondPipeline" ($b) {
-                $b >> identity
+                $a >> identity >> emit
             }
         "#;
 
-        let res = Morflow::from_str(multi_pipeline_morf);
+        let res = Morflow::from_str(legacy_pipeline_morf);
         assert!(
             res.is_err(),
-            "Must reject multiple pipeline definitions in a single .morf file"
+            "Must reject legacy explicit pipeline wrapper syntax"
         );
     }
 
@@ -675,6 +673,74 @@ mod tests {
             assert_eq!(slice, &[6.0, 12.0, 18.0]);
         } else {
             panic!("Expected Tensor for amplified_final");
+        }
+    }
+
+    #[test]
+    fn test_action_pack_package_import() {
+        let morf_src = r#"
+            import audio_essentials.latest
+
+            accept $audio_in
+
+            $audio_in >> gain(linear=2.5) >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let tensor = Tensor::from_f32_slice(&[2.0, 4.0]);
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Execution failed");
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Tensor(t) = result {
+            assert_eq!(t.as_f32_slice().unwrap(), &[5.0, 10.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+
+    #[test]
+    fn test_action_pack_from_import_with_alias() {
+        let morf_src = r#"
+            import base.latest
+            from audio_essentials.latest import gain as amp
+
+            accept $audio_in
+
+            $audio_in >> identity >> amp(linear=3.0) >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let tensor = Tensor::from_f32_slice(&[1.0, 3.0]);
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Execution failed");
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Tensor(t) = result {
+            assert_eq!(t.as_f32_slice().unwrap(), &[3.0, 9.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+
+    #[test]
+    fn test_action_pack_qualified_invocation() {
+        let morf_src = r#"
+            accept $audio_in
+
+            $audio_in >> audio_essentials.gain(linear=4.0) >> base.identity >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let tensor = Tensor::from_f32_slice(&[2.0, 5.0]);
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Execution failed");
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Tensor(t) = result {
+            assert_eq!(t.as_f32_slice().unwrap(), &[8.0, 20.0]);
+        } else {
+            panic!("Expected Tensor output");
         }
     }
 }

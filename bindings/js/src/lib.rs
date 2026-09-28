@@ -242,12 +242,6 @@ pub struct Pipeline {
 
 #[napi]
 impl Pipeline {
-    /// Pipeline name declared in the .morf file.
-    #[napi(getter)]
-    pub fn name(&self) -> Option<String> {
-        self.inner.name().map(|s| s.to_string())
-    }
-
     /// Parameter names declared with `accept $param`.
     #[napi(getter)]
     pub fn params(&self) -> Vec<String> {

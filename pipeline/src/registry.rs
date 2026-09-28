@@ -86,16 +86,46 @@ impl PluginRegistry {
         self.search_paths.push(path.as_ref().to_path_buf());
     }
 
-    /// Locates the shared library file for the given action name on disk.
-    pub fn find_action_path(&self, action_name: &str) -> Option<PathBuf> {
-        let candidates = [
+    /// Normalizes pack name aliases (e.g. image_essential <-> image_essentials)
+    pub fn pack_aliases(pack: &str) -> Vec<String> {
+        let mut aliases = vec![pack.to_string()];
+        if pack == "image_essential" {
+            aliases.push("image_essentials".to_string());
+        } else if pack == "image_essentials" {
+            aliases.push("image_essential".to_string());
+        } else if pack == "audio_essential" {
+            aliases.push("audio_essentials".to_string());
+        } else if pack == "audio_essentials" {
+            aliases.push("audio_essential".to_string());
+        }
+        aliases
+    }
+
+    /// Locates the shared library file for the given action in a specific ActionPack.
+    pub fn find_action_in_pack(&self, pack: &str, action_name: &str) -> Option<PathBuf> {
+        let pack_candidates = Self::pack_aliases(pack);
+        let file_candidates = [
             format!("{}_action.{}", action_name, DLL_EXTENSION),
+            format!("{}{}_action.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
             format!("{}{}.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
             format!("{}.{}", action_name, DLL_EXTENSION),
         ];
 
         for base_dir in &self.search_paths {
-            for candidate in &candidates {
+            for pack_cand in &pack_candidates {
+                let pack_dir = base_dir.join(pack_cand);
+                for candidate in &file_candidates {
+                    let full = pack_dir.join(candidate);
+                    if full.is_file() {
+                        return Some(full);
+                    }
+                }
+            }
+        }
+
+        // Also check direct search paths as fallback
+        for base_dir in &self.search_paths {
+            for candidate in &file_candidates {
                 let full = base_dir.join(candidate);
                 if full.is_file() {
                     return Some(full);
@@ -104,6 +134,105 @@ impl PluginRegistry {
         }
 
         None
+    }
+
+    /// Locates the shared library file for the given action name on disk.
+    pub fn find_action_path(&self, action_name: &str) -> Option<PathBuf> {
+        if let Some((pack, act)) = action_name.split_once('.') {
+            if let Some(path) = self.find_action_in_pack(pack, act) {
+                return Some(path);
+            }
+        }
+
+        let file_candidates = [
+            format!("{}_action.{}", action_name, DLL_EXTENSION),
+            format!("{}{}_action.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
+            format!("{}{}.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
+            format!("{}.{}", action_name, DLL_EXTENSION),
+        ];
+
+        // 1. Search in known ActionPack subdirectories
+        let known_packs = [
+            "base",
+            "image_essentials",
+            "audio_essentials",
+            "image_essential",
+            "audio_essential",
+        ];
+        for base_dir in &self.search_paths {
+            for pack in &known_packs {
+                let pack_dir = base_dir.join(pack);
+                for candidate in &file_candidates {
+                    let full = pack_dir.join(candidate);
+                    if full.is_file() {
+                        return Some(full);
+                    }
+                }
+            }
+        }
+
+        // 2. Search directly in search_paths
+        for base_dir in &self.search_paths {
+            for candidate in &file_candidates {
+                let full = base_dir.join(candidate);
+                if full.is_file() {
+                    return Some(full);
+                }
+            }
+        }
+
+        // 3. Search all subdirectories of search_paths (for custom ActionPacks)
+        for base_dir in &self.search_paths {
+            if let Ok(entries) = std::fs::read_dir(base_dir) {
+                for entry in entries.flatten() {
+                    if entry.path().is_dir() {
+                        let sub_dir = entry.path();
+                        for candidate in &file_candidates {
+                            let full = sub_dir.join(candidate);
+                            if full.is_file() {
+                                return Some(full);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Loads or returns a cached plugin from a specific ActionPack.
+    pub fn get_or_load_in_pack(
+        &self,
+        pack: &str,
+        action_name: &str,
+    ) -> Result<Arc<LoadedPlugin>, String> {
+        let key = format!("{}.{}", pack, action_name);
+        {
+            let guard = self.cache.read().unwrap();
+            if let Some(plugin) = guard.get(&key) {
+                return Ok(Arc::clone(plugin));
+            }
+            if let Some(plugin) = guard.get(action_name) {
+                return Ok(Arc::clone(plugin));
+            }
+        }
+
+        let path = self.find_action_in_pack(pack, action_name).ok_or_else(|| {
+            format!(
+                "Action '{}' in pack '{}' not found in search paths: {:?}",
+                action_name, pack, self.search_paths
+            )
+        })?;
+
+        let loaded = self.load_from_path(action_name, &path)?;
+        let arc_plugin = Arc::new(loaded);
+
+        let mut write_guard = self.cache.write().unwrap();
+        write_guard.insert(key, Arc::clone(&arc_plugin));
+        write_guard.insert(action_name.to_string(), Arc::clone(&arc_plugin));
+
+        Ok(arc_plugin)
     }
 
     /// Returns a cached plugin or loads it from disk, caching the symbols for future calls.
@@ -141,7 +270,7 @@ impl PluginRegistry {
         let mut count = 0;
         let mut found_actions = Vec::new();
 
-        for dir in &self.search_paths {
+        let mut scan_dir = |dir: &Path| {
             if let Ok(entries) = std::fs::read_dir(dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -157,9 +286,34 @@ impl PluginRegistry {
                                 found_actions.push(action_name.to_string());
                             }
                         }
+                    } else if path.is_dir() {
+                        if let Ok(sub_entries) = std::fs::read_dir(&path) {
+                            for sub_entry in sub_entries.flatten() {
+                                let sub_path = sub_entry.path();
+                                if sub_path.is_file() {
+                                    if let Some(stem) =
+                                        sub_path.file_stem().and_then(|s| s.to_str())
+                                    {
+                                        let action_name = stem
+                                            .strip_suffix("_action")
+                                            .unwrap_or(stem)
+                                            .strip_prefix(DLL_PREFIX)
+                                            .unwrap_or(stem);
+
+                                        if !found_actions.contains(&action_name.to_string()) {
+                                            found_actions.push(action_name.to_string());
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
+        };
+
+        for dir in &self.search_paths {
+            scan_dir(dir);
         }
 
         for action_name in found_actions {

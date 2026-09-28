@@ -81,7 +81,7 @@ async function main() {
   const inputBuffer = fs.readFileSync('input.wav');
   const wav = decodeWav(inputBuffer);
 
-  console.log(`Loaded pipeline: ${pipeline.name || 'audio_pipeline'}`);
+  console.log('Loaded pipeline: audio_pipeline.morf');
   console.log(`Input audio: ${wav.numChannels} channels, ${wav.sampleRate} Hz, ${wav.numSamples} samples`);
 
   // Flatten planar data for Morflow input: shape [channels, samples]

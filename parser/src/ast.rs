@@ -2,9 +2,37 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Pipeline {
-    pub name: Option<String>,
+    pub imports: Vec<ImportStmt>,
     pub params: Vec<PipelineParam>,
     pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ImportStmt {
+    /// `import <package>.<version> [as <alias>]`
+    Package(PackageImport),
+    /// `from <package>.<version> import <item1>, <item2>`
+    Items(ItemsImport),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackageImport {
+    pub package: String,
+    pub version: String,
+    pub alias: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ItemsImport {
+    pub package: String,
+    pub version: String,
+    pub items: Vec<ImportItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ImportItem {
+    pub name: String,
+    pub alias: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

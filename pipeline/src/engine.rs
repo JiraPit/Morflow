@@ -83,11 +83,6 @@ pub struct MorflowPipeline {
 }
 
 impl MorflowPipeline {
-    /// Returns the pipeline name if defined in the `.morf` file.
-    pub fn name(&self) -> Option<&str> {
-        self.ast.name.as_deref()
-    }
-
     /// Returns the pipeline parameter declarations (`accept $param`).
     pub fn params(&self) -> &[PipelineParam] {
         &self.ast.params
@@ -95,11 +90,19 @@ impl MorflowPipeline {
 
     /// Preloads all plugins declared across all steps in this pipeline into memory.
     pub fn warmup(&self) -> Result<(), MorflowError> {
+        let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
         let action_names = collect_action_names(&self.ast.statements);
         for action in action_names {
-            self.registry
-                .get_or_load(&action)
-                .map_err(MorflowError::Plugin)?;
+            let (target_pack, real_action_name) = resolver.resolve(&action);
+            if let Some(pack) = target_pack {
+                self.registry
+                    .get_or_load_in_pack(&pack, &real_action_name)
+                    .map_err(MorflowError::Plugin)?;
+            } else {
+                self.registry
+                    .get_or_load(&action)
+                    .map_err(MorflowError::Plugin)?;
+            }
         }
         Ok(())
     }
@@ -156,7 +159,8 @@ impl MorflowPipeline {
         }
 
         // Execute via auto-parallel scheduler
-        let scheduler = AutoParallelScheduler::new(Arc::clone(&self.registry));
+        let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
+        let scheduler = AutoParallelScheduler::new(Arc::clone(&self.registry), resolver);
         scheduler.execute(&self.ast.statements, env)
     }
 }
