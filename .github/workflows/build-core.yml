@@ -1,4 +1,4 @@
-name: Build and Release Engine & Bindings
+name: Build and Release Core
 
 on:
   push:

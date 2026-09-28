@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Morflow Python CLI
-Provides 'prep' and 'clean' subcommands when installed via pip.
+Provides 'prep', 'clean', 'spec', 'search', and 'list' subcommands when installed via pip.
 """
 
 import argparse
@@ -12,6 +12,37 @@ import shutil
 import sys
 import urllib.request
 from pathlib import Path
+
+KNOWN_ACTIONS = [
+    ("base", "identity"),
+    ("base", "to_tensor"),
+    ("audio_essentials", "to_audio"),
+    ("audio_essentials", "to_pcm"),
+    ("audio_essentials", "to_wav"),
+    ("audio_essentials", "gain"),
+    ("audio_essentials", "normalize"),
+    ("audio_essentials", "biquad_filter"),
+    ("audio_essentials", "compressor"),
+    ("audio_essentials", "limiter"),
+    ("audio_essentials", "noise_gate"),
+    ("audio_essentials", "stereo_widen"),
+    ("audio_essentials", "resample"),
+    ("audio_essentials", "stft"),
+    ("audio_essentials", "delay"),
+    ("image_essentials", "to_image"),
+    ("image_essentials", "resize"),
+    ("image_essentials", "crop"),
+    ("image_essentials", "pad"),
+    ("image_essentials", "color_adjust"),
+    ("image_essentials", "gaussian_blur"),
+    ("image_essentials", "edge_detect"),
+    ("image_essentials", "sharpen"),
+    ("image_essentials", "threshold"),
+    ("image_essentials", "rotate"),
+    ("image_essentials", "flip"),
+    ("image_essentials", "blend"),
+    ("image_essentials", "morphology"),
+]
 
 
 def get_host_platform():
@@ -38,6 +69,39 @@ def resolve_action_cache_dir(custom_path=None):
     if env_path and env_path.strip():
         return Path(env_path.strip())
     return Path.home() / ".morflow" / "actions"
+
+
+def normalize_pack_name(pack: str) -> str:
+    pack = pack.strip().lower()
+    if pack in ("audio_essential", "audio_essentials"):
+        return "audio_essentials"
+    elif pack in ("image_essential", "image_essentials"):
+        return "image_essentials"
+    elif pack == "base":
+        return "base"
+    return pack
+
+
+def parse_full_action_path(path_str: str):
+    clean = path_str.replace("::", ".").strip()
+    parts = [p.strip() for p in clean.split(".") if p.strip()]
+
+    if len(parts) >= 3:
+        pack = normalize_pack_name(parts[0])
+        version = parts[1]
+        action = parts[2]
+        return pack, version, action
+    elif len(parts) == 2:
+        pack = normalize_pack_name(parts[0])
+        action = parts[1]
+        return pack, "latest", action
+    elif len(parts) == 1:
+        action = parts[0]
+        for pack, act in KNOWN_ACTIONS:
+            if act.lower() == action.lower():
+                return pack, "latest", act
+        return "base", "latest", action
+    return "base", "latest", path_str
 
 
 def extract_actions_from_morf(source: str):
@@ -70,29 +134,18 @@ def extract_actions_from_morf(source: str):
     for act in actions:
         if "::" in act:
             pack, name = act.split("::", 1)
-            resolved.append((pack, name))
+            resolved.append((normalize_pack_name(pack), name))
         elif "." in act:
             pack, name = act.split(".", 1)
-            resolved.append((pack, name))
+            resolved.append((normalize_pack_name(pack), name))
         else:
-            # Check default pack guesses
-            audio_actions = {
-                "gain", "normalize", "biquad_filter", "compressor", "limiter",
-                "noise_gate", "stereo_widen", "resample", "stft", "delay",
-                "to_audio", "to_pcm", "to_wav"
-            }
-            image_actions = {
-                "blend", "color_adjust", "crop", "edge_detect", "flip",
-                "gaussian_blur", "morphology", "pad", "resize", "rotate",
-                "sharpen", "threshold", "to_image"
-            }
-            if act in audio_actions:
-                resolved.append(("audio_essentials", act))
-            elif act in image_actions:
-                resolved.append(("image_essentials", act))
-            elif act in ("identity", "to_tensor"):
-                resolved.append(("base", act))
-            else:
+            found = False
+            for k_pack, k_act in KNOWN_ACTIONS:
+                if k_act == act:
+                    resolved.append((k_pack, act))
+                    found = True
+                    break
+            if not found:
                 resolved.append(("base", act))
 
     return resolved
@@ -166,6 +219,7 @@ def cmd_prep(args):
             local_candidates = [
                 Path(f"target/release/actions/{pack}/{action_name}_action.{ext}"),
                 Path(f"target/release/actions/{action_name}_action.{ext}"),
+                Path(f"actions/{pack}/{action_name}/target/release/lib{action_name}.{ext}"),
             ]
             copied = False
             for cand in local_candidates:
@@ -210,6 +264,101 @@ def cmd_clean(args):
     print(f"✓ Cleaned {deleted_count} items from {cache_dir}")
 
 
+def cmd_spec(args):
+    pack, _version, action_name = parse_full_action_path(args.action)
+
+    # 1. Check local files in repository / development environment
+    local_candidates = [
+        Path(f"actions/{pack}/{action_name}/SPEC.md"),
+        Path(f"../actions/{pack}/{action_name}/SPEC.md"),
+        resolve_action_cache_dir(None) / pack / action_name / "SPEC.md",
+    ]
+
+    for cand in local_candidates:
+        if cand.exists():
+            try:
+                print(cand.read_text(encoding="utf-8"), end="")
+                return
+            except Exception:
+                pass
+
+    # 2. Fetch raw SPEC.md from GitHub
+    url = f"https://raw.githubusercontent.com/{args.repo}/main/actions/{pack}/{action_name}/SPEC.md"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.0"})
+        with urllib.request.urlopen(req) as resp:
+            content = resp.read().decode("utf-8")
+            print(content, end="")
+    except Exception:
+        print(
+            f"Error: SPEC.md not found for action '{pack}.latest.{action_name}' (checked local paths and {url}).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def cmd_search(args):
+    q = args.query.lower()
+    matches = []
+    for pack, act in KNOWN_ACTIONS:
+        act_lower = act.lower()
+        pos = act_lower.find(q)
+        if pos != -1:
+            matches.append((pos, len(act), act, pack))
+
+    # Rank by: 1) earlier substring position, 2) shorter action length, 3) alphabetical
+    matches.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
+    top_matches = matches[: args.limit]
+
+    if not top_matches:
+        print(f"No matching actions found for query '{args.query}'.")
+    else:
+        for _pos, _len, act, pack in top_matches:
+            print(f"{pack}.latest.{act}")
+
+
+def cmd_list(args):
+    cache_dir = resolve_action_cache_dir(args.path)
+    _platform, ext = get_host_platform()
+    suffix = f"_action.{ext}"
+    found_actions = set()
+
+    if cache_dir.exists():
+        for item in cache_dir.iterdir():
+            if item.is_dir():
+                pack_name = item.name
+                for sub_item in item.iterdir():
+                    if sub_item.is_file() and sub_item.name.endswith(suffix):
+                        act_name = sub_item.name[: -len(suffix)]
+                        found_actions.add(f"{pack_name}.latest.{act_name}")
+            elif item.is_file() and item.name.endswith(suffix):
+                act_name = item.name[: -len(suffix)]
+                pack_name = "base"
+                for k_pack, k_act in KNOWN_ACTIONS:
+                    if k_act == act_name:
+                        pack_name = k_pack
+                        break
+                found_actions.add(f"{pack_name}.latest.{act_name}")
+
+    dev_target = Path("target/release/actions")
+    if dev_target.exists():
+        for item in dev_target.iterdir():
+            if item.is_dir():
+                pack_name = item.name
+                for sub_item in item.iterdir():
+                    if sub_item.is_file() and sub_item.name.endswith(suffix):
+                        act_name = sub_item.name[: -len(suffix)]
+                        found_actions.add(f"{pack_name}.latest.{act_name}")
+
+    sorted_actions = sorted(list(found_actions))
+    if not sorted_actions:
+        print(f"No installed actions found in {cache_dir}.")
+        print("Run 'morflow prep <pipeline.morf>' to download required actions.")
+    else:
+        for act in sorted_actions:
+            print(act)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="morflow",
@@ -235,11 +384,40 @@ def main():
     )
     clean_parser.add_argument("--path", help="Custom action cache directory to clean")
 
+    # Spec command
+    spec_parser = subparsers.add_parser(
+        "spec",
+        help="Views the raw SPEC.md documentation for a specified action",
+    )
+    spec_parser.add_argument("action", help="Full action path (e.g. image_essential.latest.color_adjust)")
+    spec_parser.add_argument("--repo", default="JiraPit/Morflow", help="GitHub repository to fetch spec from")
+
+    # Search command
+    search_parser = subparsers.add_parser(
+        "search",
+        help="Performs fuzzy search for actions by name and returns top matching full action paths",
+    )
+    search_parser.add_argument("query", help="Search query (e.g. color, blur, resample)")
+    search_parser.add_argument("--limit", type=int, default=5, help="Maximum number of results to return")
+
+    # List command
+    list_parser = subparsers.add_parser(
+        "list",
+        help="Lists all action paths installed locally in the action cache",
+    )
+    list_parser.add_argument("--path", help="Custom action cache directory to inspect")
+
     args = parser.parse_args()
     if args.command == "prep":
         cmd_prep(args)
     elif args.command == "clean":
         cmd_clean(args)
+    elif args.command == "spec":
+        cmd_spec(args)
+    elif args.command == "search":
+        cmd_search(args)
+    elif args.command == "list":
+        cmd_list(args)
 
 
 if __name__ == "__main__":

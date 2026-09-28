@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 use pipeline::engine::collect_action_names;
@@ -48,7 +48,66 @@ enum Commands {
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+
+    /// Views the raw SPEC.md documentation for a specified action
+    Spec {
+        /// Full action path (e.g. image_essential.latest.color_adjust, audio_essentials.gain)
+        action: String,
+
+        /// GitHub repository to fetch spec from if not available locally
+        #[arg(short, long, default_value = "JiraPit/Morflow")]
+        repo: String,
+    },
+
+    /// Performs fuzzy search for actions by name and returns the top 5 full action paths
+    Search {
+        /// Search query (e.g. color, blur, resample, gain)
+        query: String,
+
+        /// Maximum number of results to return (default: 5)
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+    },
+
+    /// Lists all action paths installed locally in the action cache
+    List {
+        /// Custom action cache directory to inspect (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
 }
+
+// Built-in catalog of Morflow action packs and actions
+const KNOWN_ACTIONS: &[(&str, &str)] = &[
+    ("base", "identity"),
+    ("base", "to_tensor"),
+    ("audio_essentials", "to_audio"),
+    ("audio_essentials", "to_pcm"),
+    ("audio_essentials", "to_wav"),
+    ("audio_essentials", "gain"),
+    ("audio_essentials", "normalize"),
+    ("audio_essentials", "biquad_filter"),
+    ("audio_essentials", "compressor"),
+    ("audio_essentials", "limiter"),
+    ("audio_essentials", "noise_gate"),
+    ("audio_essentials", "stereo_widen"),
+    ("audio_essentials", "resample"),
+    ("audio_essentials", "stft"),
+    ("audio_essentials", "delay"),
+    ("image_essentials", "to_image"),
+    ("image_essentials", "resize"),
+    ("image_essentials", "crop"),
+    ("image_essentials", "pad"),
+    ("image_essentials", "color_adjust"),
+    ("image_essentials", "gaussian_blur"),
+    ("image_essentials", "edge_detect"),
+    ("image_essentials", "sharpen"),
+    ("image_essentials", "threshold"),
+    ("image_essentials", "rotate"),
+    ("image_essentials", "flip"),
+    ("image_essentials", "blend"),
+    ("image_essentials", "morphology"),
+];
 
 fn get_host_platform() -> (&'static str, &'static str) {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -96,6 +155,45 @@ fn resolve_action_cache_dir(custom: Option<PathBuf>) -> PathBuf {
         return home.join(".morflow").join("actions");
     }
     PathBuf::from(".morflow").join("actions")
+}
+
+fn normalize_pack_name(pack: &str) -> String {
+    let p = pack.trim().to_lowercase();
+    match p.as_str() {
+        "audio_essential" | "audio_essentials" => "audio_essentials".to_string(),
+        "image_essential" | "image_essentials" => "image_essentials".to_string(),
+        "base" => "base".to_string(),
+        other if !other.is_empty() => other.to_string(),
+        _ => "base".to_string(),
+    }
+}
+
+fn parse_full_action_path(path_str: &str) -> (String, String, String) {
+    let clean = path_str.replace("::", ".");
+    let parts: Vec<&str> = clean.split('.').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
+
+    if parts.len() >= 3 {
+        // e.g. image_essential.latest.color_adjust
+        let pack = normalize_pack_name(parts[0]);
+        let version = parts[1];
+        let action = parts[2];
+        (pack, version.to_string(), action.to_string())
+    } else if parts.len() == 2 {
+        // e.g. image_essentials.color_adjust
+        let pack = normalize_pack_name(parts[0]);
+        let action = parts[1];
+        (pack, "latest".to_string(), action.to_string())
+    } else if parts.len() == 1 {
+        let action = parts[0];
+        for &(pack, act) in KNOWN_ACTIONS {
+            if act.eq_ignore_ascii_case(action) {
+                return (pack.to_string(), "latest".to_string(), act.to_string());
+            }
+        }
+        ("base".to_string(), "latest".to_string(), action.to_string())
+    } else {
+        ("base".to_string(), "latest".to_string(), path_str.to_string())
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -204,7 +302,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 if !downloaded {
-                    // Check if a local copy exists in target/release/actions or system paths
+                    // Check local repository builds
                     let local_candidates = [
                         PathBuf::from(format!("target/release/actions/{}/{}_action.{}", pack, real_action_name, ext)),
                         PathBuf::from(format!("target/release/actions/{}_action.{}", real_action_name, ext)),
@@ -225,7 +323,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     if !copied_local {
                         eprintln!(
-                            "    ✗ Warning: Could not download remote binary from GitHub Release (HTTP 404) or find local artifact for [{}] {}.",
+                            "    ✗ Warning: Could not download remote binary from GitHub Release or find local artifact for [{}] {}.",
                             pack, real_action_name
                         );
                     }
@@ -263,6 +361,165 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             println!("✓ Cleaned {} items from {}", deleted_files, cache_dir.display());
+        }
+
+        Commands::Spec { action, repo } => {
+            let (pack, _version, action_name) = parse_full_action_path(&action);
+
+            // 1. Check local files in repository / development environment
+            let local_candidates = [
+                PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name)),
+                PathBuf::from(format!("../actions/{}/{}/SPEC.md", pack, action_name)),
+                resolve_action_cache_dir(None).join(&pack).join(&action_name).join("SPEC.md"),
+            ];
+
+            for cand in &local_candidates {
+                if cand.exists() {
+                    if let Ok(content) = fs::read_to_string(cand) {
+                        print!("{}", content);
+                        return Ok(());
+                    }
+                }
+            }
+
+            // 2. Fetch raw SPEC.md from GitHub
+            let url = format!(
+                "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
+                repo, pack, action_name
+            );
+
+            match ureq::get(&url).call() {
+                Ok(response) => {
+                    let mut content = String::new();
+                    response.into_reader().read_to_string(&mut content)?;
+                    print!("{}", content);
+                }
+                Err(_) => {
+                    eprintln!(
+                        "Error: SPEC.md not found for action '{}.latest.{}' (checked local paths and {}).",
+                        pack, action_name, url
+                    );
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        Commands::Search { query, limit } => {
+            let q = query.to_lowercase();
+            let mut matches: Vec<(&'static str, &'static str, usize, usize)> = KNOWN_ACTIONS
+                .iter()
+                .filter_map(|&(pack, act)| {
+                    let act_lower = act.to_lowercase();
+                    act_lower.find(&q).map(|pos| (pack, act, pos, act.len()))
+                })
+                .collect();
+
+            // Rank by: 1) earlier substring position, 2) shorter action length, 3) alphabetical
+            matches.sort_by(|a, b| {
+                a.2.cmp(&b.2)
+                    .then_with(|| a.3.cmp(&b.3))
+                    .then_with(|| a.1.cmp(b.1))
+                    .then_with(|| a.0.cmp(b.0))
+            });
+
+            let top_matches: Vec<_> = matches.into_iter().take(limit).collect();
+
+            if top_matches.is_empty() {
+                println!("No matching actions found for query '{}'.", query);
+            } else {
+                for (pack, act, _, _) in top_matches {
+                    println!("{}.latest.{}", pack, act);
+                }
+            }
+        }
+
+        Commands::List { path } => {
+            let cache_dir = resolve_action_cache_dir(path);
+            let mut found_actions = Vec::new();
+
+            let (_platform, ext) = get_host_platform();
+            let suffix = format!("_action.{}", ext);
+
+            if cache_dir.exists() {
+                if let Ok(entries) = fs::read_dir(&cache_dir) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_dir() {
+                            let pack_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+                            if let Ok(sub_entries) = fs::read_dir(&p) {
+                                for sub_entry in sub_entries.flatten() {
+                                    let sub_p = sub_entry.path();
+                                    if let Some(file_name) = sub_p.file_name().and_then(|n| n.to_str()) {
+                                        if file_name.ends_with(&suffix) {
+                                            let act_name = &file_name[..file_name.len() - suffix.len()];
+                                            let full_path = format!("{}.latest.{}", pack_name, act_name);
+                                            if !found_actions.contains(&full_path) {
+                                                found_actions.push(full_path);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if p.is_file() {
+                            if let Some(file_name) = p.file_name().and_then(|n| n.to_str()) {
+                                if file_name.ends_with(&suffix) {
+                                    let act_name = &file_name[..file_name.len() - suffix.len()];
+                                    // Resolve pack
+                                    let mut pack = "base".to_string();
+                                    for &(k_pack, k_act) in KNOWN_ACTIONS {
+                                        if k_act == act_name {
+                                            pack = k_pack.to_string();
+                                            break;
+                                        }
+                                    }
+                                    let full_path = format!("{}.latest.{}", pack, act_name);
+                                    if !found_actions.contains(&full_path) {
+                                        found_actions.push(full_path);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Also check local workspace builds if available
+            let dev_target = Path::new("target/release/actions");
+            if dev_target.exists() {
+                if let Ok(entries) = fs::read_dir(dev_target) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_dir() {
+                            let pack_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+                            if let Ok(sub_entries) = fs::read_dir(&p) {
+                                for sub_entry in sub_entries.flatten() {
+                                    let sub_p = sub_entry.path();
+                                    if let Some(file_name) = sub_p.file_name().and_then(|n| n.to_str()) {
+                                        if file_name.ends_with(&suffix) {
+                                            let act_name = &file_name[..file_name.len() - suffix.len()];
+                                            let full_path = format!("{}.latest.{}", pack_name, act_name);
+                                            if !found_actions.contains(&full_path) {
+                                                found_actions.push(full_path);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            found_actions.sort();
+
+            if found_actions.is_empty() {
+                println!("No installed actions found in {}.", cache_dir.display());
+                println!("Run 'morflow prep <pipeline.morf>' to download required actions.");
+            } else {
+                for act in found_actions {
+                    println!("{}", act);
+                }
+            }
         }
     }
 

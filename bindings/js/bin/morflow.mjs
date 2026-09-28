@@ -1,13 +1,44 @@
 #!/usr/bin/env node
 /**
  * Morflow Node.js CLI
- * Provides 'prep' and 'clean' subcommands when installed via npm or run via npx.
+ * Provides 'prep', 'clean', 'spec', 'search', and 'list' subcommands when installed via npm or run via npx.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import process from 'node:process';
+
+const KNOWN_ACTIONS = [
+  ['base', 'identity'],
+  ['base', 'to_tensor'],
+  ['audio_essentials', 'to_audio'],
+  ['audio_essentials', 'to_pcm'],
+  ['audio_essentials', 'to_wav'],
+  ['audio_essentials', 'gain'],
+  ['audio_essentials', 'normalize'],
+  ['audio_essentials', 'biquad_filter'],
+  ['audio_essentials', 'compressor'],
+  ['audio_essentials', 'limiter'],
+  ['audio_essentials', 'noise_gate'],
+  ['audio_essentials', 'stereo_widen'],
+  ['audio_essentials', 'resample'],
+  ['audio_essentials', 'stft'],
+  ['audio_essentials', 'delay'],
+  ['image_essentials', 'to_image'],
+  ['image_essentials', 'resize'],
+  ['image_essentials', 'crop'],
+  ['image_essentials', 'pad'],
+  ['image_essentials', 'color_adjust'],
+  ['image_essentials', 'gaussian_blur'],
+  ['image_essentials', 'edge_detect'],
+  ['image_essentials', 'sharpen'],
+  ['image_essentials', 'threshold'],
+  ['image_essentials', 'rotate'],
+  ['image_essentials', 'flip'],
+  ['image_essentials', 'blend'],
+  ['image_essentials', 'morphology'],
+];
 
 function getHostPlatform() {
   const platform = os.platform();
@@ -32,6 +63,43 @@ function resolveActionCacheDir(customPath) {
     return path.resolve(envPath.trim());
   }
   return path.join(os.homedir(), '.morflow', 'actions');
+}
+
+function normalizePackName(pack) {
+  const p = pack.trim().toLowerCase();
+  if (p === 'audio_essential' || p === 'audio_essentials') {
+    return 'audio_essentials';
+  } else if (p === 'image_essential' || p === 'image_essentials') {
+    return 'image_essentials';
+  } else if (p === 'base') {
+    return 'base';
+  }
+  return p;
+}
+
+function parseFullActionPath(pathStr) {
+  const clean = pathStr.replace(/::/g, '.').trim();
+  const parts = clean.split('.').map(s => s.trim()).filter(Boolean);
+
+  if (parts.length >= 3) {
+    const pack = normalizePackName(parts[0]);
+    const version = parts[1];
+    const action = parts[2];
+    return [pack, version, action];
+  } else if (parts.length === 2) {
+    const pack = normalizePackName(parts[0]);
+    const action = parts[1];
+    return [pack, 'latest', action];
+  } else if (parts.length === 1) {
+    const action = parts[0];
+    for (const [pack, act] of KNOWN_ACTIONS) {
+      if (act.toLowerCase() === action.toLowerCase()) {
+        return [pack, 'latest', act];
+      }
+    }
+    return ['base', 'latest', action];
+  }
+  return ['base', 'latest', pathStr];
 }
 
 function extractActionsFromMorf(source) {
@@ -59,30 +127,17 @@ function extractActionsFromMorf(source) {
     }
   }
 
-  const audioActions = new Set([
-    'gain', 'normalize', 'biquad_filter', 'compressor', 'limiter',
-    'noise_gate', 'stereo_widen', 'resample', 'stft', 'delay',
-    'to_audio', 'to_pcm', 'to_wav'
-  ]);
-
-  const imageActions = new Set([
-    'blend', 'color_adjust', 'crop', 'edge_detect', 'flip',
-    'gaussian_blur', 'morphology', 'pad', 'resize', 'rotate',
-    'sharpen', 'threshold', 'to_image'
-  ]);
-
   return actions.map(act => {
     if (act.includes('::')) {
       const [pack, name] = act.split('::');
-      return [pack, name];
+      return [normalizePackName(pack), name];
     } else if (act.includes('.')) {
       const [pack, name] = act.split('.');
-      return [pack, name];
-    } else if (audioActions.has(act)) {
-      return ['audio_essentials', act];
-    } else if (imageActions.has(act)) {
-      return ['image_essentials', act];
+      return [normalizePackName(pack), name];
     } else {
+      for (const [kPack, kAct] of KNOWN_ACTIONS) {
+        if (kAct === act) return [kPack, act];
+      }
       return ['base', act];
     }
   });
@@ -159,6 +214,7 @@ async function cmdPrep(args) {
       const localCandidates = [
         path.resolve(`target/release/actions/${pack}/${actionName}_action.${ext}`),
         path.resolve(`target/release/actions/${actionName}_action.${ext}`),
+        path.resolve(`actions/${pack}/${actionName}/target/release/lib${actionName}.${ext}`),
       ];
 
       let copied = false;
@@ -205,20 +261,149 @@ function cmdClean(args) {
   console.log(`✓ Cleaned ${deletedCount} items from ${cacheDir}`);
 }
 
+async function cmdSpec(args) {
+  const [pack, _version, actionName] = parseFullActionPath(args.action);
+
+  // 1. Check local files in workspace
+  const localCandidates = [
+    path.resolve(`actions/${pack}/${actionName}/SPEC.md`),
+    path.resolve(`../actions/${pack}/${actionName}/SPEC.md`),
+    path.join(resolveActionCacheDir(), pack, actionName, 'SPEC.md'),
+  ];
+
+  for (const cand of localCandidates) {
+    if (fs.existsSync(cand)) {
+      try {
+        const content = fs.readFileSync(cand, 'utf-8');
+        process.stdout.write(content);
+        return;
+      } catch {}
+    }
+  }
+
+  // 2. Fetch raw SPEC.md from GitHub
+  const url = `https://raw.githubusercontent.com/${args.repo}/main/actions/${pack}/${actionName}/SPEC.md`;
+  try {
+    const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.0' } });
+    if (resp.ok) {
+      const content = await resp.text();
+      process.stdout.write(content);
+      return;
+    }
+  } catch {}
+
+  console.error(`Error: SPEC.md not found for action '${pack}.latest.${actionName}' (checked local paths and ${url}).`);
+  process.exit(1);
+}
+
+function cmdSearch(args) {
+  const q = args.query.toLowerCase();
+  const matches = [];
+  for (const [pack, act] of KNOWN_ACTIONS) {
+    const actLower = act.toLowerCase();
+    const pos = actLower.indexOf(q);
+    if (pos !== -1) {
+      matches.push({ pack, act, pos, len: act.length });
+    }
+  }
+
+  // Rank by: 1) earlier substring position, 2) shorter action length, 3) alphabetical
+  matches.sort((a, b) => {
+    if (a.pos !== b.pos) return a.pos - b.pos;
+    if (a.len !== b.len) return a.len - b.len;
+    if (a.act !== b.act) return a.act.localeCompare(b.act);
+    return a.pack.localeCompare(b.pack);
+  });
+
+  const topMatches = matches.slice(0, args.limit);
+
+  if (topMatches.length === 0) {
+    console.log(`No matching actions found for query '${args.query}'.`);
+  } else {
+    for (const item of topMatches) {
+      console.log(`${item.pack}.latest.${item.act}`);
+    }
+  }
+}
+
+function cmdList(args) {
+  const cacheDir = resolveActionCacheDir(args.path);
+  const [, ext] = getHostPlatform();
+  const suffix = `_action.${ext}`;
+  const foundActions = new Set();
+
+  if (fs.existsSync(cacheDir)) {
+    for (const item of fs.readdirSync(cacheDir)) {
+      const itemPath = path.join(cacheDir, item);
+      const stat = fs.statSync(itemPath);
+      if (stat.isDirectory()) {
+        const packName = item;
+        for (const subItem of fs.readdirSync(itemPath)) {
+          if (subItem.endsWith(suffix)) {
+            const actName = subItem.slice(0, -suffix.length);
+            foundActions.add(`${packName}.latest.${actName}`);
+          }
+        }
+      } else if (stat.isFile() && item.endsWith(suffix)) {
+        const actName = item.slice(0, -suffix.length);
+        let packName = 'base';
+        for (const [kPack, kAct] of KNOWN_ACTIONS) {
+          if (kAct === actName) {
+            packName = kPack;
+            break;
+          }
+        }
+        foundActions.add(`${packName}.latest.${actName}`);
+      }
+    }
+  }
+
+  const devTarget = path.resolve('target/release/actions');
+  if (fs.existsSync(devTarget)) {
+    for (const item of fs.readdirSync(devTarget)) {
+      const itemPath = path.join(devTarget, item);
+      const stat = fs.statSync(itemPath);
+      if (stat.isDirectory()) {
+        const packName = item;
+        for (const subItem of fs.readdirSync(itemPath)) {
+          if (subItem.endsWith(suffix)) {
+            const actName = subItem.slice(0, -suffix.length);
+            foundActions.add(`${packName}.latest.${actName}`);
+          }
+        }
+      }
+    }
+  }
+
+  const sortedActions = Array.from(foundActions).sort();
+  if (sortedActions.length === 0) {
+    console.log(`No installed actions found in ${cacheDir}.`);
+    console.log("Run 'morflow prep <pipeline.morf>' to download required actions.");
+  } else {
+    for (const act of sortedActions) {
+      console.log(act);
+    }
+  }
+}
+
 function printHelp() {
   console.log(`Morflow - High-performance modular dataflow pipeline engine
 
 Usage: morflow <COMMAND> [options]
 
 Commands:
-  prep <file>    Pre-downloads all actions required by a .morf pipeline ahead of time for offline execution
-  clean          Cleans and removes all cached action binaries from the action path
-  help           Print this help message
+  prep <file>     Pre-downloads all actions required by a .morf pipeline ahead of time for offline execution
+  clean           Cleans and removes all cached action binaries from the action path
+  spec <action>   Views the raw SPEC.md documentation for a specified action
+  search <query>  Performs fuzzy search for actions by name and returns top matching full action paths
+  list            Lists all action paths installed locally in the action cache
+  help            Print this help message
 
 Options:
   --path <dir>           Custom action cache directory
   --repo <owner/repo>    GitHub repository (default: JiraPit/Morflow)
   --action-version <ver> Action Pack version tag (default: 0.1.0)
+  --limit <number>       Maximum search results to return (default: 5)
   --force                Force re-download even if already cached
   -h, --help             Show help
 `);
@@ -234,9 +419,12 @@ async function main() {
   const command = argv[0];
   const args = {
     file: null,
+    action: null,
+    query: null,
     path: null,
     repo: 'JiraPit/Morflow',
     actionVersion: '0.1.0',
+    limit: 5,
     force: false,
   };
 
@@ -248,10 +436,14 @@ async function main() {
       args.repo = argv[++i];
     } else if (arg === '--action-version' && i + 1 < argv.length) {
       args.actionVersion = argv[++i];
+    } else if (arg === '--limit' && i + 1 < argv.length) {
+      args.limit = parseInt(argv[++i], 10) || 5;
     } else if (arg === '--force') {
       args.force = true;
-    } else if (!arg.startsWith('-') && !args.file) {
-      args.file = arg;
+    } else if (!arg.startsWith('-')) {
+      if (!args.file) args.file = arg;
+      if (!args.action) args.action = arg;
+      if (!args.query) args.query = arg;
     }
   }
 
@@ -264,6 +456,22 @@ async function main() {
     await cmdPrep(args);
   } else if (command === 'clean') {
     cmdClean(args);
+  } else if (command === 'spec') {
+    if (!args.action) {
+      console.error('Error: Missing required argument <action> for spec command.\n');
+      printHelp();
+      process.exit(1);
+    }
+    await cmdSpec(args);
+  } else if (command === 'search') {
+    if (!args.query) {
+      console.error('Error: Missing required argument <query> for search command.\n');
+      printHelp();
+      process.exit(1);
+    }
+    cmdSearch(args);
+  } else if (command === 'list') {
+    cmdList(args);
   } else {
     console.error(`Unknown command '${command}'.\n`);
     printHelp();

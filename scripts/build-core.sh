@@ -1,6 +1,6 @@
 #!/bin/bash
-# Morflow Engine & Bindings Builder
-# Compiles core_types, parser, pipeline engine host, and all language bindings
+# Morflow Core & Bindings Builder
+# Compiles core_types, parser, pipeline engine host/CLI, and all language bindings
 # (Python, JavaScript/Node.js, Java JNI + Java JAR).
 # Action packs are strictly excluded (use scripts/build-actions.sh for actions).
 
@@ -12,7 +12,7 @@ cd "$REPO_ROOT"
 TARGET_DIR="target/release"
 
 echo "=================================================="
-echo " Morflow Engine & Bindings Builder"
+echo " Morflow Core & Bindings Builder"
 echo " (Excluding action packs)"
 echo "=================================================="
 
