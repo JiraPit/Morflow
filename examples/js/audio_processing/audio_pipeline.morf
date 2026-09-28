@@ -7,7 +7,8 @@ accept $sample_rate = 44100
 
 # Direct chained DSP processing with inline multi-channel loop
 $input_audio
-    >> resample(from_rate=$sample_rate, to_rate=48000)
+    >> to_audio(sample_rate=$sample_rate)
+    >> resample(to_rate=48000)
     >> normalize(target_peak=0.95)
     >> each ($channel) {
         $channel
@@ -16,4 +17,5 @@ $input_audio
     }
     >> stereo_widen(width=1.2)
     >> limiter(ceiling_db=-0.1)
+    >> to_wav
     >> emit

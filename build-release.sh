@@ -38,7 +38,7 @@ for act in to_image resize crop pad color_adjust gaussian_blur edge_detect sharp
 done
 
 # Audio Essentials pack
-for act in gain normalize biquad_filter compressor limiter noise_gate stereo_widen resample stft delay; do
+for act in to_audio to_pcm to_wav gain normalize biquad_filter compressor limiter noise_gate stereo_widen resample stft delay; do
     copy_action "audio_essentials" "$act"
 done
 

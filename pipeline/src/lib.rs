@@ -743,4 +743,43 @@ mod tests {
             panic!("Expected Tensor output");
         }
     }
+
+    #[test]
+    fn test_audio_to_audio_and_to_wav_end_to_end() {
+        let morf_src = r#"
+            import audio_essentials.latest
+
+            accept $audio_in
+
+            $audio_in >> to_audio(channels=1, sample_rate=48000, dtype="f32") >> gain(linear=2.0) >> to_wav >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let f32_samples = vec![0.25f32, -0.25f32];
+        let byte_slice: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                f32_samples.as_ptr() as *const u8,
+                f32_samples.len() * std::mem::size_of::<f32>(),
+            )
+        };
+
+        let outputs = pipeline
+            .run(Payload::Data {
+                buffer: abi_stable::std_types::RVec::from(byte_slice.to_vec()),
+            })
+            .expect("Execution failed");
+
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Data { buffer } = result {
+            assert_eq!(buffer.len(), 44 + 4); // 44 byte header + 2 samples * 2 bytes i16
+            assert_eq!(&buffer[0..4], b"RIFF");
+            assert_eq!(&buffer[8..12], b"WAVE");
+            let s0 = i16::from_le_bytes([buffer[44], buffer[45]]);
+            let s1 = i16::from_le_bytes([buffer[46], buffer[47]]);
+            assert_eq!(s0, 16384); // 0.25 * 2.0 = 0.5 * 32767 = 16384
+            assert_eq!(s1, -16384);
+        } else {
+            panic!("Expected Payload::Data output");
+        }
+    }
 }

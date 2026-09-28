@@ -1818,6 +1818,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "to_audio"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "to_image"
 version = "0.1.0"
 dependencies = [
@@ -1826,7 +1834,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "to_pcm"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "to_tensor"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "to_wav"
 version = "0.1.0"
 dependencies = [
  "core_types",

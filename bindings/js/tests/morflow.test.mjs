@@ -117,3 +117,23 @@ test('Morflow - error handling on invalid pipeline syntax', () => {
     morflow.fromStr('invalid syntax >> >> >>>');
   }, /Parse error/);
 });
+
+test('Morflow - audio to_audio and to_wav pipeline', async () => {
+  const dsl = `
+    import audio_essentials.latest
+    accept $data
+    $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
+  `;
+  const pipeline = morflow.fromStr(dsl);
+  const pcmBuffer = Buffer.alloc(8);
+  pcmBuffer.writeInt16LE(16384, 0);
+  pcmBuffer.writeInt16LE(-8192, 2);
+  pcmBuffer.writeInt16LE(16384, 4);
+  pcmBuffer.writeInt16LE(-8192, 6);
+
+  const output = await pipeline.run(pcmBuffer);
+  const wavBuf = output.toBuffer();
+  assert.equal(wavBuf.length, 44 + 8);
+  assert.equal(wavBuf.toString('ascii', 0, 4), 'RIFF');
+  assert.equal(wavBuf.toString('ascii', 8, 12), 'WAVE');
+});

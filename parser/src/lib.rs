@@ -187,7 +187,7 @@ mod tests {
         let pipeline = res.unwrap();
         assert_eq!(pipeline.params.len(), 1);
         assert_eq!(pipeline.params[0].name, "input_audio");
-        assert_eq!(pipeline.statements.len(), 2);
+        assert_eq!(pipeline.statements.len(), 3);
     }
 
     #[test]

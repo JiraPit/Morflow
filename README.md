@@ -59,7 +59,7 @@ morflow prep pipeline.morf
 
 ### 4. Run in your application
 
-**Python (Zero-Copy NumPy)**:
+**Python**:
 ```python
 import morflow
 import numpy as np

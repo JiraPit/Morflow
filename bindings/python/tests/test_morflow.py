@@ -55,5 +55,19 @@ def test_raw_bytes_payload():
     out = pipeline.run(inp)
     assert out == inp
 
+def test_audio_pipeline_raw_pcm_and_wav():
+    pipeline = morflow.from_str("""
+        import audio_essentials.latest
+        accept $data
+        $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
+    """)
+    # 2 channels, 2 samples (1.0 and -0.5 scaled in 16-bit)
+    raw_pcm = np.array([16384, -8192, 16384, -8192], dtype=np.int16).tobytes()
+    out = pipeline.run(raw_pcm)
+    assert isinstance(out, bytes)
+    assert len(out) == 44 + 8 # 44 byte header + 8 bytes data
+    assert out[:4] == b"RIFF"
+    assert out[8:12] == b"WAVE"
+
 if __name__ == "__main__":
     pytest.main([__file__])
