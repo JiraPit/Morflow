@@ -1,4 +1,4 @@
-name: Build and Release Core
+name: Build and Release Engine
 
 on:
   push:
@@ -46,8 +46,8 @@ jobs:
             --event "${{ github.event_name }}" \
             --force "${{ github.event.inputs.force_build || 'false' }}"
 
-  build-cli:
-    name: Build CLI (${{ matrix.platform }})
+  build-core:
+    name: Build Core (${{ matrix.platform }})
     needs: detect-engine
     if: needs.detect-engine.outputs.should_build == 'true'
     strategy:
@@ -273,7 +273,7 @@ jobs:
 
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
-    needs: [detect-engine, build-cli, build-python-wheels, build-node-bindings, build-java-bindings]
+    needs: [detect-engine, build-core, build-python-wheels, build-node-bindings, build-java-bindings]
     if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
