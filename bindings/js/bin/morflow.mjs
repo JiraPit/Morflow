@@ -381,22 +381,15 @@ async function cmdSpec(args) {
     process.exit(1);
   }
 
+  if (!actionName) {
+    console.error(
+      `Error: \`morflow spec\` requires a 3-term action path '<package>/<version>/<action>' (e.g. '${pack}/latest/<action>'). A package path has no specification.`
+    );
+    process.exit(1);
+  }
+
   const repo = resolveRepo();
   const version = pathVersion !== 'latest' && pathVersion ? pathVersion : await fetchLatestPackVersion(pack, repo);
-
-  if (!actionName) {
-    const actions = KNOWN_ACTIONS.filter(([p]) => p === pack).map(([, a]) => a);
-    if (actions.length === 0) {
-      console.error(`Error: Unknown package '${pack}'.`);
-      process.exit(1);
-    }
-    console.log(`# Package: ${pack} (v${version})\n`);
-    console.log('Actions in this package:');
-    for (const act of actions) {
-      console.log(`- ${pack}/latest/${act}`);
-    }
-    return;
-  }
 
   // 1. Check local cache directory
   const cacheSpec = path.join(resolveActionCacheDir(), pack, actionName, 'SPEC.md');
@@ -564,7 +557,7 @@ Usage: morflow <COMMAND> [options]
 Commands:
   prep <file>     Pre-downloads all actions required by a .morf pipeline ahead of time for offline execution
   clean           Cleans and removes all cached action binaries from the action path
-  spec <action>   Views the raw SPEC.md documentation for a specified action
+  spec <action>   Views the raw SPEC.md documentation for a specified action '<package>/<version>/<action>' (e.g. base/latest/identity)
   search <query>  Performs fuzzy search for actions by name and returns top matching full action paths
   list            Lists all action paths installed locally in the action cache
   install <path>  Installs a specific action binary into the local action cache based on full action path

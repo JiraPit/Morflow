@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop, clippy::manual_is_multiple_of)]
+
 use core_types::{Audio, AudioChannelLayout, AudioLayout, DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 

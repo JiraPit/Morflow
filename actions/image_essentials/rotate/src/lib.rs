@@ -1,3 +1,5 @@
+#![allow(clippy::manual_memcpy, clippy::needless_return)]
+
 use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 

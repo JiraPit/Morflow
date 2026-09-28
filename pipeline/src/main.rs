@@ -43,7 +43,7 @@ enum Commands {
 
     /// Views the raw SPEC.md documentation for a specified action
     Spec {
-        /// Full action path (e.g. image_essentials/latest/color_adjust, audio_essentials/gain)
+        /// Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.1/identity)
         action: String,
     },
 
@@ -479,137 +479,117 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::Spec { action } => {
-            let target = match parse_target_path(&action) {
-                Ok(res) => res,
+            let (pack, path_version, action_name) = match parse_target_path(&action) {
+                Ok(TargetPath::Action {
+                    pack,
+                    version,
+                    action,
+                }) => (pack, version, action),
+                Ok(TargetPath::Package { pack, .. }) => {
+                    eprintln!(
+                        "Error: `morflow spec` requires a 3-term action path '<package>/<version>/<action>' (e.g. '{}/latest/<action>'). A package path has no specification.",
+                        pack
+                    );
+                    std::process::exit(1);
+                }
                 Err(err) => {
                     eprintln!("Error: {}", err);
                     std::process::exit(1);
                 }
             };
             let repo = resolve_repo();
+            let version = if path_version != "latest" && !path_version.is_empty() {
+                path_version
+            } else {
+                fetch_latest_pack_version(&pack, &repo)
+            };
 
-            match target {
-                TargetPath::Action {
-                    pack,
-                    version: path_version,
-                    action: action_name,
-                } => {
-                    let version = if path_version != "latest" && !path_version.is_empty() {
-                        path_version
-                    } else {
-                        fetch_latest_pack_version(&pack, &repo)
-                    };
+            // 1. Check local cache directory for this pack & action
+            let cache_spec = resolve_action_cache_dir(None)
+                .join(&pack)
+                .join(&action_name)
+                .join("SPEC.md");
+            if cache_spec.exists() {
+                if let Ok(content) = fs::read_to_string(&cache_spec) {
+                    print!("{}", content);
+                    return Ok(());
+                }
+            }
 
-                    // 1. Check local cache directory for this pack & action
-                    let cache_spec = resolve_action_cache_dir(None)
-                        .join(&pack)
-                        .join(&action_name)
-                        .join("SPEC.md");
-                    if cache_spec.exists() {
-                        if let Ok(content) = fs::read_to_string(&cache_spec) {
-                            print!("{}", content);
-                            return Ok(());
-                        }
-                    }
+            // 2. If in local repo/dev environment, check workspace file
+            let local_candidates = [
+                PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name)),
+                PathBuf::from(format!("../actions/{}/{}/SPEC.md", pack, action_name)),
+            ];
 
-                    // 2. If in local repo/dev environment, check workspace file
-                    let local_candidates = [
-                        PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name)),
-                        PathBuf::from(format!("../actions/{}/{}/SPEC.md", pack, action_name)),
-                    ];
-
-                    for cand in &local_candidates {
-                        if cand.exists() {
-                            if let Ok(content) = fs::read_to_string(cand) {
-                                print!("{}", content);
-                                return Ok(());
-                            }
-                        }
-                    }
-
-                    // 3. Fetch version-specific SPEC.md from GitHub Release assets
-                    let release_urls = [
-                        format!(
-                            "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}_SPEC.md",
-                            repo, pack, version, action_name
-                        ),
-                        format!(
-                            "https://github.com/{}/releases/download/action_packs/{}/v{}/{}_SPEC.md",
-                            repo, pack, version, action_name
-                        ),
-                    ];
-
-                    for url in &release_urls {
-                        if let Ok(response) =
-                            ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.1").call()
-                        {
-                            let mut content = String::new();
-                            if response.into_reader().read_to_string(&mut content).is_ok() {
-                                print!("{}", content);
-                                return Ok(());
-                            }
-                        }
-                    }
-
-                    // 4. Fallback: Fetch from Git Tag for this release version
-                    let tag_url = format!(
-                        "https://raw.githubusercontent.com/{}/action_packs/{}/v{}/actions/{}/{}/SPEC.md",
-                        repo, pack, version, pack, action_name
-                    );
-                    if let Ok(response) = ureq::get(&tag_url)
-                        .set("User-Agent", "Morflow-CLI/0.1.1")
-                        .call()
-                    {
-                        let mut content = String::new();
-                        if response.into_reader().read_to_string(&mut content).is_ok() {
-                            print!("{}", content);
-                            return Ok(());
-                        }
-                    }
-
-                    // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
-                    let main_url = format!(
-                        "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
-                        repo, pack, action_name
-                    );
-
-                    match ureq::get(&main_url)
-                        .set("User-Agent", "Morflow-CLI/0.1.1")
-                        .call()
-                    {
-                        Ok(response) => {
-                            let mut content = String::new();
-                            response.into_reader().read_to_string(&mut content)?;
-                            print!("{}", content);
-                        }
-                        Err(_) => {
-                            eprintln!(
-                                "Error: SPEC.md not found for action '{}/v{}/{}' (checked local paths, release assets, and {}).",
-                                pack, version, action_name, main_url
-                            );
-                            std::process::exit(1);
-                        }
+            for cand in &local_candidates {
+                if cand.exists() {
+                    if let Ok(content) = fs::read_to_string(cand) {
+                        print!("{}", content);
+                        return Ok(());
                     }
                 }
-                TargetPath::Package {
-                    pack,
-                    version: path_version,
-                } => {
-                    let version = if path_version != "latest" && !path_version.is_empty() {
-                        path_version
-                    } else {
-                        fetch_latest_pack_version(&pack, &repo)
-                    };
-                    let actions = get_actions_for_pack(&pack);
-                    if actions.is_empty() {
-                        eprintln!("Error: Unknown package '{}'.", pack);
-                        std::process::exit(1);
+            }
+
+            // 3. Fetch version-specific SPEC.md from GitHub Release assets
+            let release_urls = [
+                format!(
+                    "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}_SPEC.md",
+                    repo, pack, version, action_name
+                ),
+                format!(
+                    "https://github.com/{}/releases/download/action_packs/{}/v{}/{}_SPEC.md",
+                    repo, pack, version, action_name
+                ),
+            ];
+
+            for url in &release_urls {
+                if let Ok(response) = ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.1").call() {
+                    let mut content = String::new();
+                    if response.into_reader().read_to_string(&mut content).is_ok() {
+                        print!("{}", content);
+                        return Ok(());
                     }
-                    println!("# Package: {} (v{})\n", pack, version);
-                    println!("Actions in this package:");
-                    for act in &actions {
-                        println!("- {}/latest/{}", pack, act);
-                    }
+                }
+            }
+
+            // 4. Fallback: Fetch from Git Tag for this release version
+            let tag_url = format!(
+                "https://raw.githubusercontent.com/{}/action_packs/{}/v{}/actions/{}/{}/SPEC.md",
+                repo, pack, version, pack, action_name
+            );
+            if let Ok(response) = ureq::get(&tag_url)
+                .set("User-Agent", "Morflow-CLI/0.1.1")
+                .call()
+            {
+                let mut content = String::new();
+                if response.into_reader().read_to_string(&mut content).is_ok() {
+                    print!("{}", content);
+                    return Ok(());
+                }
+            }
+
+            // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
+            let main_url = format!(
+                "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
+                repo, pack, action_name
+            );
+
+            match ureq::get(&main_url)
+                .set("User-Agent", "Morflow-CLI/0.1.1")
+                .call()
+            {
+                Ok(response) => {
+                    let mut content = String::new();
+                    response.into_reader().read_to_string(&mut content)?;
+                    print!("{}", content);
+                }
+                Err(_) => {
+                    eprintln!(
+                        "Error: SPEC.md not found for action '{}/v{}/{}' (checked local paths, release assets, and {}).",
+                        pack, version, action_name, main_url
+                    );
+                    std::process::exit(1);
                 }
             }
         }

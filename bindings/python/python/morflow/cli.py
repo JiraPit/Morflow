@@ -366,21 +366,18 @@ def cmd_spec(args):
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
+    if action_name is None:
+        print(
+            f"Error: `morflow spec` requires a 3-term action path '<package>/<version>/<action>' "
+            f"(e.g. '{pack}/latest/<action>'). A package path has no specification.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     if path_version != "latest" and path_version:
         version = path_version
     else:
         version = fetch_latest_pack_version(pack, repo)
-
-    if action_name is None:
-        actions = [act for p, act in KNOWN_ACTIONS if p == pack]
-        if not actions:
-            print(f"Error: Unknown package '{pack}'.", file=sys.stderr)
-            sys.exit(1)
-        print(f"# Package: {pack} (v{version})\n")
-        print("Actions in this package:")
-        for act in actions:
-            print(f"- {pack}/latest/{act}")
-        return
 
     # 1. Check local cache directory
     cache_spec = resolve_action_cache_dir(None) / pack / action_name / "SPEC.md"
@@ -696,7 +693,10 @@ def main():
         "spec",
         help="Views the raw SPEC.md documentation for a specified action",
     )
-    spec_parser.add_argument("action", help="Full action path (e.g. image_essentials/latest/color_adjust)")
+    spec_parser.add_argument(
+        "action",
+        help="Full action path '<package>/<version>/<action>' (e.g. image_essentials/latest/color_adjust or base/0.1.1/identity)",
+    )
 
     # Search command
     search_parser = subparsers.add_parser(

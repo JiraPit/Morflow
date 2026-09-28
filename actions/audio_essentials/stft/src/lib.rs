@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use core_types::{DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;

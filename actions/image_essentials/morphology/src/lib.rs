@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
