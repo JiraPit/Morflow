@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
 TARGET_DIR="target/release"
 
-echo "Building in release mode..."
+echo "Building entire workspace in release mode..."
 cargo build --release
 
 echo "Creating action pack directories..."
@@ -18,6 +21,9 @@ copy_action() {
     local name="$2"
     for ext in so dylib dll; do
         local lib="$TARGET_DIR/lib${name}.${ext}"
+        if [ ! -f "$lib" ]; then
+            lib="$TARGET_DIR/${name}.${ext}"
+        fi
         if [ -f "$lib" ]; then
             local action_name="${name}_action.${ext}"
             cp "$lib" "$TARGET_DIR/actions/$pack/$action_name"
