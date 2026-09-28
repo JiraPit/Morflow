@@ -71,11 +71,7 @@ fn tensor_to_morflow_tensor(tensor: &Tensor) -> MorflowTensor {
         Buffer::from(tensor.to_contiguous_bytes().as_slice())
     };
 
-    MorflowTensor {
-        shape,
-        dtype,
-        data,
-    }
+    MorflowTensor { shape, dtype, data }
 }
 
 fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
@@ -193,7 +189,12 @@ impl Task for AsyncRunTask {
     type JsValue = MorflowTensor;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let payload = std::mem::replace(&mut self.payload, Payload::Data { buffer: RVec::new() });
+        let payload = std::mem::replace(
+            &mut self.payload,
+            Payload::Data {
+                buffer: RVec::new(),
+            },
+        );
         let outputs = self.pipeline.run(payload).map_err(map_error)?;
         let single = outputs.into_single().map_err(map_error)?;
         payload_to_morflow_tensor(single)
@@ -215,7 +216,12 @@ impl Task for AsyncRunAllTask {
     type JsValue = napi::JsObject;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let payload = std::mem::replace(&mut self.payload, Payload::Data { buffer: RVec::new() });
+        let payload = std::mem::replace(
+            &mut self.payload,
+            Payload::Data {
+                buffer: RVec::new(),
+            },
+        );
         let outputs = self.pipeline.run(payload).map_err(map_error)?;
         let mut list = Vec::with_capacity(outputs.len());
         for (name, out_payload) in outputs.into_iter() {

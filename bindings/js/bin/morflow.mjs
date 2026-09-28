@@ -77,71 +77,179 @@ function normalizePackName(pack) {
   return p;
 }
 
-function parseFullActionPath(pathStr) {
-  const clean = pathStr.replace(/::/g, '.').trim();
-  const parts = clean.split('.').map(s => s.trim()).filter(Boolean);
+function parseTargetPath(pathStr) {
+  const clean = pathStr.replace(/::/g, '/').trim();
+  let parts;
+  if (clean.includes('/')) {
+    parts = clean.split('/').map(s => s.trim()).filter(Boolean);
+  } else if (clean.includes('.')) {
+    parts = clean.split('.').map(s => s.trim()).filter(Boolean);
+  } else {
+    parts = clean ? [clean] : [];
+  }
 
   if (parts.length >= 3) {
     const pack = normalizePackName(parts[0]);
     const action = parts[parts.length - 1];
-    const rawVersion = parts.slice(1, parts.length - 1).join('.');
+    const rawVersion = parts.slice(1, parts.length - 1).join('/');
     const version = rawVersion.replace(/^v/, '');
     return [pack, version, action];
   } else if (parts.length === 2) {
     const pack = normalizePackName(parts[0]);
-    const action = parts[1];
-    return [pack, 'latest', action];
-  } else if (parts.length === 1) {
-    const action = parts[0];
-    for (const [pack, act] of KNOWN_ACTIONS) {
-      if (act.toLowerCase() === action.toLowerCase()) {
-        return [pack, 'latest', act];
-      }
-    }
-    return ['base', 'latest', action];
+    const version = parts[1].replace(/^v/, '');
+    return [pack, version, null];
   }
-  return ['base', 'latest', pathStr];
+
+  const hintPack = parts.length > 0 ? parts[0] : 'base';
+  const hintAct = parts.length > 0 ? parts[parts.length - 1] : 'identity';
+  throw new Error(
+    `Invalid target '${pathStr}'. Expected full action path '<package>/<version>/<action>' (e.g. '${hintPack}/latest/${hintAct}') or package path '<package>/<version>' (e.g. '${hintPack}/latest' or '${hintPack}/0.1.0').`
+  );
+}
+
+function parseFullActionPath(pathStr) {
+  const [pack, version, action] = parseTargetPath(pathStr);
+  if (!action) {
+    throw new Error(`Action name required in path '${pathStr}'.`);
+  }
+  return [pack, version, action];
 }
 
 function extractActionsFromMorf(source) {
-  const imports = {};
+  const importedSymbols = new Map();
+  const importedPackages = new Map();
   const actions = [];
 
   for (const rawLine of source.split('\n')) {
     const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
 
-    const importMatch = line.match(/^(?:import|use)\s+([a-zA-Z0-9_]+)(?:\s+as\s+([a-zA-Z0-9_]+))?/);
-    if (importMatch) {
-      const pack = importMatch[1];
-      const alias = importMatch[2] || pack;
-      imports[alias] = pack;
+    // 1. from <pkg>/<ver> import <item1> [as <alias1>], ...
+    const fromMatch = line.match(/^from\s+([a-zA-Z0-9_]+)[/.][^\s]+\s+import\s+(.+)$/);
+    if (fromMatch) {
+      const pack = normalizePackName(fromMatch[1]);
+      const itemsStr = fromMatch[2];
+      for (const rawItem of itemsStr.split(',')) {
+        const item = rawItem.trim();
+        if (!item) continue;
+        if (item.includes(' as ')) {
+          const [realName, alias] = item.split(' as ').map(s => s.trim());
+          importedSymbols.set(alias, [pack, realName]);
+        } else {
+          importedSymbols.set(item, [pack, item]);
+        }
+      }
+      continue;
     }
 
-    const actionRegex = />>\s*([a-zA-Z0-9_.:]+)/g;
+    // 2. import <pkg>/<ver>/<action> [as <alias>]
+    const singleMatch = line.match(/^import\s+([a-zA-Z0-9_]+)\/([^/\s]+)\/([a-zA-Z0-9_]+)(?:\s+as\s+([a-zA-Z0-9_]+))?/);
+    if (singleMatch) {
+      const pack = normalizePackName(singleMatch[1]);
+      const actName = singleMatch[3];
+      const alias = singleMatch[4] || actName;
+      importedSymbols.set(alias, [pack, actName]);
+      continue;
+    }
+
+    // 3. import <pkg>/<ver> [as <alias>] or import <pkg> [as <alias>]
+    const importMatch = line.match(/^(?:import|use)\s+([a-zA-Z0-9_]+)(?:[/.]\S+)?(?:\s+as\s+([a-zA-Z0-9_]+))?/);
+    if (importMatch) {
+      const pack = normalizePackName(importMatch[1]);
+      const alias = importMatch[2] || pack;
+      importedPackages.set(alias, pack);
+      continue;
+    }
+
+    // Match action calls in chain: >> action_name(...) or >> action_name
+    const actionRegex = />>\s*([a-zA-Z0-9_/.:]+)/g;
     let match;
     while ((match = actionRegex.exec(line)) !== null) {
       const actFull = match[1].split('(')[0].trim();
-      if (actFull !== 'emit' && actFull !== 'resurface' && !actions.includes(actFull)) {
+      if (!actFull.startsWith('$') && !['emit', 'resurface', 'each', 'if', 'route', 'else'].includes(actFull) && !actions.includes(actFull)) {
         actions.push(actFull);
       }
     }
   }
 
   return actions.map(act => {
-    if (act.includes('::')) {
-      const [pack, name] = act.split('::');
-      return [normalizePackName(pack), name];
-    } else if (act.includes('.')) {
-      const [pack, name] = act.split('.');
-      return [normalizePackName(pack), name];
+    if (importedSymbols.has(act)) {
+      return importedSymbols.get(act);
+    }
+    const clean = act.replace(/::/g, '/');
+    let parts;
+    if (clean.includes('/')) {
+      parts = clean.split('/').map(s => s.trim()).filter(Boolean);
+    } else if (clean.includes('.')) {
+      parts = clean.split('.').map(s => s.trim()).filter(Boolean);
+    } else {
+      parts = [clean];
+    }
+
+    if (parts.length >= 3) {
+      const pack = importedPackages.get(parts[0]) || normalizePackName(parts[0]);
+      return [pack, parts[parts.length - 1]];
+    } else if (parts.length === 2) {
+      const pack = importedPackages.get(parts[0]) || normalizePackName(parts[0]);
+      return [pack, parts[1]];
     } else {
       for (const [kPack, kAct] of KNOWN_ACTIONS) {
         if (kAct === act) return [kPack, act];
       }
+      if (importedPackages.size === 1) {
+        return [Array.from(importedPackages.values())[0], act];
+      }
       return ['base', act];
     }
   });
+}
+
+const latestVersionCache = new Map();
+
+function resolveRepo() {
+  return process.env.MORFLOW_REPO || 'JiraPit/Morflow';
+}
+
+async function fetchLatestPackVersion(pack, repo) {
+  const cacheKey = `${pack}:${repo}`;
+  if (latestVersionCache.has(cacheKey)) {
+    return latestVersionCache.get(cacheKey);
+  }
+
+  const url = `https://api.github.com/repos/${repo}/releases`;
+  const prefixV = `action_packs/${pack}/v`;
+  const prefixNoV = `action_packs/${pack}/`;
+
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (resp.ok) {
+      const releases = await resp.json();
+      if (Array.isArray(releases)) {
+        for (const rel of releases) {
+          const tag = rel.tag_name || '';
+          if (tag.startsWith(prefixV)) {
+            const ver = tag.slice(prefixV.length);
+            if (ver) {
+              latestVersionCache.set(cacheKey, ver);
+              return ver;
+            }
+          } else if (tag.startsWith(prefixNoV)) {
+            const ver = tag.slice(prefixNoV.length).replace(/^v/, '');
+            if (ver) {
+              latestVersionCache.set(cacheKey, ver);
+              return ver;
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  latestVersionCache.set(cacheKey, '0.1.0');
+  return '0.1.0';
 }
 
 async function cmdPrep(args) {
@@ -159,6 +267,7 @@ async function cmdPrep(args) {
     return;
   }
 
+  const repo = resolveRepo();
   const [platformName, ext] = getHostPlatform();
   const cacheDir = resolveActionCacheDir(args.path);
   fs.mkdirSync(cacheDir, { recursive: true });
@@ -168,7 +277,7 @@ async function cmdPrep(args) {
   console.log(` Pipeline: ${filePath}`);
   console.log(` Host Platform: ${platformName} (.${ext})`);
   console.log(` Cache Directory: ${cacheDir}`);
-  console.log(` Repository: ${args.repo}`);
+  console.log(` Repository: ${repo}`);
   console.log('==================================================');
 
   let prepared = 0;
@@ -187,18 +296,19 @@ async function cmdPrep(args) {
       continue;
     }
 
-    console.log(`  [↓ Downloading] [${pack}] ${actionName} v${args.actionVersion}...`);
-    const binaryFilename = `${actionName}_action-${args.actionVersion}-${platformName}.${ext}`;
+    const actionVersion = await fetchLatestPackVersion(pack, repo);
+    console.log(`  [↓ Downloading] [${pack}] ${actionName} v${actionVersion}...`);
+    const binaryFilename = `${actionName}_action-${actionVersion}-${platformName}.${ext}`;
 
     const urls = [
-      `https://github.com/${args.repo}/releases/download/action_packs%2F${pack}%2Fv${args.actionVersion}/${binaryFilename}`,
-      `https://github.com/${args.repo}/releases/download/action_packs/${pack}/v${args.actionVersion}/${binaryFilename}`,
+      `https://github.com/${repo}/releases/download/action_packs%2F${pack}%2Fv${actionVersion}/${binaryFilename}`,
+      `https://github.com/${repo}/releases/download/action_packs/${pack}/v${actionVersion}/${binaryFilename}`,
     ];
 
     let downloaded = false;
     for (const url of urls) {
       try {
-        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.0' } });
+        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
         if (resp.ok) {
           const buffer = Buffer.from(await resp.arrayBuffer());
           fs.writeFileSync(targetFilePack, buffer);
@@ -263,13 +373,45 @@ function cmdClean(args) {
 }
 
 async function cmdSpec(args) {
-  const [pack, _version, actionName] = parseFullActionPath(args.action);
+  let pack, pathVersion, actionName;
+  try {
+    [pack, pathVersion, actionName] = parseTargetPath(args.action);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
-  // 1. Check local files in workspace
+  const repo = resolveRepo();
+  const version = pathVersion !== 'latest' && pathVersion ? pathVersion : await fetchLatestPackVersion(pack, repo);
+
+  if (!actionName) {
+    const actions = KNOWN_ACTIONS.filter(([p]) => p === pack).map(([, a]) => a);
+    if (actions.length === 0) {
+      console.error(`Error: Unknown package '${pack}'.`);
+      process.exit(1);
+    }
+    console.log(`# Package: ${pack} (v${version})\n`);
+    console.log('Actions in this package:');
+    for (const act of actions) {
+      console.log(`- ${pack}/latest/${act}`);
+    }
+    return;
+  }
+
+  // 1. Check local cache directory
+  const cacheSpec = path.join(resolveActionCacheDir(), pack, actionName, 'SPEC.md');
+  if (fs.existsSync(cacheSpec)) {
+    try {
+      const content = fs.readFileSync(cacheSpec, 'utf-8');
+      process.stdout.write(content);
+      return;
+    } catch {}
+  }
+
+  // 2. Check local files in workspace
   const localCandidates = [
     path.resolve(`actions/${pack}/${actionName}/SPEC.md`),
     path.resolve(`../actions/${pack}/${actionName}/SPEC.md`),
-    path.join(resolveActionCacheDir(), pack, actionName, 'SPEC.md'),
   ];
 
   for (const cand of localCandidates) {
@@ -282,10 +424,26 @@ async function cmdSpec(args) {
     }
   }
 
-  // 2. Fetch raw SPEC.md from GitHub
-  const url = `https://raw.githubusercontent.com/${args.repo}/main/actions/${pack}/${actionName}/SPEC.md`;
+  // 3. Fetch version-specific SPEC.md from GitHub Release assets
+  const releaseUrls = [
+    `https://github.com/${repo}/releases/download/action_packs%2F${pack}%2Fv${version}/${actionName}_SPEC.md`,
+    `https://github.com/${repo}/releases/download/action_packs/${pack}/v${version}/${actionName}_SPEC.md`,
+  ];
+  for (const url of releaseUrls) {
+    try {
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+      if (resp.ok) {
+        const content = await resp.text();
+        process.stdout.write(content);
+        return;
+      }
+    } catch {}
+  }
+
+  // 4. Fallback: Fetch from Git Tag
+  const tagUrl = `https://raw.githubusercontent.com/${repo}/action_packs/${pack}/v${version}/actions/${pack}/${actionName}/SPEC.md`;
   try {
-    const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.0' } });
+    const resp = await fetch(tagUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
     if (resp.ok) {
       const content = await resp.text();
       process.stdout.write(content);
@@ -293,7 +451,18 @@ async function cmdSpec(args) {
     }
   } catch {}
 
-  console.error(`Error: SPEC.md not found for action '${pack}.latest.${actionName}' (checked local paths and ${url}).`);
+  // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
+  const mainUrl = `https://raw.githubusercontent.com/${repo}/main/actions/${pack}/${actionName}/SPEC.md`;
+  try {
+    const resp = await fetch(mainUrl, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+    if (resp.ok) {
+      const content = await resp.text();
+      process.stdout.write(content);
+      return;
+    }
+  } catch {}
+
+  console.error(`Error: SPEC.md not found for action '${pack}/v${version}/${actionName}' (checked local paths, release assets, and ${mainUrl}).`);
   process.exit(1);
 }
 
@@ -322,7 +491,7 @@ function cmdSearch(args) {
     console.log(`No matching actions found for query '${args.query}'.`);
   } else {
     for (const item of topMatches) {
-      console.log(`${item.pack}.latest.${item.act}`);
+      console.log(`${item.pack}/latest/${item.act}`);
     }
   }
 }
@@ -342,7 +511,7 @@ function cmdList(args) {
         for (const subItem of fs.readdirSync(itemPath)) {
           if (subItem.endsWith(suffix)) {
             const actName = subItem.slice(0, -suffix.length);
-            foundActions.add(`${packName}.latest.${actName}`);
+            foundActions.add(`${packName}/latest/${actName}`);
           }
         }
       } else if (stat.isFile() && item.endsWith(suffix)) {
@@ -354,7 +523,7 @@ function cmdList(args) {
             break;
           }
         }
-        foundActions.add(`${packName}.latest.${actName}`);
+        foundActions.add(`${packName}/latest/${actName}`);
       }
     }
   }
@@ -369,7 +538,7 @@ function cmdList(args) {
         for (const subItem of fs.readdirSync(itemPath)) {
           if (subItem.endsWith(suffix)) {
             const actName = subItem.slice(0, -suffix.length);
-            foundActions.add(`${packName}.latest.${actName}`);
+            foundActions.add(`${packName}/latest/${actName}`);
           }
         }
       }
@@ -403,8 +572,6 @@ Commands:
 
 Options:
   --path <dir>           Custom action cache directory
-  --repo <owner/repo>    GitHub repository (default: JiraPit/Morflow)
-  --action-version <ver> Action Pack version tag (default: 0.1.0)
   --limit <number>       Maximum search results to return (default: 5)
   --force                Force re-download even if already cached
   -h, --help             Show help
@@ -412,90 +579,174 @@ Options:
 }
 
 async function cmdInstall(args) {
-  const [pack, pathVersion, actionName] = parseFullActionPath(args.action);
-  const version = pathVersion !== 'latest' && pathVersion ? pathVersion : '0.1.0';
+  let pack, pathVersion, actionName;
+  try {
+    [pack, pathVersion, actionName] = parseTargetPath(args.action);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
+  const repo = resolveRepo();
+  const version = pathVersion !== 'latest' && pathVersion ? pathVersion : await fetchLatestPackVersion(pack, repo);
 
   const [platformName, ext] = getHostPlatform();
   const cacheDir = resolveActionCacheDir(args.path);
   const packDir = path.join(cacheDir, pack);
   fs.mkdirSync(packDir, { recursive: true });
 
-  const targetFilePack = path.join(packDir, `${actionName}_action.${ext}`);
-  const targetFileRoot = path.join(cacheDir, `${actionName}_action.${ext}`);
+  if (actionName) {
+    // Install single action
+    const targetFilePack = path.join(packDir, `${actionName}_action.${ext}`);
+    const targetFileRoot = path.join(cacheDir, `${actionName}_action.${ext}`);
 
-  if (!args.force && (fs.existsSync(targetFilePack) || fs.existsSync(targetFileRoot))) {
-    console.log(`Action '${pack}.latest.${actionName}' is already installed in ${targetFilePack}. Use --force to reinstall.`);
-    return;
-  }
+    if (!args.force && (fs.existsSync(targetFilePack) || fs.existsSync(targetFileRoot))) {
+      console.log(`Action '${pack}/latest/${actionName}' is already installed in ${targetFilePack}. Use --force to reinstall.`);
+      return;
+    }
 
-  console.log('==================================================');
-  console.log(' Morflow Action Installer (Node.js CLI)');
-  console.log(` Action: ${pack}.latest.${actionName}`);
-  console.log(` Version: v${version}`);
-  console.log(` Host Platform: ${platformName} (.${ext})`);
-  console.log(` Cache Directory: ${cacheDir}`);
-  console.log(` Repository: ${args.repo}`);
-  console.log('==================================================');
+    console.log('==================================================');
+    console.log(' Morflow Action Installer (Node.js CLI)');
+    console.log(` Action: ${pack}/latest/${actionName}`);
+    console.log(` Version: v${version}`);
+    console.log(` Host Platform: ${platformName} (.${ext})`);
+    console.log(` Cache Directory: ${cacheDir}`);
+    console.log(` Repository: ${repo}`);
+    console.log('==================================================');
 
-  console.log(`  [↓ Downloading] [${pack}] ${actionName} v${version}...`);
-  const binaryFilename = `${actionName}_action-${version}-${platformName}.${ext}`;
+    console.log(`  [↓ Downloading] [${pack}] ${actionName} v${version}...`);
+    const binaryFilename = `${actionName}_action-${version}-${platformName}.${ext}`;
 
-  const urls = [
-    `https://github.com/${args.repo}/releases/download/action_packs%2F${pack}%2Fv${version}/${binaryFilename}`,
-    `https://github.com/${args.repo}/releases/download/action_packs/${pack}/v${version}/${binaryFilename}`,
-  ];
-
-  let downloaded = false;
-  for (const url of urls) {
-    try {
-      const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.0' } });
-      if (resp.ok) {
-        const buffer = Buffer.from(await resp.arrayBuffer());
-        fs.writeFileSync(targetFilePack, buffer);
-        fs.writeFileSync(targetFileRoot, buffer);
-        console.log(`    ✓ Successfully installed to ${targetFilePack}`);
-        downloaded = true;
-        break;
-      }
-    } catch {}
-  }
-
-  if (!downloaded) {
-    const localCandidates = [
-      path.resolve(`target/release/actions/${pack}/${actionName}_action.${ext}`),
-      path.resolve(`target/release/actions/${actionName}_action.${ext}`),
-      path.resolve(`actions/${pack}/${actionName}/target/release/lib${actionName}.${ext}`),
+    const urls = [
+      `https://github.com/${repo}/releases/download/action_packs%2F${pack}%2Fv${version}/${binaryFilename}`,
+      `https://github.com/${repo}/releases/download/action_packs/${pack}/v${version}/${binaryFilename}`,
     ];
 
-    let copied = false;
-    for (const cand of localCandidates) {
-      if (fs.existsSync(cand)) {
-        fs.copyFileSync(cand, targetFilePack);
-        fs.copyFileSync(cand, targetFileRoot);
-        console.log(`    ✓ Copied local build artifact from ${cand}`);
-        copied = true;
-        break;
+    let downloaded = false;
+    for (const url of urls) {
+      try {
+        const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+        if (resp.ok) {
+          const buffer = Buffer.from(await resp.arrayBuffer());
+          fs.writeFileSync(targetFilePack, buffer);
+          fs.writeFileSync(targetFileRoot, buffer);
+          console.log(`    ✓ Successfully installed to ${targetFilePack}`);
+          downloaded = true;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!downloaded) {
+      const localCandidates = [
+        path.resolve(`target/release/actions/${pack}/${actionName}_action.${ext}`),
+        path.resolve(`target/release/actions/${actionName}_action.${ext}`),
+        path.resolve(`actions/${pack}/${actionName}/target/release/lib${actionName}.${ext}`),
+      ];
+
+      let copied = false;
+      for (const cand of localCandidates) {
+        if (fs.existsSync(cand)) {
+          fs.copyFileSync(cand, targetFilePack);
+          fs.copyFileSync(cand, targetFileRoot);
+          console.log(`    ✓ Copied local build artifact from ${cand}`);
+          copied = true;
+          break;
+        }
+      }
+
+      if (!copied) {
+        console.error(`Error: Could not download remote binary or find local artifact for [${pack}] ${actionName}.`);
+        process.exit(1);
       }
     }
 
-    if (!copied) {
-      console.error(`Error: Could not download remote binary or find local artifact for [${pack}] ${actionName}.`);
+    // Cache SPEC.md if available
+    const specDir = path.join(cacheDir, pack, actionName);
+    fs.mkdirSync(specDir, { recursive: true });
+    const targetSpec = path.join(specDir, 'SPEC.md');
+    const localSpec = path.resolve(`actions/${pack}/${actionName}/SPEC.md`);
+    if (fs.existsSync(localSpec)) {
+      try {
+        fs.copyFileSync(localSpec, targetSpec);
+      } catch {}
+    }
+
+    console.log(`\n✓ Installation complete: ${pack}/latest/${actionName} is ready for runtime use.\n`);
+  } else {
+    // Install full package
+    const actions = KNOWN_ACTIONS.filter(([p]) => p === pack).map(([, a]) => a);
+    if (actions.length === 0) {
+      console.error(`Error: Unknown package '${pack}'.`);
       process.exit(1);
     }
-  }
 
-  // Cache SPEC.md if available
-  const specDir = path.join(cacheDir, pack, actionName);
-  fs.mkdirSync(specDir, { recursive: true });
-  const targetSpec = path.join(specDir, 'SPEC.md');
-  const localSpec = path.resolve(`actions/${pack}/${actionName}/SPEC.md`);
-  if (fs.existsSync(localSpec)) {
-    try {
-      fs.copyFileSync(localSpec, targetSpec);
-    } catch {}
-  }
+    console.log('==================================================');
+    console.log(' Morflow Action Pack Installer (Node.js CLI)');
+    console.log(` Package: ${pack} (${actions.length} actions)`);
+    console.log(` Version: v${version}`);
+    console.log(` Host Platform: ${platformName} (.${ext})`);
+    console.log(` Cache Directory: ${cacheDir}`);
+    console.log(` Repository: ${repo}`);
+    console.log('==================================================');
 
-  console.log(`\n✓ Installation complete: ${pack}.latest.${actionName} is ready for runtime use.\n`);
+    let installedCount = 0;
+    let cachedCount = 0;
+
+    for (const act of actions) {
+      const targetFilePack = path.join(packDir, `${act}_action.${ext}`);
+      const targetFileRoot = path.join(cacheDir, `${act}_action.${ext}`);
+
+      if (!args.force && (fs.existsSync(targetFilePack) || fs.existsSync(targetFileRoot))) {
+        console.log(`  [✓ Cached] [${pack}] ${act}`);
+        cachedCount += 1;
+        continue;
+      }
+
+      console.log(`  [↓ Downloading] [${pack}] ${act} v${version}...`);
+      const binaryFilename = `${act}_action-${version}-${platformName}.${ext}`;
+      const urls = [
+        `https://github.com/${repo}/releases/download/action_packs%2F${pack}%2Fv${version}/${binaryFilename}`,
+        `https://github.com/${repo}/releases/download/action_packs/${pack}/v${version}/${binaryFilename}`,
+      ];
+
+      let downloaded = false;
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url, { headers: { 'User-Agent': 'Morflow-Node-CLI/0.1.1' } });
+          if (resp.ok) {
+            const buffer = Buffer.from(await resp.arrayBuffer());
+            fs.writeFileSync(targetFilePack, buffer);
+            fs.writeFileSync(targetFileRoot, buffer);
+            console.log(`    ✓ Successfully installed to ${targetFilePack}`);
+            downloaded = true;
+            installedCount += 1;
+            break;
+          }
+        } catch {}
+      }
+
+      if (!downloaded) {
+        const localCandidates = [
+          path.resolve(`target/release/actions/${pack}/${act}_action.${ext}`),
+          path.resolve(`target/release/actions/${act}_action.${ext}`),
+          path.resolve(`actions/${pack}/${act}/target/release/lib${act}.${ext}`),
+        ];
+
+        for (const cand of localCandidates) {
+          if (fs.existsSync(cand)) {
+            fs.copyFileSync(cand, targetFilePack);
+            fs.copyFileSync(cand, targetFileRoot);
+            console.log(`    ✓ Copied local build artifact from ${cand}`);
+            installedCount += 1;
+            break;
+          }
+        }
+      }
+    }
+
+    console.log(`\nSummary: ${installedCount} action(s) installed/updated, ${cachedCount} already cached.`);
+    console.log(`✓ Action package '${pack}/latest' is ready in ${cacheDir}.\n`);
+  }
 }
 
 async function main() {
@@ -511,8 +762,6 @@ async function main() {
     action: null,
     query: null,
     path: null,
-    repo: 'JiraPit/Morflow',
-    actionVersion: '0.1.0',
     limit: 5,
     force: false,
   };
@@ -521,10 +770,6 @@ async function main() {
     const arg = argv[i];
     if (arg === '--path' && i + 1 < argv.length) {
       args.path = argv[++i];
-    } else if (arg === '--repo' && i + 1 < argv.length) {
-      args.repo = argv[++i];
-    } else if (arg === '--action-version' && i + 1 < argv.length) {
-      args.actionVersion = argv[++i];
     } else if (arg === '--limit' && i + 1 < argv.length) {
       args.limit = parseInt(argv[++i], 10) || 5;
     } else if (arg === '--force') {

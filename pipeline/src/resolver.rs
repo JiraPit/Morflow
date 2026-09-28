@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use parser::ast::ImportStmt;
+use std::collections::HashMap;
 
 /// Resolves action names in a flow (e.g. `ca`, `resize`, `base.identity`, `audio.gain`)
 /// into their canonical ActionPack and action name based on pipeline import statements.
@@ -43,8 +43,27 @@ impl ActionResolver {
             return (Some(pack.clone()), real_action.clone());
         }
 
-        // 2. Check if the call is a qualified name like `image_essentials.resize` or `audio.gain`
-        if let Some((prefix, action)) = call_name.split_once('.') {
+        // 2. Check if the call is a qualified path like `image_essentials/resize`, `base/latest/identity`, `audio/gain`, `audio.gain`
+        let clean = call_name.replace("::", "/");
+        let parts: Vec<&str> = if clean.contains('/') {
+            clean
+                .split('/')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect()
+        } else if clean.contains('.') {
+            clean
+                .split('.')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        if !parts.is_empty() {
+            let prefix = parts[0];
+            let action = parts[parts.len() - 1];
             // Check if prefix matches a package alias or package name
             for (pkg, alias_opt) in &self.imported_packages {
                 if let Some(alias) = alias_opt {
@@ -62,7 +81,10 @@ impl ActionResolver {
 
         // 3. If there are whole-package imports (`import pack.latest`), check if only one pack is imported
         if self.imported_packages.len() == 1 {
-            return (Some(self.imported_packages[0].0.clone()), call_name.to_string());
+            return (
+                Some(self.imported_packages[0].0.clone()),
+                call_name.to_string(),
+            );
         }
 
         // 4. Return None for pack, meaning the registry will search imported packages and known packs

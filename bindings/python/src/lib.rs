@@ -103,10 +103,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
             .as_slice()
             .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
         let byte_slice: &[u8] = unsafe {
-            std::slice::from_raw_parts(
-                slice.as_ptr() as *const u8,
-                slice.len() * std::mem::size_of::<i32>(),
-            )
+            std::slice::from_raw_parts(slice.as_ptr() as *const u8, std::mem::size_of_val(slice))
         };
         let tensor = Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), shape, TensorDType::I32)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;

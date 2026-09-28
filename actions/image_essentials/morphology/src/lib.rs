@@ -128,7 +128,8 @@ fn apply_morphology(
                 return tensor.clone();
             };
 
-            let out_f32 = apply_morph_ops(src, width, height, channels, radius, shape, op, iterations);
+            let out_f32 =
+                apply_morph_ops(src, width, height, channels, radius, shape, op, iterations);
 
             let out_shape = if channels == 1 {
                 vec![height, width]
@@ -149,7 +150,9 @@ fn apply_morphology(
                 .zip(bytes.par_iter())
                 .for_each(|(dst, &b)| *dst = b as f32 / 255.0);
 
-            let out_f32 = apply_morph_ops(&src_f32, width, height, channels, radius, shape, op, iterations);
+            let out_f32 = apply_morph_ops(
+                &src_f32, width, height, channels, radius, shape, op, iterations,
+            );
 
             let mut out_u8 = vec![0u8; out_f32.len()];
             out_u8
@@ -166,12 +169,8 @@ fn apply_morphology(
             } else {
                 vec![channels, height, width]
             };
-            Tensor::from_rvec_u8(
-                core_types::RVec::from(out_u8),
-                out_shape,
-                TensorDType::U8,
-            )
-            .unwrap()
+            Tensor::from_rvec_u8(core_types::RVec::from(out_u8), out_shape, TensorDType::U8)
+                .unwrap()
         }
         _ => tensor.clone(),
     }

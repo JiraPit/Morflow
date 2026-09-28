@@ -212,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "audio_processing"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "hound",
@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "audio_split"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "hound",
@@ -285,7 +285,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "biquad_filter"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -314,7 +314,7 @@ dependencies = [
 
 [[package]]
 name = "blend"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -426,7 +426,7 @@ checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 
 [[package]]
 name = "color_adjust"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "compressor"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -513,7 +513,7 @@ checksum = "533d38ecd2709b7608fb8e18e4504deb99e9a72879e6aa66373a76d8dc4259ea"
 
 [[package]]
 name = "core_types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "abi_stable",
  "rayon",
@@ -530,7 +530,7 @@ dependencies = [
 
 [[package]]
 name = "crop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "delay"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -628,7 +628,7 @@ dependencies = [
 
 [[package]]
 name = "edge_detect"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "flip"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "gain"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "gaussian_blur"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -944,7 +944,7 @@ dependencies = [
 
 [[package]]
 name = "identity"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
 ]
@@ -1006,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "image_processing"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "image",
@@ -1173,7 +1173,7 @@ dependencies = [
 
 [[package]]
 name = "limiter"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1272,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1282,7 +1282,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1294,7 +1294,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "morphology"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1428,7 +1428,7 @@ dependencies = [
 
 [[package]]
 name = "noise_gate"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1451,7 +1451,7 @@ checksum = "0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8"
 
 [[package]]
 name = "normalize"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1604,7 +1604,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "pad"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1635,7 +1635,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chumsky",
  "serde",
@@ -1667,7 +1667,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pipeline"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "abi_stable",
  "clap",
@@ -2076,7 +2076,7 @@ dependencies = [
 
 [[package]]
 name = "resample"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2084,7 +2084,7 @@ dependencies = [
 
 [[package]]
 name = "resize"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2112,7 +2112,7 @@ dependencies = [
 
 [[package]]
 name = "rotate"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2285,7 +2285,7 @@ dependencies = [
 
 [[package]]
 name = "sharpen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2339,7 +2339,7 @@ dependencies = [
 
 [[package]]
 name = "stereo_widen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2347,7 +2347,7 @@ dependencies = [
 
 [[package]]
 name = "stft"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "threshold"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2502,7 +2502,7 @@ dependencies = [
 
 [[package]]
 name = "to_audio"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2510,7 +2510,7 @@ dependencies = [
 
 [[package]]
 name = "to_image"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2518,7 +2518,7 @@ dependencies = [
 
 [[package]]
 name = "to_pcm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2526,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "to_tensor"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2534,7 +2534,7 @@ dependencies = [
 
 [[package]]
 name = "to_wav"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "rayon",

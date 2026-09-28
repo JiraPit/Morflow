@@ -120,7 +120,7 @@ test('Morflow - error handling on invalid pipeline syntax', () => {
 
 test('Morflow - audio to_audio and to_wav pipeline', async () => {
   const dsl = `
-    import audio_essentials.latest
+    import audio_essentials/latest
     accept $data
     $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
   `;

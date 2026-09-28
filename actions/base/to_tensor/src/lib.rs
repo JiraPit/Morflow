@@ -122,12 +122,10 @@ fn standardize_image_to_tensor(
     if src_color == dst_color
         && cur_target_layout == target_layout
         && cur_target_dtype == target_dtype
+        && ((target_dtype == TargetDType::F32 && img.dtype() == TensorDType::F32)
+            || (target_dtype == TargetDType::U8 && img.dtype() == TensorDType::U8 && !should_norm))
     {
-        if (target_dtype == TargetDType::F32 && img.dtype() == TensorDType::F32)
-            || (target_dtype == TargetDType::U8 && img.dtype() == TensorDType::U8 && !should_norm)
-        {
-            return img.tensor.clone();
-        }
+        return img.tensor.clone();
     }
 
     // Convert pixel data to F32 intermediate in HWC

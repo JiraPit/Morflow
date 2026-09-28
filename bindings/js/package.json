@@ -1,6 +1,6 @@
 {
   "name": "morflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "High-performance dataflow pipeline engine for JavaScript and TypeScript",
   "main": "index.js",
   "types": "index.d.ts",

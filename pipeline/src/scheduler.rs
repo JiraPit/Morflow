@@ -218,8 +218,7 @@ impl AutoParallelScheduler {
 
                     let (target_pack, real_action_name) = self.resolver.resolve(&call.name);
                     let action = if let Some(pack) = target_pack {
-                        self.registry
-                            .get_or_load_in_pack(&pack, &real_action_name)
+                        self.registry.get_or_load_in_pack(&pack, &real_action_name)
                     } else {
                         self.registry.get_or_load_cloned(&call.name)
                     }

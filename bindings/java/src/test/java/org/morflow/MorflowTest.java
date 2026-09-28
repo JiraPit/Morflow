@@ -13,7 +13,7 @@ public class MorflowTest {
     @Test
     public void testFromStrAndParams() {
         String dsl = """
-            import base.latest
+            import base/latest
             accept $audio_in
             accept $rate = 44100
             
@@ -85,7 +85,7 @@ public class MorflowTest {
     @Test
     public void testAudioToAudioAndToWavPipeline() {
         String dsl = """
-            import audio_essentials.latest
+            import audio_essentials/latest
             accept $data
             $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
         """;

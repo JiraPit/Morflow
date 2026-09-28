@@ -69,7 +69,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     };
 
     if num_samples == 0 || channels == 0 {
-        return Payload::Data { buffer: RVec::new() };
+        return Payload::Data {
+            buffer: RVec::new(),
+        };
     }
 
     let pcm_bytes = encode_planar_f32_to_pcm(

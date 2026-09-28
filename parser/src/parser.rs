@@ -176,15 +176,48 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
         }
     });
 
+    let path_segment =
+        filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+            .repeated()
+            .at_least(1)
+            .collect::<String>()
+            .try_map(|name, span| {
+                let is_reserved = matches!(
+                    name.as_str(),
+                    "if" | "else"
+                        | "each"
+                        | "route"
+                        | "pipeline"
+                        | "accept"
+                        | "import"
+                        | "from"
+                        | "as"
+                        | "true"
+                        | "false"
+                );
+                if is_reserved {
+                    Err(Simple::custom(
+                        span,
+                        format!("'{}' is a reserved keyword", name),
+                    ))
+                } else {
+                    Ok(name)
+                }
+            });
+
     let action_ident = single_ident
-        .then(just('.').ignore_then(single_ident).repeated())
+        .then(
+            choice((just('/'), just('.')))
+                .ignore_then(path_segment)
+                .repeated(),
+        )
         .map(|(first, rest)| {
             if rest.is_empty() {
                 first
             } else {
                 let mut full = first;
                 for part in rest {
-                    full.push('.');
+                    full.push('/');
                     full.push_str(&part);
                 }
                 full
@@ -318,26 +351,28 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             default_value,
         });
 
-    // Version string parser: e.g. "latest", "v1", "1.0.0"
-    let version_part = text::digits(10).or(ident);
-    let version_str = version_part
-        .separated_by(just('.'))
-        .at_least(1)
-        .map(|parts| parts.join("."));
+    // Version string parser: e.g. "latest", "0.1.0", "v0.1.0", "1.0.0-rc.1"
+    let version_char =
+        filter(|c: &char| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_' || *c == '+');
+    let version_str = version_char.repeated().at_least(1).collect::<String>();
 
     // Import item: color_adjust [as ca]
     let import_item = ident
-        .then(padded(text::keyword("as")).ignore_then(padded(ident)).or_not())
+        .then(
+            padded(text::keyword("as"))
+                .ignore_then(padded(ident))
+                .or_not(),
+        )
         .map(|(name, alias)| ImportItem { name, alias });
 
-    let import_items_list = import_item
-        .separated_by(padded(just(',')))
-        .allow_trailing();
+    let import_items_list = import_item.separated_by(padded(just(','))).allow_trailing();
 
-    // from <package>.<version> import <item1>, <item2>
+    let sep = choice((just('/'), just('.')));
+
+    // 1. from <package>/<version> import <item1>, <item2>
     let from_import = text::keyword("from")
         .ignore_then(padded(ident))
-        .then_ignore(just('.'))
+        .then_ignore(sep)
         .then(padded(version_str))
         .then_ignore(padded(text::keyword("import")))
         .then(padded(import_items_list))
@@ -349,12 +384,39 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             })
         });
 
-    // import <package>.<version> [as <alias>]
+    // 2. import <package>/<version>/<action> [as <alias>]
+    let single_item_import = text::keyword("import")
+        .ignore_then(padded(ident))
+        .then_ignore(just('/'))
+        .then(padded(version_str))
+        .then_ignore(just('/'))
+        .then(padded(ident))
+        .then(
+            padded(text::keyword("as"))
+                .ignore_then(padded(ident))
+                .or_not(),
+        )
+        .map(|(((package, version), action_name), alias)| {
+            ImportStmt::Items(ItemsImport {
+                package,
+                version,
+                items: vec![ImportItem {
+                    name: action_name,
+                    alias,
+                }],
+            })
+        });
+
+    // 3. import <package>/<version> [as <alias>]
     let pkg_import = text::keyword("import")
         .ignore_then(padded(ident))
-        .then_ignore(just('.'))
+        .then_ignore(sep)
         .then(padded(version_str))
-        .then(padded(text::keyword("as")).ignore_then(padded(ident)).or_not())
+        .then(
+            padded(text::keyword("as"))
+                .ignore_then(padded(ident))
+                .or_not(),
+        )
         .map(|((package, version), alias)| {
             ImportStmt::Package(PackageImport {
                 package,
@@ -363,7 +425,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             })
         });
 
-    let import_stmt = choice((from_import, pkg_import));
+    let import_stmt = choice((from_import, single_item_import, pkg_import));
 
     enum TopLevel {
         Import(ImportStmt),

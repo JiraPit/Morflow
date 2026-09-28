@@ -1,6 +1,6 @@
 # Morflow Multi-Channel Audio Split Pipeline (.morf)
 
-import audio_essentials.latest
+import audio_essentials/latest
 
 accept $input_audio
 

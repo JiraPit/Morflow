@@ -4,9 +4,6 @@ Morflow Python Interface
 High-performance modular dataflow pipeline engine for image, audio, and tensor computing.
 """
 
-from typing import Any, Dict, List, Optional, Union
-import numpy as np
-
 try:
     from ._morflow import load, from_str, Pipeline
 except ImportError as e:
@@ -16,4 +13,4 @@ except ImportError as e:
     ) from e
 
 __all__ = ["load", "from_str", "Pipeline"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"

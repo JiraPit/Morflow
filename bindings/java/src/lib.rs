@@ -178,7 +178,10 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRun<'local>(
     match payload_to_java_tensor(&mut env, &single_payload) {
         Ok(obj) => obj.into_raw(),
         Err(e) => {
-            throw_exception(&mut env, &format!("Failed to convert output payload: {}", e));
+            throw_exception(
+                &mut env,
+                &format!("Failed to convert output payload: {}", e),
+            );
             std::ptr::null_mut()
         }
     }
@@ -226,7 +229,10 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRunDirect<'local>(
     match payload_to_java_tensor(&mut env, &single_payload) {
         Ok(obj) => obj.into_raw(),
         Err(e) => {
-            throw_exception(&mut env, &format!("Failed to convert output payload: {}", e));
+            throw_exception(
+                &mut env,
+                &format!("Failed to convert output payload: {}", e),
+            );
             std::ptr::null_mut()
         }
     }
@@ -417,7 +423,7 @@ fn construct_payload_from_raw(
     // Construct Payload from byte slice, shape, and dtype
     let tensor = match dtype_str.to_lowercase().as_str() {
         "f32" | "float" | "float32" => {
-            if byte_slice.len() % 4 != 0 {
+            if !byte_slice.len().is_multiple_of(4) {
                 return Err("Byte slice length not divisible by 4 for F32 tensor".into());
             }
             let f32_slice: &[f32] = unsafe {

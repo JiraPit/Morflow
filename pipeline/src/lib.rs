@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn test_audio_to_audio_and_to_wav_end_to_end() {
         let morf_src = r#"
-            import audio_essentials.latest
+            import audio_essentials/latest
 
             accept $audio_in
 
@@ -755,7 +755,7 @@ mod tests {
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
-        let f32_samples = vec![0.25f32, -0.25f32];
+        let f32_samples = [0.25f32, -0.25f32];
         let byte_slice: &[u8] = unsafe {
             std::slice::from_raw_parts(
                 f32_samples.as_ptr() as *const u8,

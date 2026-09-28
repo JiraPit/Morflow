@@ -210,7 +210,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
         Payload::Tensor(out_tensor)
     } else {
-        Payload::Error(core_types::RString::from("STFT requires an Audio or F32 Tensor input"))
+        Payload::Error(core_types::RString::from(
+            "STFT requires an Audio or F32 Tensor input",
+        ))
     }
 }
 

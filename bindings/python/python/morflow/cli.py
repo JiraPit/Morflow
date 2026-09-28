@@ -82,50 +82,91 @@ def normalize_pack_name(pack: str) -> str:
     return pack
 
 
-def parse_full_action_path(path_str: str):
-    clean = path_str.replace("::", ".").strip()
-    parts = [p.strip() for p in clean.split(".") if p.strip()]
+def parse_target_path(path_str: str) -> tuple[str, str, str | None]:
+    """Returns (pack, version, action_name | None). If action_name is None, the target is the entire package."""
+    clean = path_str.replace("::", "/").strip()
+    if "/" in clean:
+        parts = [p.strip() for p in clean.split("/") if p.strip()]
+    elif "." in clean:
+        parts = [p.strip() for p in clean.split(".") if p.strip()]
+    else:
+        parts = [clean] if clean else []
 
     if len(parts) >= 3:
         pack = normalize_pack_name(parts[0])
         action = parts[-1]
-        raw_version = ".".join(parts[1:-1])
+        raw_version = "/".join(parts[1:-1])
         version = raw_version.lstrip("v")
         return pack, version, action
     elif len(parts) == 2:
         pack = normalize_pack_name(parts[0])
-        action = parts[1]
-        return pack, "latest", action
-    elif len(parts) == 1:
-        action = parts[0]
-        for pack, act in KNOWN_ACTIONS:
-            if act.lower() == action.lower():
-                return pack, "latest", act
-        return "base", "latest", action
-    return "base", "latest", path_str
+        version = parts[1].lstrip("v")
+        return pack, version, None
+
+    hint_pack = parts[0] if parts else "base"
+    hint_act = parts[-1] if parts else "identity"
+    raise ValueError(
+        f"Invalid target '{path_str}'. Expected full action path '<package>/<version>/<action>' "
+        f"(e.g. '{hint_pack}/latest/{hint_act}') or package path '<package>/<version>' "
+        f"(e.g. '{hint_pack}/latest' or '{hint_pack}/0.1.0')."
+    )
+
+
+def parse_full_action_path(path_str: str) -> tuple[str, str, str]:
+    pack, version, action = parse_target_path(path_str)
+    if action is None:
+        raise ValueError(f"Action name required in path '{path_str}'.")
+    return pack, version, action
 
 
 def extract_actions_from_morf(source: str):
     """Extracts imports and action calls from .morf source."""
-    imports = {}
+    imported_symbols = {}
+    imported_packages = {}
     actions = []
 
     for line in source.splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line or line.startswith("#") or line.startswith("//"):
             continue
 
-        # Check for import lines: import audio_essentials as audio or use audio_essentials::*
-        import_match = re.match(r"^(?:import|use)\s+([a-zA-Z0-9_]+)(?:\s+as\s+([a-zA-Z0-9_]+))?", line)
+        # 1. from <pkg>/<ver> import <item1> [as <alias1>], ...
+        from_match = re.match(r"^from\s+([a-zA-Z0-9_]+)[/.][^\s]+\s+import\s+(.+)$", line)
+        if from_match:
+            pack = normalize_pack_name(from_match.group(1))
+            items_str = from_match.group(2)
+            for item in items_str.split(","):
+                item = item.strip()
+                if not item:
+                    continue
+                if " as " in item:
+                    real_name, alias = [s.strip() for s in item.split(" as ", 1)]
+                    imported_symbols[alias] = (pack, real_name)
+                else:
+                    imported_symbols[item] = (pack, item)
+            continue
+
+        # 2. import <pkg>/<ver>/<action> [as <alias>]
+        single_match = re.match(r"^import\s+([a-zA-Z0-9_]+)/([^/\s]+)/([a-zA-Z0-9_]+)(?:\s+as\s+([a-zA-Z0-9_]+))?", line)
+        if single_match:
+            pack = normalize_pack_name(single_match.group(1))
+            act_name = single_match.group(3)
+            alias = single_match.group(4) or act_name
+            imported_symbols[alias] = (pack, act_name)
+            continue
+
+        # 3. import <pkg>/<ver> [as <alias>] or import <pkg> [as <alias>]
+        import_match = re.match(r"^(?:import|use)\s+([a-zA-Z0-9_]+)(?:[/.]\S+)?(?:\s+as\s+([a-zA-Z0-9_]+))?", line)
         if import_match:
-            pack = import_match.group(1)
+            pack = normalize_pack_name(import_match.group(1))
             alias = import_match.group(2) or pack
-            imports[alias] = pack
+            imported_packages[alias] = pack
+            continue
 
         # Match action calls in chain: >> action_name(...) or >> action_name
-        for action_match in re.finditer(r">>\s*([a-zA-Z0-9_.:]+)", line):
+        for action_match in re.finditer(r">>\s*([a-zA-Z0-9_/.:]+)", line):
             act_full = action_match.group(1).split("(")[0].strip()
-            if act_full in ("emit", "resurface"):
+            if act_full.startswith("$") or act_full in ("emit", "resurface", "each", "if", "route", "else"):
                 continue
             if act_full not in actions:
                 actions.append(act_full)
@@ -133,12 +174,18 @@ def extract_actions_from_morf(source: str):
     # Resolve actions to (pack, action_name)
     resolved = []
     for act in actions:
-        if "::" in act:
-            pack, name = act.split("::", 1)
-            resolved.append((normalize_pack_name(pack), name))
-        elif "." in act:
-            pack, name = act.split(".", 1)
-            resolved.append((normalize_pack_name(pack), name))
+        if act in imported_symbols:
+            resolved.append(imported_symbols[act])
+            continue
+
+        clean = act.replace("::", "/")
+        parts = [p.strip() for p in clean.split("/") if p.strip()] if "/" in clean else ([p.strip() for p in clean.split(".") if p.strip()] if "." in clean else [])
+        if len(parts) >= 3:
+            pack = imported_packages.get(parts[0], normalize_pack_name(parts[0]))
+            resolved.append((pack, parts[-1]))
+        elif len(parts) == 2:
+            pack = imported_packages.get(parts[0], normalize_pack_name(parts[0]))
+            resolved.append((pack, parts[1]))
         else:
             found = False
             for k_pack, k_act in KNOWN_ACTIONS:
@@ -147,9 +194,53 @@ def extract_actions_from_morf(source: str):
                     found = True
                     break
             if not found:
-                resolved.append(("base", act))
+                if len(imported_packages) == 1:
+                    resolved.append((list(imported_packages.values())[0], act))
+                else:
+                    resolved.append(("base", act))
 
     return resolved
+
+
+LATEST_VERSION_CACHE = {}
+
+
+def resolve_repo() -> str:
+    return os.environ.get("MORFLOW_REPO", "JiraPit/Morflow")
+
+
+def fetch_latest_pack_version(pack: str, repo: str) -> str:
+    cache_key = (pack, repo)
+    if cache_key in LATEST_VERSION_CACHE:
+        return LATEST_VERSION_CACHE[cache_key]
+
+    url = f"https://api.github.com/repos/{repo}/releases"
+    prefix_v = f"action_packs/{pack}/v"
+    prefix_no_v = f"action_packs/{pack}/"
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            import json
+            releases = json.loads(resp.read().decode("utf-8"))
+            if isinstance(releases, list):
+                for rel in releases:
+                    tag = rel.get("tag_name", "")
+                    if tag.startswith(prefix_v):
+                        ver = tag[len(prefix_v):]
+                        if ver:
+                            LATEST_VERSION_CACHE[cache_key] = ver
+                            return ver
+                    elif tag.startswith(prefix_no_v):
+                        ver = tag[len(prefix_no_v):].lstrip("v")
+                        if ver:
+                            LATEST_VERSION_CACHE[cache_key] = ver
+                            return ver
+    except Exception:
+        pass
+
+    LATEST_VERSION_CACHE[cache_key] = "0.1.0"
+    return "0.1.0"
 
 
 def cmd_prep(args):
@@ -165,6 +256,7 @@ def cmd_prep(args):
         print(f"No action calls found in '{file_path}'. Nothing to prepare.")
         return
 
+    repo = resolve_repo()
     platform_name, ext = get_host_platform()
     cache_dir = resolve_action_cache_dir(args.path)
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -174,7 +266,7 @@ def cmd_prep(args):
     print(f" Pipeline: {file_path}")
     print(f" Host Platform: {platform_name} (.{ext})")
     print(f" Cache Directory: {cache_dir}")
-    print(f" Repository: {args.repo}")
+    print(f" Repository: {repo}")
     print("==================================================")
 
     prepared = 0
@@ -192,18 +284,19 @@ def cmd_prep(args):
             cached += 1
             continue
 
-        print(f"  [↓ Downloading] [{pack}] {action_name} v{args.action_version}...")
-        binary_filename = f"{action_name}_action-{args.action_version}-{platform_name}.{ext}"
+        action_version = fetch_latest_pack_version(pack, repo)
+        print(f"  [↓ Downloading] [{pack}] {action_name} v{action_version}...")
+        binary_filename = f"{action_name}_action-{action_version}-{platform_name}.{ext}"
 
         urls = [
-            f"https://github.com/{args.repo}/releases/download/action_packs%2F{pack}%2Fv{args.action_version}/{binary_filename}",
-            f"https://github.com/{args.repo}/releases/download/action_packs/{pack}/v{args.action_version}/{binary_filename}",
+            f"https://github.com/{repo}/releases/download/action_packs%2F{pack}%2Fv{action_version}/{binary_filename}",
+            f"https://github.com/{repo}/releases/download/action_packs/{pack}/v{action_version}/{binary_filename}",
         ]
 
         downloaded = False
         for url in urls:
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.0"})
+                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
                 with urllib.request.urlopen(req) as resp:
                     data = resp.read()
                     target_file_pack.write_bytes(data)
@@ -266,13 +359,42 @@ def cmd_clean(args):
 
 
 def cmd_spec(args):
-    pack, _version, action_name = parse_full_action_path(args.action)
+    repo = resolve_repo()
+    try:
+        pack, path_version, action_name = parse_target_path(args.action)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    # 1. Check local files in repository / development environment
+    if path_version != "latest" and path_version:
+        version = path_version
+    else:
+        version = fetch_latest_pack_version(pack, repo)
+
+    if action_name is None:
+        actions = [act for p, act in KNOWN_ACTIONS if p == pack]
+        if not actions:
+            print(f"Error: Unknown package '{pack}'.", file=sys.stderr)
+            sys.exit(1)
+        print(f"# Package: {pack} (v{version})\n")
+        print("Actions in this package:")
+        for act in actions:
+            print(f"- {pack}/latest/{act}")
+        return
+
+    # 1. Check local cache directory
+    cache_spec = resolve_action_cache_dir(None) / pack / action_name / "SPEC.md"
+    if cache_spec.exists():
+        try:
+            print(cache_spec.read_text(encoding="utf-8"), end="")
+            return
+        except Exception:
+            pass
+
+    # 2. Check local workspace files
     local_candidates = [
         Path(f"actions/{pack}/{action_name}/SPEC.md"),
         Path(f"../actions/{pack}/{action_name}/SPEC.md"),
-        resolve_action_cache_dir(None) / pack / action_name / "SPEC.md",
     ]
 
     for cand in local_candidates:
@@ -283,16 +405,43 @@ def cmd_spec(args):
             except Exception:
                 pass
 
-    # 2. Fetch raw SPEC.md from GitHub
-    url = f"https://raw.githubusercontent.com/{args.repo}/main/actions/{pack}/{action_name}/SPEC.md"
+    # 3. Fetch version-specific SPEC.md from GitHub Release assets
+    release_urls = [
+        f"https://github.com/{repo}/releases/download/action_packs%2F{pack}%2Fv{version}/{action_name}_SPEC.md",
+        f"https://github.com/{repo}/releases/download/action_packs/{pack}/v{version}/{action_name}_SPEC.md",
+    ]
+    for url in release_urls:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+            with urllib.request.urlopen(req) as resp:
+                content = resp.read().decode("utf-8")
+                print(content, end="")
+                return
+        except Exception:
+            continue
+
+    # 4. Fallback: Fetch from Git Tag
+    tag_url = f"https://raw.githubusercontent.com/{repo}/action_packs/{pack}/v{version}/actions/{pack}/{action_name}/SPEC.md"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.0"})
+        req = urllib.request.Request(tag_url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
         with urllib.request.urlopen(req) as resp:
             content = resp.read().decode("utf-8")
             print(content, end="")
+            return
+    except Exception:
+        pass
+
+    # 5. Fallback: Fetch raw SPEC.md from GitHub main branch
+    main_url = f"https://raw.githubusercontent.com/{repo}/main/actions/{pack}/{action_name}/SPEC.md"
+    try:
+        req = urllib.request.Request(main_url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+        with urllib.request.urlopen(req) as resp:
+            content = resp.read().decode("utf-8")
+            print(content, end="")
+            return
     except Exception:
         print(
-            f"Error: SPEC.md not found for action '{pack}.latest.{action_name}' (checked local paths and {url}).",
+            f"Error: SPEC.md not found for action '{pack}/v{version}/{action_name}' (checked local paths, release assets, and {main_url}).",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -315,7 +464,7 @@ def cmd_search(args):
         print(f"No matching actions found for query '{args.query}'.")
     else:
         for _pos, _len, act, pack in top_matches:
-            print(f"{pack}.latest.{act}")
+            print(f"{pack}/latest/{act}")
 
 
 def cmd_list(args):
@@ -331,7 +480,7 @@ def cmd_list(args):
                 for sub_item in item.iterdir():
                     if sub_item.is_file() and sub_item.name.endswith(suffix):
                         act_name = sub_item.name[: -len(suffix)]
-                        found_actions.add(f"{pack_name}.latest.{act_name}")
+                        found_actions.add(f"{pack_name}/latest/{act_name}")
             elif item.is_file() and item.name.endswith(suffix):
                 act_name = item.name[: -len(suffix)]
                 pack_name = "base"
@@ -339,7 +488,7 @@ def cmd_list(args):
                     if k_act == act_name:
                         pack_name = k_pack
                         break
-                found_actions.add(f"{pack_name}.latest.{act_name}")
+                found_actions.add(f"{pack_name}/latest/{act_name}")
 
     dev_target = Path("target/release/actions")
     if dev_target.exists():
@@ -349,7 +498,7 @@ def cmd_list(args):
                 for sub_item in item.iterdir():
                     if sub_item.is_file() and sub_item.name.endswith(suffix):
                         act_name = sub_item.name[: -len(suffix)]
-                        found_actions.add(f"{pack_name}.latest.{act_name}")
+                        found_actions.add(f"{pack_name}/latest/{act_name}")
 
     sorted_actions = sorted(list(found_actions))
     if not sorted_actions:
@@ -358,6 +507,165 @@ def cmd_list(args):
     else:
         for act in sorted_actions:
             print(act)
+
+
+def cmd_install(args):
+    repo = resolve_repo()
+    try:
+        pack, path_version, action_name = parse_target_path(args.action)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if path_version != "latest" and path_version:
+        version = path_version
+    else:
+        version = fetch_latest_pack_version(pack, repo)
+
+    platform_name, ext = get_host_platform()
+    cache_dir = resolve_action_cache_dir(args.path)
+    pack_dir = cache_dir / pack
+    pack_dir.mkdir(parents=True, exist_ok=True)
+
+    if action_name is not None:
+        # Install single action
+        target_file_pack = pack_dir / f"{action_name}_action.{ext}"
+        target_file_root = cache_dir / f"{action_name}_action.{ext}"
+
+        if not args.force and (target_file_pack.exists() or target_file_root.exists()):
+            print(
+                f"Action '{pack}/latest/{action_name}' is already installed in {target_file_pack}. Use --force to reinstall."
+            )
+            return
+
+        print("==================================================")
+        print(" Morflow Action Installer (Python CLI)")
+        print(f" Action: {pack}/latest/{action_name}")
+        print(f" Version: v{version}")
+        print(f" Host Platform: {platform_name} (.{ext})")
+        print(f" Cache Directory: {cache_dir}")
+        print(f" Repository: {repo}")
+        print("==================================================")
+
+        print(f"  [↓ Downloading] [{pack}] {action_name} v{version}...")
+        binary_filename = f"{action_name}_action-{version}-{platform_name}.{ext}"
+
+        urls = [
+            f"https://github.com/{repo}/releases/download/action_packs%2F{pack}%2Fv{version}/{binary_filename}",
+            f"https://github.com/{repo}/releases/download/action_packs/{pack}/v{version}/{binary_filename}",
+        ]
+
+        downloaded = False
+        for url in urls:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+                with urllib.request.urlopen(req) as resp:
+                    data = resp.read()
+                    target_file_pack.write_bytes(data)
+                    target_file_root.write_bytes(data)
+                    print(f"    ✓ Successfully installed to {target_file_pack}")
+                    downloaded = True
+                    break
+            except Exception:
+                continue
+
+        if not downloaded:
+            local_candidates = [
+                Path(f"target/release/actions/{pack}/{action_name}_action.{ext}"),
+                Path(f"target/release/actions/{action_name}_action.{ext}"),
+                Path(f"actions/{pack}/{action_name}/target/release/lib{action_name}.{ext}"),
+            ]
+            copied = False
+            for cand in local_candidates:
+                if cand.exists():
+                    shutil.copy2(cand, target_file_pack)
+                    shutil.copy2(cand, target_file_root)
+                    print(f"    ✓ Copied local build artifact from {cand}")
+                    copied = True
+                    break
+
+            if not copied:
+                print(
+                    f"Error: Could not download remote binary or find local artifact for [{pack}] {action_name}.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+        # Cache SPEC.md if available
+        spec_dir = cache_dir / pack / action_name
+        spec_dir.mkdir(parents=True, exist_ok=True)
+        target_spec = spec_dir / "SPEC.md"
+        local_spec = Path(f"actions/{pack}/{action_name}/SPEC.md")
+        if local_spec.exists():
+            shutil.copy2(local_spec, target_spec)
+
+        print(f"\n✓ Installation complete: {pack}/latest/{action_name} is ready for runtime use.\n")
+    else:
+        # Install full package
+        actions = [act for p, act in KNOWN_ACTIONS if p == pack]
+        if not actions:
+            print(f"Error: Unknown package '{pack}'.", file=sys.stderr)
+            sys.exit(1)
+
+        print("==================================================")
+        print(" Morflow Action Pack Installer (Python CLI)")
+        print(f" Package: {pack} ({len(actions)} actions)")
+        print(f" Version: v{version}")
+        print(f" Host Platform: {platform_name} (.{ext})")
+        print(f" Cache Directory: {cache_dir}")
+        print(f" Repository: {repo}")
+        print("==================================================")
+
+        installed_count = 0
+        cached_count = 0
+
+        for act in actions:
+            target_file_pack = pack_dir / f"{act}_action.{ext}"
+            target_file_root = cache_dir / f"{act}_action.{ext}"
+
+            if not args.force and (target_file_pack.exists() or target_file_root.exists()):
+                print(f"  [✓ Cached] [{pack}] {act}")
+                cached_count += 1
+                continue
+
+            print(f"  [↓ Downloading] [{pack}] {act} v{version}...")
+            binary_filename = f"{act}_action-{version}-{platform_name}.{ext}"
+            urls = [
+                f"https://github.com/{repo}/releases/download/action_packs%2F{pack}%2Fv{version}/{binary_filename}",
+                f"https://github.com/{repo}/releases/download/action_packs/{pack}/v{version}/{binary_filename}",
+            ]
+
+            downloaded = False
+            for url in urls:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.1"})
+                    with urllib.request.urlopen(req) as resp:
+                        data = resp.read()
+                        target_file_pack.write_bytes(data)
+                        target_file_root.write_bytes(data)
+                        print(f"    ✓ Successfully installed to {target_file_pack}")
+                        downloaded = True
+                        installed_count += 1
+                        break
+                except Exception:
+                    continue
+
+            if not downloaded:
+                local_candidates = [
+                    Path(f"target/release/actions/{pack}/{act}_action.{ext}"),
+                    Path(f"target/release/actions/{act}_action.{ext}"),
+                    Path(f"actions/{pack}/{act}/target/release/lib{act}.{ext}"),
+                ]
+                for cand in local_candidates:
+                    if cand.exists():
+                        shutil.copy2(cand, target_file_pack)
+                        shutil.copy2(cand, target_file_root)
+                        print(f"    ✓ Copied local build artifact from {cand}")
+                        installed_count += 1
+                        break
+
+        print(f"\nSummary: {installed_count} action(s) installed/updated, {cached_count} already cached.")
+        print(f"✓ Action package '{pack}/latest' is ready in {cache_dir}.\n")
 
 
 def main():
@@ -374,8 +682,6 @@ def main():
     )
     prep_parser.add_argument("file", help="Path to the .morf pipeline definition file")
     prep_parser.add_argument("--path", help="Custom action cache directory")
-    prep_parser.add_argument("--repo", default="JiraPit/Morflow", help="GitHub repository to download action binaries from")
-    prep_parser.add_argument("--action-version", default="0.1.0", help="Action Pack version tag")
     prep_parser.add_argument("--force", action="store_true", help="Force re-download even if action is already cached")
 
     # Clean command
@@ -390,8 +696,7 @@ def main():
         "spec",
         help="Views the raw SPEC.md documentation for a specified action",
     )
-    spec_parser.add_argument("action", help="Full action path (e.g. image_essential.latest.color_adjust)")
-    spec_parser.add_argument("--repo", default="JiraPit/Morflow", help="GitHub repository to fetch spec from")
+    spec_parser.add_argument("action", help="Full action path (e.g. image_essentials/latest/color_adjust)")
 
     # Search command
     search_parser = subparsers.add_parser(
@@ -413,9 +718,8 @@ def main():
         "install",
         help="Installs a specific action binary into the local action cache based on full action path",
     )
-    install_parser.add_argument("action", help="Full action path (e.g. image_essential.latest.color_adjust, audio_essentials.gain)")
+    install_parser.add_argument("action", help="Full action path (e.g. image_essentials/latest/color_adjust, audio_essentials/gain)")
     install_parser.add_argument("--path", help="Custom action cache directory")
-    install_parser.add_argument("--repo", default="JiraPit/Morflow", help="GitHub repository to download action binaries from")
     install_parser.add_argument("--force", action="store_true", help="Force re-download even if action is already installed")
 
     args = parser.parse_args()
@@ -431,92 +735,6 @@ def main():
         cmd_list(args)
     elif args.command == "install":
         cmd_install(args)
-
-
-def cmd_install(args):
-    pack, path_version, action_name = parse_full_action_path(args.action)
-    if path_version != "latest" and path_version:
-        version = path_version
-    else:
-        version = "0.1.0"
-
-    platform_name, ext = get_host_platform()
-    cache_dir = resolve_action_cache_dir(args.path)
-    pack_dir = cache_dir / pack
-    pack_dir.mkdir(parents=True, exist_ok=True)
-
-    target_file_pack = pack_dir / f"{action_name}_action.{ext}"
-    target_file_root = cache_dir / f"{action_name}_action.{ext}"
-
-    if not args.force and (target_file_pack.exists() or target_file_root.exists()):
-        print(
-            f"Action '{pack}.latest.{action_name}' is already installed in {target_file_pack}. Use --force to reinstall."
-        )
-        return
-
-    print("==================================================")
-    print(" Morflow Action Installer (Python CLI)")
-    print(f" Action: {pack}.latest.{action_name}")
-    print(f" Version: v{version}")
-    print(f" Host Platform: {platform_name} (.{ext})")
-    print(f" Cache Directory: {cache_dir}")
-    print(f" Repository: {args.repo}")
-    print("==================================================")
-
-    print(f"  [↓ Downloading] [{pack}] {action_name} v{version}...")
-    binary_filename = f"{action_name}_action-{version}-{platform_name}.{ext}"
-
-    urls = [
-        f"https://github.com/{args.repo}/releases/download/action_packs%2F{pack}%2Fv{version}/{binary_filename}",
-        f"https://github.com/{args.repo}/releases/download/action_packs/{pack}/v{version}/{binary_filename}",
-    ]
-
-    downloaded = False
-    for url in urls:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Morflow-CLI/0.1.0"})
-            with urllib.request.urlopen(req) as resp:
-                data = resp.read()
-                target_file_pack.write_bytes(data)
-                target_file_root.write_bytes(data)
-                print(f"    ✓ Successfully installed to {target_file_pack}")
-                downloaded = True
-                break
-        except Exception:
-            continue
-
-    if not downloaded:
-        # Check local repository builds
-        local_candidates = [
-            Path(f"target/release/actions/{pack}/{action_name}_action.{ext}"),
-            Path(f"target/release/actions/{action_name}_action.{ext}"),
-            Path(f"actions/{pack}/{action_name}/target/release/lib{action_name}.{ext}"),
-        ]
-        copied = False
-        for cand in local_candidates:
-            if cand.exists():
-                shutil.copy2(cand, target_file_pack)
-                shutil.copy2(cand, target_file_root)
-                print(f"    ✓ Copied local build artifact from {cand}")
-                copied = True
-                break
-
-        if not copied:
-            print(
-                f"Error: Could not download remote binary or find local artifact for [{pack}] {action_name}.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-    # Cache SPEC.md if available
-    spec_dir = cache_dir / pack / action_name
-    spec_dir.mkdir(parents=True, exist_ok=True)
-    target_spec = spec_dir / "SPEC.md"
-    local_spec = Path(f"actions/{pack}/{action_name}/SPEC.md")
-    if local_spec.exists():
-        shutil.copy2(local_spec, target_spec)
-
-    print(f"\n✓ Installation complete: {pack}.latest.{action_name} is ready for runtime use.\n")
 
 
 if __name__ == "__main__":

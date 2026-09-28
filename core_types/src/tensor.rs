@@ -153,7 +153,8 @@ impl Tensor {
         let mut data = std::mem::ManuallyDrop::new(data);
         let byte_len = data.len() * 4;
         let byte_cap = data.capacity() * 4;
-        let byte_vec = unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
+        let byte_vec =
+            unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
         Ok(Self {
             storage: RArc::new(RVec::from(byte_vec)),
             byte_offset: 0,
@@ -177,7 +178,8 @@ impl Tensor {
         let mut data = std::mem::ManuallyDrop::new(data);
         let byte_len = data.len() * 4;
         let byte_cap = data.capacity() * 4;
-        let byte_vec = unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
+        let byte_vec =
+            unsafe { Vec::from_raw_parts(data.as_mut_ptr() as *mut u8, byte_len, byte_cap) };
         Ok(Self {
             storage: RArc::new(RVec::from(byte_vec)),
             byte_offset: 0,

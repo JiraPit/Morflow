@@ -132,6 +132,16 @@ jobs:
           path: release_assets/
           merge-multiple: true
 
+      - name: Include Action SPEC.md Documentation
+        run: |
+          for action_dir in actions/${{ matrix.pack.name }}/*; do
+            if [ -d "$action_dir" ] && [ -f "$action_dir/SPEC.md" ]; then
+              act_name=$(basename "$action_dir")
+              cp "$action_dir/SPEC.md" "release_assets/${act_name}_SPEC.md"
+              echo "Included release SPEC: release_assets/${act_name}_SPEC.md"
+            fi
+          done
+
       - name: Generate Checksums
         run: |
           cd release_assets

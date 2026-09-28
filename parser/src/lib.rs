@@ -103,8 +103,8 @@ mod tests {
     fn test_full_morf_document() {
         let src = r#"
         # Real-world Morflow Pipeline
-        import base.latest
-        from audio_essentials.latest import load_audio, compute_noise_profile, denoise, compressor, soft_clip, normalize, highpass, stereo_widen, export
+        import base/latest
+        from audio_essentials/latest import load_audio, compute_noise_profile, denoise, compressor, soft_clip, normalize, highpass, stereo_widen, export
 
         // 1. Load source and tap original
         load_audio("source.flac") >> $raw_audio
@@ -193,23 +193,25 @@ mod tests {
     #[test]
     fn test_action_pack_imports() {
         let src = r#"
-            import base.latest
-            import audio_essentials.latest as audio
-            from image_essentials.latest import resize, color_adjust as ca, gaussian_blur
+            import base/latest
+            import audio_essentials/latest as audio
+            from image_essentials/0.1.0 import resize, color_adjust as ca, gaussian_blur
+            import base/0.1.0/identity as ident
 
             accept $img_in
 
             $img_in
-                >> base.identity
+                >> base/identity
                 >> resize(512, 512)
                 >> ca(contrast=1.1)
-                >> image_essentials.gaussian_blur(sigma=1.5)
+                >> image_essentials/gaussian_blur(sigma=1.5)
+                >> ident
                 >> emit
         "#;
         let res = parse(src);
         assert!(res.is_ok(), "Failed to parse: {:?}", res.err());
         let pipeline = res.unwrap();
-        assert_eq!(pipeline.imports.len(), 3);
+        assert_eq!(pipeline.imports.len(), 4);
 
         match &pipeline.imports[0] {
             ImportStmt::Package(pkg) => {
@@ -232,7 +234,7 @@ mod tests {
         match &pipeline.imports[2] {
             ImportStmt::Items(items) => {
                 assert_eq!(items.package, "image_essentials");
-                assert_eq!(items.version, "latest");
+                assert_eq!(items.version, "0.1.0");
                 assert_eq!(items.items.len(), 3);
                 assert_eq!(items.items[0].name, "resize");
                 assert_eq!(items.items[0].alias, None);
@@ -244,12 +246,23 @@ mod tests {
             _ => panic!("Expected Items import"),
         }
 
+        match &pipeline.imports[3] {
+            ImportStmt::Items(items) => {
+                assert_eq!(items.package, "base");
+                assert_eq!(items.version, "0.1.0");
+                assert_eq!(items.items.len(), 1);
+                assert_eq!(items.items[0].name, "identity");
+                assert_eq!(items.items[0].alias, Some("ident".to_string()));
+            }
+            _ => panic!("Expected single item import"),
+        }
+
         assert_eq!(pipeline.params.len(), 1);
         assert_eq!(pipeline.statements.len(), 1);
         let Statement::Flow(flow) = &pipeline.statements[0];
-        assert_eq!(flow.steps.len(), 6);
+        assert_eq!(flow.steps.len(), 7);
         if let FlowStep::Action(call) = &flow.steps[1] {
-            assert_eq!(call.name, "base.identity");
+            assert_eq!(call.name, "base/identity");
         }
         if let FlowStep::Action(call) = &flow.steps[2] {
             assert_eq!(call.name, "resize");
@@ -258,7 +271,10 @@ mod tests {
             assert_eq!(call.name, "ca");
         }
         if let FlowStep::Action(call) = &flow.steps[4] {
-            assert_eq!(call.name, "image_essentials.gaussian_blur");
+            assert_eq!(call.name, "image_essentials/gaussian_blur");
+        }
+        if let FlowStep::Action(call) = &flow.steps[5] {
+            assert_eq!(call.name, "ident");
         }
     }
 

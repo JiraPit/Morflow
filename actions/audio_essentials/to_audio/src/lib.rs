@@ -1,6 +1,4 @@
-use core_types::{
-    Audio, AudioChannelLayout, AudioLayout, DataType, Payload, Tensor, TensorDType,
-};
+use core_types::{Audio, AudioChannelLayout, AudioLayout, DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -40,10 +38,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 target_channels = Some(ch);
             }
         }
-        if let Some(dt) = args
-            .get_named("dtype")
-            .or_else(|| args.get_named("format"))
-        {
+        if let Some(dt) = args.get_named("dtype").or_else(|| args.get_named("format")) {
             target_dtype = dt;
         }
         if let Some(lay) = args.get_named("layout") {
@@ -71,7 +66,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let is_planar = target_layout.eq_ignore_ascii_case("planar")
                 || target_layout.eq_ignore_ascii_case("non-interleaved");
 
-            let planar_f32 = decode_raw_pcm_to_planar_f32(bytes, ch, target_dtype, is_planar, normalize);
+            let planar_f32 =
+                decode_raw_pcm_to_planar_f32(bytes, ch, target_dtype, is_planar, normalize);
             if planar_f32.is_empty() {
                 let dummy = Tensor::from_f32_vec(Vec::new(), vec![ch, 0]).unwrap();
                 return Payload::Audio(Audio {
@@ -82,7 +78,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 });
             }
 
-            let shape = if ch == 1 { vec![planar_f32.len()] } else { vec![ch, planar_f32.len() / ch] };
+            let shape = if ch == 1 {
+                vec![planar_f32.len()]
+            } else {
+                vec![ch, planar_f32.len() / ch]
+            };
             match Tensor::from_f32_vec(planar_f32, shape) {
                 Ok(tensor) => Payload::Audio(Audio {
                     tensor,
@@ -131,7 +131,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 }
             };
 
-            let shape = if channels == 1 { vec![planar_f32.len()] } else { vec![channels, planar_f32.len() / channels] };
+            let shape = if channels == 1 {
+                vec![planar_f32.len()]
+            } else {
+                vec![channels, planar_f32.len() / channels]
+            };
             match Tensor::from_f32_vec(planar_f32, shape) {
                 Ok(t) => Payload::Audio(Audio {
                     tensor: t,
@@ -173,10 +177,7 @@ fn tensor_to_f32_vec(tensor: &Tensor, normalize: bool) -> Vec<f32> {
                 )
             };
             if normalize {
-                i32_slice
-                    .iter()
-                    .map(|&i| i as f32 / 2147483648.0)
-                    .collect()
+                i32_slice.iter().map(|&i| i as f32 / 2147483648.0).collect()
             } else {
                 i32_slice.iter().map(|&i| i as f32).collect()
             }
@@ -204,18 +205,39 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
     let mut offset = 12;
     while offset + 8 <= bytes.len() {
         let chunk_id = &bytes[offset..offset + 4];
-        let chunk_size = u32::from_le_bytes(bytes[offset + 4..offset + 8].try_into().unwrap()) as usize;
+        let chunk_size =
+            u32::from_le_bytes(bytes[offset + 4..offset + 8].try_into().unwrap()) as usize;
         let chunk_data_start = offset + 8;
 
         if chunk_id == b"fmt " && chunk_data_start + 16 <= bytes.len() {
-            audio_format = u16::from_le_bytes(bytes[chunk_data_start..chunk_data_start + 2].try_into().unwrap());
-            channels = u16::from_le_bytes(bytes[chunk_data_start + 2..chunk_data_start + 4].try_into().unwrap());
-            sample_rate = u32::from_le_bytes(bytes[chunk_data_start + 4..chunk_data_start + 8].try_into().unwrap());
-            bits_per_sample = u16::from_le_bytes(bytes[chunk_data_start + 14..chunk_data_start + 16].try_into().unwrap());
+            audio_format = u16::from_le_bytes(
+                bytes[chunk_data_start..chunk_data_start + 2]
+                    .try_into()
+                    .unwrap(),
+            );
+            channels = u16::from_le_bytes(
+                bytes[chunk_data_start + 2..chunk_data_start + 4]
+                    .try_into()
+                    .unwrap(),
+            );
+            sample_rate = u32::from_le_bytes(
+                bytes[chunk_data_start + 4..chunk_data_start + 8]
+                    .try_into()
+                    .unwrap(),
+            );
+            bits_per_sample = u16::from_le_bytes(
+                bytes[chunk_data_start + 14..chunk_data_start + 16]
+                    .try_into()
+                    .unwrap(),
+            );
 
             // Handle WAVE_FORMAT_EXTENSIBLE (format tag 0xFFFE)
             if audio_format == 0xFFFE && chunk_size >= 40 && chunk_data_start + 26 <= bytes.len() {
-                let sub_format = u16::from_le_bytes(bytes[chunk_data_start + 24..chunk_data_start + 26].try_into().unwrap());
+                let sub_format = u16::from_le_bytes(
+                    bytes[chunk_data_start + 24..chunk_data_start + 26]
+                        .try_into()
+                        .unwrap(),
+                );
                 audio_format = sub_format;
             }
         } else if chunk_id == b"data" {
@@ -261,7 +283,10 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
                     for s in 0..samples_per_channel {
                         let idx = (s * ch + c) * 2;
                         if idx + 2 <= raw_samples_data.len() {
-                            let val = i16::from_le_bytes([raw_samples_data[idx], raw_samples_data[idx + 1]]);
+                            let val = i16::from_le_bytes([
+                                raw_samples_data[idx],
+                                raw_samples_data[idx + 1],
+                            ]);
                             plane[s] = val as f32 / 32768.0;
                         }
                     }
@@ -298,7 +323,9 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
                     for s in 0..samples_per_channel {
                         let idx = (s * ch + c) * 4;
                         if idx + 4 <= raw_samples_data.len() {
-                            let val = i32::from_le_bytes(raw_samples_data[idx..idx + 4].try_into().unwrap());
+                            let val = i32::from_le_bytes(
+                                raw_samples_data[idx..idx + 4].try_into().unwrap(),
+                            );
                             plane[s] = val as f32 / 2147483648.0;
                         }
                     }
@@ -313,7 +340,9 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
                     for s in 0..samples_per_channel {
                         let idx = (s * ch + c) * 4;
                         if idx + 4 <= raw_samples_data.len() {
-                            let val = f32::from_le_bytes(raw_samples_data[idx..idx + 4].try_into().unwrap());
+                            let val = f32::from_le_bytes(
+                                raw_samples_data[idx..idx + 4].try_into().unwrap(),
+                            );
                             plane[s] = val;
                         }
                     }

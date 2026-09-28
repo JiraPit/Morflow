@@ -29,14 +29,6 @@ enum Commands {
         #[arg(short, long)]
         path: Option<PathBuf>,
 
-        /// GitHub repository to download action binaries from
-        #[arg(short, long, default_value = "JiraPit/Morflow")]
-        repo: String,
-
-        /// Action Pack version tag to download
-        #[arg(short, long, default_value = "0.1.0")]
-        action_version: String,
-
         /// Force re-download even if action is already cached locally
         #[arg(short, long)]
         force: bool,
@@ -51,12 +43,8 @@ enum Commands {
 
     /// Views the raw SPEC.md documentation for a specified action
     Spec {
-        /// Full action path (e.g. image_essential.latest.color_adjust, audio_essentials.gain)
+        /// Full action path (e.g. image_essentials/latest/color_adjust, audio_essentials/gain)
         action: String,
-
-        /// GitHub repository to fetch spec from if not available locally
-        #[arg(short, long, default_value = "JiraPit/Morflow")]
-        repo: String,
     },
 
     /// Performs fuzzy search for actions by name and returns the top 5 full action paths
@@ -78,16 +66,12 @@ enum Commands {
 
     /// Installs a specific action binary into the local action cache
     Install {
-        /// Full action path (e.g. image_essential.latest.color_adjust, audio_essentials.gain)
+        /// Full action path (e.g. image_essentials/latest/color_adjust, audio_essentials/gain)
         action: String,
 
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long)]
         path: Option<PathBuf>,
-
-        /// GitHub repository to download action binaries from
-        #[arg(short, long, default_value = "JiraPit/Morflow")]
-        repo: String,
 
         /// Force re-download even if action is already installed
         #[arg(short, long)]
@@ -186,46 +170,123 @@ fn normalize_pack_name(pack: &str) -> String {
     }
 }
 
-fn parse_full_action_path(path_str: &str) -> (String, String, String) {
-    let clean = path_str.replace("::", ".");
-    let parts: Vec<&str> = clean.split('.').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TargetPath {
+    Action {
+        pack: String,
+        version: String,
+        action: String,
+    },
+    Package {
+        pack: String,
+        version: String,
+    },
+}
+
+fn parse_target_path(path_str: &str) -> Result<TargetPath, String> {
+    let clean = path_str.replace("::", "/");
+    let parts: Vec<&str> = if clean.contains('/') {
+        clean
+            .split('/')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else if clean.contains('.') {
+        clean
+            .split('.')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else {
+        vec![clean.trim()]
+    };
 
     if parts.len() >= 3 {
-        // e.g. image_essential.latest.color_adjust or image_essentials.0.1.0.color_adjust
+        // e.g. image_essentials/latest/color_adjust or base/0.1.0/identity
         let pack = normalize_pack_name(parts[0]);
-        let action = parts[parts.len() - 1];
-        let raw_version = parts[1..parts.len() - 1].join(".");
+        let action = parts[parts.len() - 1].to_string();
+        let raw_version = parts[1..parts.len() - 1].join("/");
         let version = raw_version.trim_start_matches('v').to_string();
-        (pack, version, action.to_string())
+        Ok(TargetPath::Action {
+            pack,
+            version,
+            action,
+        })
     } else if parts.len() == 2 {
-        // e.g. image_essentials.color_adjust
+        // e.g. base/0.1.0 or image_essentials/latest
         let pack = normalize_pack_name(parts[0]);
-        let action = parts[1];
-        (pack, "latest".to_string(), action.to_string())
-    } else if parts.len() == 1 {
-        let action = parts[0];
-        for &(pack, act) in KNOWN_ACTIONS {
-            if act.eq_ignore_ascii_case(action) {
-                return (pack.to_string(), "latest".to_string(), act.to_string());
+        let version = parts[1].trim_start_matches('v').to_string();
+        Ok(TargetPath::Package { pack, version })
+    } else {
+        let hint_pack = parts.first().copied().unwrap_or("base");
+        let hint_act = parts.last().copied().unwrap_or("identity");
+        Err(format!(
+            "Invalid target '{}'. Expected full action path '<package>/<version>/<action>' (e.g. '{}/latest/{}') or package path '<package>/<version>' (e.g. '{}/latest' or '{}/0.1.0').",
+            path_str, hint_pack, hint_act, hint_pack, hint_pack
+        ))
+    }
+}
+
+fn get_actions_for_pack(pack: &str) -> Vec<&'static str> {
+    let mut actions = Vec::new();
+    for &(p, act) in KNOWN_ACTIONS {
+        if p == pack {
+            actions.push(act);
+        }
+    }
+    actions
+}
+
+fn resolve_repo() -> String {
+    env::var("MORFLOW_REPO").unwrap_or_else(|_| "JiraPit/Morflow".to_string())
+}
+
+fn fetch_latest_pack_version(pack: &str, repo: &str) -> String {
+    let url = format!("https://api.github.com/repos/{}/releases", repo);
+    let prefix_v = format!("action_packs/{}/v", pack);
+    let prefix_no_v = format!("action_packs/{}/", pack);
+
+    if let Ok(response) = ureq::get(&url)
+        .set("User-Agent", "Morflow-CLI/0.1.1")
+        .call()
+    {
+        if let Ok(body) = response.into_string() {
+            let mut search_idx = 0;
+            while let Some(pos) = body[search_idx..].find("\"tag_name\"") {
+                let absolute_pos = search_idx + pos;
+                let remainder = &body[absolute_pos..];
+                if let Some(colon_pos) = remainder.find(':') {
+                    let after_colon = &remainder[colon_pos + 1..];
+                    if let Some(first_quote) = after_colon.find('"') {
+                        let val_slice = &after_colon[first_quote + 1..];
+                        if let Some(second_quote) = val_slice.find('"') {
+                            let tag = &val_slice[..second_quote];
+                            if tag.starts_with(&prefix_v) {
+                                let ver = &tag[prefix_v.len()..];
+                                if !ver.is_empty() {
+                                    return ver.to_string();
+                                }
+                            } else if tag.starts_with(&prefix_no_v) {
+                                let ver = tag[prefix_no_v.len()..].trim_start_matches('v');
+                                if !ver.is_empty() {
+                                    return ver.to_string();
+                                }
+                            }
+                        }
+                    }
+                }
+                search_idx = absolute_pos + 10;
             }
         }
-        ("base".to_string(), "latest".to_string(), action.to_string())
-    } else {
-        ("base".to_string(), "latest".to_string(), path_str.to_string())
     }
+    "0.1.0".to_string()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Prep {
-            file,
-            path,
-            repo,
-            action_version,
-            force,
-        } => {
+        Commands::Prep { file, path, force } => {
             if !file.exists() {
                 eprintln!("Error: Pipeline file '{}' does not exist.", file.display());
                 std::process::exit(1);
@@ -247,10 +308,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let action_names = collect_action_names(&pipeline.statements);
 
             if action_names.is_empty() {
-                println!("No action calls found in '{}'. Nothing to prepare.", file.display());
+                println!(
+                    "No action calls found in '{}'. Nothing to prepare.",
+                    file.display()
+                );
                 return Ok(());
             }
 
+            let repo = resolve_repo();
             let (platform, ext) = get_host_platform();
             let cache_dir = resolve_action_cache_dir(path);
             fs::create_dir_all(&cache_dir)?;
@@ -269,12 +334,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for action_name in action_names {
                 let (target_pack, real_action_name) = resolver.resolve(&action_name);
                 let pack = target_pack.unwrap_or_else(|| "base".to_string());
+                let action_version = fetch_latest_pack_version(&pack, &repo);
 
                 let pack_dir = cache_dir.join(&pack);
                 fs::create_dir_all(&pack_dir)?;
 
-                let target_file_pack = pack_dir.join(format!("{}_action.{}", real_action_name, ext));
-                let target_file_root = cache_dir.join(format!("{}_action.{}", real_action_name, ext));
+                let target_file_pack =
+                    pack_dir.join(format!("{}_action.{}", real_action_name, ext));
+                let target_file_root =
+                    cache_dir.join(format!("{}_action.{}", real_action_name, ext));
 
                 if !force && (target_file_pack.exists() || target_file_root.exists()) {
                     println!("  [✓ Cached] [{}] {}", pack, real_action_name);
@@ -282,11 +350,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
 
-                println!("  [↓ Downloading] [{}] {} v{}...", pack, real_action_name, action_version);
+                println!(
+                    "  [↓ Downloading] [{}] {} v{}...",
+                    pack, real_action_name, action_version
+                );
 
                 // Build candidate release download URLs
-                let binary_filename = format!("{}_action-{}-{}.{}", real_action_name, action_version, platform, ext);
-                
+                let binary_filename = format!(
+                    "{}_action-{}-{}.{}",
+                    real_action_name, action_version, platform, ext
+                );
+
                 let urls = [
                     format!(
                         "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}",
@@ -311,7 +385,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let mut file_root = File::create(&target_file_root)?;
                             file_root.write_all(&bytes)?;
 
-                            println!("    ✓ Successfully cached to {}", target_file_pack.display());
+                            println!(
+                                "    ✓ Successfully cached to {}",
+                                target_file_pack.display()
+                            );
                             downloaded = true;
                             prepared_count += 1;
                             break;
@@ -323,9 +400,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if !downloaded {
                     // Check local repository builds
                     let local_candidates = [
-                        PathBuf::from(format!("target/release/actions/{}/{}_action.{}", pack, real_action_name, ext)),
-                        PathBuf::from(format!("target/release/actions/{}_action.{}", real_action_name, ext)),
-                        PathBuf::from(format!("actions/{}/{}/target/release/lib{}.{}", pack, real_action_name, real_action_name, ext)),
+                        PathBuf::from(format!(
+                            "target/release/actions/{}/{}_action.{}",
+                            pack, real_action_name, ext
+                        )),
+                        PathBuf::from(format!(
+                            "target/release/actions/{}_action.{}",
+                            real_action_name, ext
+                        )),
+                        PathBuf::from(format!(
+                            "actions/{}/{}/target/release/lib{}.{}",
+                            pack, real_action_name, real_action_name, ext
+                        )),
                     ];
 
                     let mut copied_local = false;
@@ -349,8 +435,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            println!("\nSummary: {} action(s) prepared, {} already cached.", prepared_count, skipped_count);
-            println!("All actions ready in {} for offline runtime execution.\n", cache_dir.display());
+            println!(
+                "\nSummary: {} action(s) prepared, {} already cached.",
+                prepared_count, skipped_count
+            );
+            println!(
+                "All actions ready in {} for offline runtime execution.\n",
+                cache_dir.display()
+            );
         }
 
         Commands::Clean { path } => {
@@ -379,46 +471,145 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            println!("✓ Cleaned {} items from {}", deleted_files, cache_dir.display());
+            println!(
+                "✓ Cleaned {} items from {}",
+                deleted_files,
+                cache_dir.display()
+            );
         }
 
-        Commands::Spec { action, repo } => {
-            let (pack, _version, action_name) = parse_full_action_path(&action);
+        Commands::Spec { action } => {
+            let target = match parse_target_path(&action) {
+                Ok(res) => res,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            };
+            let repo = resolve_repo();
 
-            // 1. Check local files in repository / development environment
-            let local_candidates = [
-                PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name)),
-                PathBuf::from(format!("../actions/{}/{}/SPEC.md", pack, action_name)),
-                resolve_action_cache_dir(None).join(&pack).join(&action_name).join("SPEC.md"),
-            ];
+            match target {
+                TargetPath::Action {
+                    pack,
+                    version: path_version,
+                    action: action_name,
+                } => {
+                    let version = if path_version != "latest" && !path_version.is_empty() {
+                        path_version
+                    } else {
+                        fetch_latest_pack_version(&pack, &repo)
+                    };
 
-            for cand in &local_candidates {
-                if cand.exists() {
-                    if let Ok(content) = fs::read_to_string(cand) {
-                        print!("{}", content);
-                        return Ok(());
+                    // 1. Check local cache directory for this pack & action
+                    let cache_spec = resolve_action_cache_dir(None)
+                        .join(&pack)
+                        .join(&action_name)
+                        .join("SPEC.md");
+                    if cache_spec.exists() {
+                        if let Ok(content) = fs::read_to_string(&cache_spec) {
+                            print!("{}", content);
+                            return Ok(());
+                        }
+                    }
+
+                    // 2. If in local repo/dev environment, check workspace file
+                    let local_candidates = [
+                        PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name)),
+                        PathBuf::from(format!("../actions/{}/{}/SPEC.md", pack, action_name)),
+                    ];
+
+                    for cand in &local_candidates {
+                        if cand.exists() {
+                            if let Ok(content) = fs::read_to_string(cand) {
+                                print!("{}", content);
+                                return Ok(());
+                            }
+                        }
+                    }
+
+                    // 3. Fetch version-specific SPEC.md from GitHub Release assets
+                    let release_urls = [
+                        format!(
+                            "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}_SPEC.md",
+                            repo, pack, version, action_name
+                        ),
+                        format!(
+                            "https://github.com/{}/releases/download/action_packs/{}/v{}/{}_SPEC.md",
+                            repo, pack, version, action_name
+                        ),
+                    ];
+
+                    for url in &release_urls {
+                        if let Ok(response) =
+                            ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.1").call()
+                        {
+                            let mut content = String::new();
+                            if response.into_reader().read_to_string(&mut content).is_ok() {
+                                print!("{}", content);
+                                return Ok(());
+                            }
+                        }
+                    }
+
+                    // 4. Fallback: Fetch from Git Tag for this release version
+                    let tag_url = format!(
+                        "https://raw.githubusercontent.com/{}/action_packs/{}/v{}/actions/{}/{}/SPEC.md",
+                        repo, pack, version, pack, action_name
+                    );
+                    if let Ok(response) = ureq::get(&tag_url)
+                        .set("User-Agent", "Morflow-CLI/0.1.1")
+                        .call()
+                    {
+                        let mut content = String::new();
+                        if response.into_reader().read_to_string(&mut content).is_ok() {
+                            print!("{}", content);
+                            return Ok(());
+                        }
+                    }
+
+                    // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
+                    let main_url = format!(
+                        "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
+                        repo, pack, action_name
+                    );
+
+                    match ureq::get(&main_url)
+                        .set("User-Agent", "Morflow-CLI/0.1.1")
+                        .call()
+                    {
+                        Ok(response) => {
+                            let mut content = String::new();
+                            response.into_reader().read_to_string(&mut content)?;
+                            print!("{}", content);
+                        }
+                        Err(_) => {
+                            eprintln!(
+                                "Error: SPEC.md not found for action '{}/v{}/{}' (checked local paths, release assets, and {}).",
+                                pack, version, action_name, main_url
+                            );
+                            std::process::exit(1);
+                        }
                     }
                 }
-            }
-
-            // 2. Fetch raw SPEC.md from GitHub
-            let url = format!(
-                "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
-                repo, pack, action_name
-            );
-
-            match ureq::get(&url).call() {
-                Ok(response) => {
-                    let mut content = String::new();
-                    response.into_reader().read_to_string(&mut content)?;
-                    print!("{}", content);
-                }
-                Err(_) => {
-                    eprintln!(
-                        "Error: SPEC.md not found for action '{}.latest.{}' (checked local paths and {}).",
-                        pack, action_name, url
-                    );
-                    std::process::exit(1);
+                TargetPath::Package {
+                    pack,
+                    version: path_version,
+                } => {
+                    let version = if path_version != "latest" && !path_version.is_empty() {
+                        path_version
+                    } else {
+                        fetch_latest_pack_version(&pack, &repo)
+                    };
+                    let actions = get_actions_for_pack(&pack);
+                    if actions.is_empty() {
+                        eprintln!("Error: Unknown package '{}'.", pack);
+                        std::process::exit(1);
+                    }
+                    println!("# Package: {} (v{})\n", pack, version);
+                    println!("Actions in this package:");
+                    for act in &actions {
+                        println!("- {}/latest/{}", pack, act);
+                    }
                 }
             }
         }
@@ -447,7 +638,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("No matching actions found for query '{}'.", query);
             } else {
                 for (pack, act, _, _) in top_matches {
-                    println!("{}.latest.{}", pack, act);
+                    println!("{}/latest/{}", pack, act);
                 }
             }
         }
@@ -464,14 +655,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for entry in entries.flatten() {
                         let p = entry.path();
                         if p.is_dir() {
-                            let pack_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+                            let pack_name = p
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                                .to_string();
                             if let Ok(sub_entries) = fs::read_dir(&p) {
                                 for sub_entry in sub_entries.flatten() {
                                     let sub_p = sub_entry.path();
-                                    if let Some(file_name) = sub_p.file_name().and_then(|n| n.to_str()) {
+                                    if let Some(file_name) =
+                                        sub_p.file_name().and_then(|n| n.to_str())
+                                    {
                                         if file_name.ends_with(&suffix) {
-                                            let act_name = &file_name[..file_name.len() - suffix.len()];
-                                            let full_path = format!("{}.latest.{}", pack_name, act_name);
+                                            let act_name =
+                                                &file_name[..file_name.len() - suffix.len()];
+                                            let full_path =
+                                                format!("{}/latest/{}", pack_name, act_name);
                                             if !found_actions.contains(&full_path) {
                                                 found_actions.push(full_path);
                                             }
@@ -491,7 +690,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             break;
                                         }
                                     }
-                                    let full_path = format!("{}.latest.{}", pack, act_name);
+                                    let full_path = format!("{}/latest/{}", pack, act_name);
                                     if !found_actions.contains(&full_path) {
                                         found_actions.push(full_path);
                                     }
@@ -509,14 +708,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for entry in entries.flatten() {
                         let p = entry.path();
                         if p.is_dir() {
-                            let pack_name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+                            let pack_name = p
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                                .to_string();
                             if let Ok(sub_entries) = fs::read_dir(&p) {
                                 for sub_entry in sub_entries.flatten() {
                                     let sub_p = sub_entry.path();
-                                    if let Some(file_name) = sub_p.file_name().and_then(|n| n.to_str()) {
+                                    if let Some(file_name) =
+                                        sub_p.file_name().and_then(|n| n.to_str())
+                                    {
                                         if file_name.ends_with(&suffix) {
-                                            let act_name = &file_name[..file_name.len() - suffix.len()];
-                                            let full_path = format!("{}.latest.{}", pack_name, act_name);
+                                            let act_name =
+                                                &file_name[..file_name.len() - suffix.len()];
+                                            let full_path =
+                                                format!("{}/latest/{}", pack_name, act_name);
                                             if !found_actions.contains(&full_path) {
                                                 found_actions.push(full_path);
                                             }
@@ -544,114 +751,280 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Install {
             action,
             path,
-            repo,
             force,
         } => {
-            let (pack, path_version, action_name) = parse_full_action_path(&action);
-            let version = if path_version != "latest" && !path_version.is_empty() {
-                path_version
-            } else {
-                "0.1.0".to_string()
-            };
-
-            let (platform, ext) = get_host_platform();
-            let cache_dir = resolve_action_cache_dir(path);
-            let pack_dir = cache_dir.join(&pack);
-            fs::create_dir_all(&pack_dir)?;
-
-            let target_file_pack = pack_dir.join(format!("{}_action.{}", action_name, ext));
-            let target_file_root = cache_dir.join(format!("{}_action.{}", action_name, ext));
-
-            if !force && (target_file_pack.exists() || target_file_root.exists()) {
-                println!(
-                    "Action '{}.latest.{}' is already installed in {}. Use --force to reinstall.",
-                    pack, action_name, target_file_pack.display()
-                );
-                return Ok(());
-            }
-
-            println!("==================================================");
-            println!(" Morflow Action Installer (morflow install)");
-            println!(" Action: {}.latest.{}", pack, action_name);
-            println!(" Version: v{}", version);
-            println!(" Host Platform: {} (.{})", platform, ext);
-            println!(" Cache Directory: {}", cache_dir.display());
-            println!(" Repository: {}", repo);
-            println!("==================================================");
-
-            println!("  [↓ Downloading] [{}] {} v{}...", pack, action_name, version);
-            let binary_filename = format!("{}_action-{}-{}.{}", action_name, version, platform, ext);
-
-            let urls = [
-                format!(
-                    "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}",
-                    repo, pack, version, binary_filename
-                ),
-                format!(
-                    "https://github.com/{}/releases/download/action_packs/{}/v{}/{}",
-                    repo, pack, version, binary_filename
-                ),
-            ];
-
-            let mut downloaded = false;
-            for url in &urls {
-                match ureq::get(url).call() {
-                    Ok(response) => {
-                        let mut bytes = Vec::new();
-                        response.into_reader().read_to_end(&mut bytes)?;
-
-                        let mut file_pack = File::create(&target_file_pack)?;
-                        file_pack.write_all(&bytes)?;
-
-                        let mut file_root = File::create(&target_file_root)?;
-                        file_root.write_all(&bytes)?;
-
-                        println!("    ✓ Successfully installed to {}", target_file_pack.display());
-                        downloaded = true;
-                        break;
-                    }
-                    Err(_) => continue,
-                }
-            }
-
-            if !downloaded {
-                // Check local repository builds
-                let local_candidates = [
-                    PathBuf::from(format!("target/release/actions/{}/{}_action.{}", pack, action_name, ext)),
-                    PathBuf::from(format!("target/release/actions/{}_action.{}", action_name, ext)),
-                    PathBuf::from(format!("actions/{}/{}/target/release/lib{}.{}", pack, action_name, action_name, ext)),
-                ];
-
-                let mut copied_local = false;
-                for cand in &local_candidates {
-                    if cand.exists() {
-                        fs::copy(cand, &target_file_pack)?;
-                        fs::copy(cand, &target_file_root)?;
-                        println!("    ✓ Copied local build artifact from {}", cand.display());
-                        copied_local = true;
-                        break;
-                    }
-                }
-
-                if !copied_local {
-                    eprintln!(
-                        "Error: Could not download remote binary from GitHub Release or find local artifact for [{}] {}.",
-                        pack, action_name
-                    );
+            let target = match parse_target_path(&action) {
+                Ok(res) => res,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
                     std::process::exit(1);
                 }
-            }
+            };
+            let repo = resolve_repo();
+            let (platform, ext) = get_host_platform();
+            let cache_dir = resolve_action_cache_dir(path);
 
-            // Also try to cache SPEC.md if available
-            let spec_dir = cache_dir.join(&pack).join(&action_name);
-            let _ = fs::create_dir_all(&spec_dir);
-            let target_spec = spec_dir.join("SPEC.md");
-            let local_spec = PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name));
-            if local_spec.exists() {
-                let _ = fs::copy(&local_spec, &target_spec);
-            }
+            match target {
+                TargetPath::Action {
+                    pack,
+                    version: path_version,
+                    action: action_name,
+                } => {
+                    let version = if path_version != "latest" && !path_version.is_empty() {
+                        path_version
+                    } else {
+                        fetch_latest_pack_version(&pack, &repo)
+                    };
 
-            println!("\n✓ Installation complete: {}.latest.{} is ready for runtime use.\n", pack, action_name);
+                    let pack_dir = cache_dir.join(&pack);
+                    fs::create_dir_all(&pack_dir)?;
+
+                    let target_file_pack = pack_dir.join(format!("{}_action.{}", action_name, ext));
+                    let target_file_root =
+                        cache_dir.join(format!("{}_action.{}", action_name, ext));
+
+                    if !force && (target_file_pack.exists() || target_file_root.exists()) {
+                        println!(
+                            "Action '{}/latest/{}' is already installed in {}. Use --force to reinstall.",
+                            pack, action_name, target_file_pack.display()
+                        );
+                        return Ok(());
+                    }
+
+                    println!("==================================================");
+                    println!(" Morflow Action Installer (morflow install)");
+                    println!(" Action: {}/latest/{}", pack, action_name);
+                    println!(" Version: v{}", version);
+                    println!(" Host Platform: {} (.{})", platform, ext);
+                    println!(" Cache Directory: {}", cache_dir.display());
+                    println!(" Repository: {}", repo);
+                    println!("==================================================");
+
+                    println!(
+                        "  [↓ Downloading] [{}] {} v{}...",
+                        pack, action_name, version
+                    );
+                    let binary_filename =
+                        format!("{}_action-{}-{}.{}", action_name, version, platform, ext);
+
+                    let urls = [
+                        format!(
+                            "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}",
+                            repo, pack, version, binary_filename
+                        ),
+                        format!(
+                            "https://github.com/{}/releases/download/action_packs/{}/v{}/{}",
+                            repo, pack, version, binary_filename
+                        ),
+                    ];
+
+                    let mut downloaded = false;
+                    for url in &urls {
+                        match ureq::get(url).call() {
+                            Ok(response) => {
+                                let mut bytes = Vec::new();
+                                response.into_reader().read_to_end(&mut bytes)?;
+
+                                let mut file_pack = File::create(&target_file_pack)?;
+                                file_pack.write_all(&bytes)?;
+
+                                let mut file_root = File::create(&target_file_root)?;
+                                file_root.write_all(&bytes)?;
+
+                                println!(
+                                    "    ✓ Successfully installed to {}",
+                                    target_file_pack.display()
+                                );
+                                downloaded = true;
+                                break;
+                            }
+                            Err(_) => continue,
+                        }
+                    }
+
+                    if !downloaded {
+                        // Check local repository builds
+                        let local_candidates = [
+                            PathBuf::from(format!(
+                                "target/release/actions/{}/{}_action.{}",
+                                pack, action_name, ext
+                            )),
+                            PathBuf::from(format!(
+                                "target/release/actions/{}_action.{}",
+                                action_name, ext
+                            )),
+                            PathBuf::from(format!(
+                                "actions/{}/{}/target/release/lib{}.{}",
+                                pack, action_name, action_name, ext
+                            )),
+                        ];
+
+                        let mut copied_local = false;
+                        for cand in &local_candidates {
+                            if cand.exists() {
+                                fs::copy(cand, &target_file_pack)?;
+                                fs::copy(cand, &target_file_root)?;
+                                println!(
+                                    "    ✓ Copied local build artifact from {}",
+                                    cand.display()
+                                );
+                                copied_local = true;
+                                break;
+                            }
+                        }
+
+                        if !copied_local {
+                            eprintln!(
+                                "Error: Could not download remote binary from GitHub Release or find local artifact for [{}] {}.",
+                                pack, action_name
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+
+                    // Also try to cache SPEC.md if available
+                    let spec_dir = cache_dir.join(&pack).join(&action_name);
+                    let _ = fs::create_dir_all(&spec_dir);
+                    let target_spec = spec_dir.join("SPEC.md");
+                    let local_spec =
+                        PathBuf::from(format!("actions/{}/{}/SPEC.md", pack, action_name));
+                    if local_spec.exists() {
+                        let _ = fs::copy(&local_spec, &target_spec);
+                    }
+
+                    println!(
+                        "\n✓ Installation complete: {}/latest/{} is ready for runtime use.\n",
+                        pack, action_name
+                    );
+                }
+                TargetPath::Package {
+                    pack,
+                    version: path_version,
+                } => {
+                    let version = if path_version != "latest" && !path_version.is_empty() {
+                        path_version
+                    } else {
+                        fetch_latest_pack_version(&pack, &repo)
+                    };
+
+                    let actions = get_actions_for_pack(&pack);
+                    if actions.is_empty() {
+                        eprintln!("Error: Unknown action package '{}'.", pack);
+                        std::process::exit(1);
+                    }
+
+                    let pack_dir = cache_dir.join(&pack);
+                    fs::create_dir_all(&pack_dir)?;
+
+                    println!("==================================================");
+                    println!(" Morflow Action Pack Installer (morflow install)");
+                    println!(" Package: {} ({} actions)", pack, actions.len());
+                    println!(" Version: v{}", version);
+                    println!(" Host Platform: {} (.{})", platform, ext);
+                    println!(" Cache Directory: {}", cache_dir.display());
+                    println!(" Repository: {}", repo);
+                    println!("==================================================");
+
+                    let mut installed_count = 0;
+                    let mut cached_count = 0;
+
+                    for action_name in &actions {
+                        let target_file_pack =
+                            pack_dir.join(format!("{}_action.{}", action_name, ext));
+                        let target_file_root =
+                            cache_dir.join(format!("{}_action.{}", action_name, ext));
+
+                        if !force && (target_file_pack.exists() || target_file_root.exists()) {
+                            println!("  [✓ Cached] [{}] {}", pack, action_name);
+                            cached_count += 1;
+                            continue;
+                        }
+
+                        println!(
+                            "  [↓ Downloading] [{}] {} v{}...",
+                            pack, action_name, version
+                        );
+                        let binary_filename =
+                            format!("{}_action-{}-{}.{}", action_name, version, platform, ext);
+
+                        let urls = [
+                            format!(
+                                "https://github.com/{}/releases/download/action_packs%2F{}/v{}/{}",
+                                repo, pack, version, binary_filename
+                            ),
+                            format!(
+                                "https://github.com/{}/releases/download/action_packs/{}/v{}/{}",
+                                repo, pack, version, binary_filename
+                            ),
+                        ];
+
+                        let mut downloaded = false;
+                        for url in &urls {
+                            match ureq::get(url).call() {
+                                Ok(response) => {
+                                    let mut bytes = Vec::new();
+                                    if response.into_reader().read_to_end(&mut bytes).is_ok() {
+                                        if let Ok(mut file_pack) = File::create(&target_file_pack) {
+                                            let _ = file_pack.write_all(&bytes);
+                                        }
+                                        if let Ok(mut file_root) = File::create(&target_file_root) {
+                                            let _ = file_root.write_all(&bytes);
+                                        }
+                                        println!(
+                                            "    ✓ Successfully installed to {}",
+                                            target_file_pack.display()
+                                        );
+                                        downloaded = true;
+                                        installed_count += 1;
+                                        break;
+                                    }
+                                }
+                                Err(_) => continue,
+                            }
+                        }
+
+                        if !downloaded {
+                            let local_candidates = [
+                                PathBuf::from(format!(
+                                    "target/release/actions/{}/{}_action.{}",
+                                    pack, action_name, ext
+                                )),
+                                PathBuf::from(format!(
+                                    "target/release/actions/{}_action.{}",
+                                    action_name, ext
+                                )),
+                                PathBuf::from(format!(
+                                    "actions/{}/{}/target/release/lib{}.{}",
+                                    pack, action_name, action_name, ext
+                                )),
+                            ];
+
+                            for cand in &local_candidates {
+                                if cand.exists() {
+                                    let _ = fs::copy(cand, &target_file_pack);
+                                    let _ = fs::copy(cand, &target_file_root);
+                                    println!(
+                                        "    ✓ Copied local build artifact from {}",
+                                        cand.display()
+                                    );
+                                    installed_count += 1;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    println!(
+                        "\nSummary: {} action(s) installed/updated, {} already cached.",
+                        installed_count, cached_count
+                    );
+                    println!(
+                        "✓ Action package '{}/latest' is ready in {}.\n",
+                        pack,
+                        cache_dir.display()
+                    );
+                }
+            }
         }
     }
 

@@ -104,8 +104,7 @@ pub fn encode_wav_binary(
         }
     };
 
-    let (audio_format, bits_per_sample, bytes_per_sample): (u16, u16, usize) =
-        match dtype.to_lowercase().as_str() {
+    let (audio_format, bits_per_sample, bytes_per_sample): (u16, u16, usize) = match dtype.to_lowercase().as_str() {
             "f32" | "float" | "float32" | "32f" => (3, 32, 4),
             "i24" | "int24" | "24" => (1, 24, 3),
             "i32" | "int32" | "32" => (1, 32, 4),
@@ -191,7 +190,10 @@ pub fn encode_wav_binary(
                 .for_each(|(s, frame)| {
                     for c in 0..channels {
                         let val = clamp_sample(planar_f32[c * num_samples + s]);
-                        let i32_val = (val * 2147483647.0).round().clamp(-2147483648.0, 2147483647.0) as i32;
+                        let i32_val = (val * 2147483647.0)
+                            .round()
+                            .clamp(-2147483648.0, 2147483647.0)
+                            as i32;
                         frame[c * 4..c * 4 + 4].copy_from_slice(&i32_val.to_le_bytes());
                     }
                 });
