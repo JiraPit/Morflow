@@ -1,0 +1,163 @@
+name: Build and Release Action Packs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'actions/**'
+      - 'core_types/**'
+  workflow_dispatch:
+    inputs:
+      action_pack:
+        description: 'Action Pack to build (audio_essentials, image_essentials, base, or "all")'
+        required: false
+        default: 'all'
+      action_name:
+        description: 'Action Name to build (e.g. gain, resize, or "all")'
+        required: false
+        default: 'all'
+      force_build:
+        description: 'Force build even if version was not bumped'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  detect-actions:
+    name: Detect Actions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detector.outputs.matrix }}
+      has_actions: ${{ steps.detector.outputs.has_actions }}
+      packs: ${{ steps.detector.outputs.packs }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Detect Actions to Build
+        id: detector
+        run: |
+          python3 scripts/detect_changed_actions.py \
+            --event "${{ github.event_name }}" \
+            --pack "${{ github.event.inputs.action_pack || 'all' }}" \
+            --action "${{ github.event.inputs.action_name || 'all' }}" \
+            --force "${{ github.event.inputs.force_build || 'false' }}"
+
+  build-action:
+    name: Build ${{ matrix.action.name }} (${{ matrix.target.platform }})
+    needs: detect-actions
+    if: needs.detect-actions.outputs.has_actions == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        action: ${{ fromJson(needs.detect-actions.outputs.matrix) }}
+        target:
+          - os: ubuntu-latest
+            triple: x86_64-unknown-linux-gnu
+            ext: so
+            prefix: lib
+            platform: linux-x86_64
+          - os: macos-latest
+            triple: aarch64-apple-darwin
+            ext: dylib
+            prefix: lib
+            platform: darwin-arm64
+          - os: macos-13
+            triple: x86_64-apple-darwin
+            ext: dylib
+            prefix: lib
+            platform: darwin-x86_64
+          - os: windows-latest
+            triple: x86_64-pc-windows-msvc
+            ext: dll
+            prefix: ""
+            platform: windows-x86_64
+    runs-on: ${{ matrix.target.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.triple }}
+
+      - name: Build Action Binary (${{ matrix.action.name }})
+        shell: bash
+        run: |
+          cargo build --release --package "${{ matrix.action.name }}" --target "${{ matrix.target.triple }}"
+          mkdir -p dist
+          EXT="${{ matrix.target.ext }}"
+          PREFIX="${{ matrix.target.prefix }}"
+          SRC_FILE="target/${{ matrix.target.triple }}/release/${PREFIX}${{ matrix.action.name }}.${EXT}"
+          if [ ! -f "$SRC_FILE" ]; then
+            SRC_FILE="target/${{ matrix.target.triple }}/release/${{ matrix.action.name }}.${EXT}"
+          fi
+          if [ ! -f "$SRC_FILE" ]; then
+            echo "Error: Built file not found at $SRC_FILE"
+            ls -la "target/${{ matrix.target.triple }}/release/" || true
+            exit 1
+          fi
+          DEST_FILE="dist/${{ matrix.action.name }}_action-${{ matrix.action.version }}-${{ matrix.target.platform }}.${EXT}"
+          cp "$SRC_FILE" "$DEST_FILE"
+          echo "Built artifact: $DEST_FILE"
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "pack-${{ matrix.action.pack }}-${{ matrix.action.name }}-${{ matrix.target.platform }}"
+          path: dist/*
+          retention-days: 1
+
+  publish-packs:
+    name: Publish Release (action_packs/${{ matrix.pack.name }})
+    needs: [detect-actions, build-action]
+    if: needs.detect-actions.outputs.has_actions == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pack: ${{ fromJson(needs.detect-actions.outputs.packs) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Pack Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "pack-${{ matrix.pack.name }}-*"
+          path: release_assets/
+          merge-multiple: true
+
+      - name: Generate Checksums
+        run: |
+          cd release_assets
+          sha256sum * > checksums.txt
+          echo "Generated checksums:"
+          cat checksums.txt
+
+      - name: Create or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG_NAME="action_packs/${{ matrix.pack.name }}/v${{ matrix.pack.version }}"
+          RELEASE_TITLE="Action Pack: ${{ matrix.pack.name }} v${{ matrix.pack.version }}"
+          
+          echo "Publishing to tag $TAG_NAME..."
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME exists. Uploading new/updated assets..."
+            gh release upload "$TAG_NAME" release_assets/* --clobber
+          else
+            echo "Creating new release $TAG_NAME..."
+            gh release create "$TAG_NAME" release_assets/* \
+              --title "$RELEASE_TITLE" \
+              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}."
+          fi
