@@ -19,7 +19,7 @@ Morflow was created to solve core challenges in modern data and AI engineering:
 
 ---
 
-## Quickstart
+## ⚡ Quickstart
 
 ### 1. Install Morflow
 
