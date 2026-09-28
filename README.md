@@ -38,7 +38,7 @@ cargo add morflow
 
 ```morf
 import base.latest
-from image_essentials.latest import to_tensor, resize, color_adjust, gaussian_blur, to_image
+import image_essentials.latest
 
 accept $input
 
