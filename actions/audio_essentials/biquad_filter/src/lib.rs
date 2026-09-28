@@ -193,8 +193,8 @@ mod tests {
     #[test]
     fn test_lowpass_filter() {
         // High-frequency alternating signal [1.0, -1.0, 1.0, -1.0, ...]
-        let input_samples: Vec<f32> = (0..100)
-            .map(|i| if i % 2 == 0 { 1.0f32 } else { -1.0f32 })
+        let input_samples: Vec<f32> = (0..100usize)
+            .map(|i| if i.is_multiple_of(2) { 1.0f32 } else { -1.0f32 })
             .collect();
         let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 100]).unwrap();
 

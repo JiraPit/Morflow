@@ -1,5 +1,3 @@
-#![allow(clippy::manual_memcpy, clippy::needless_return)]
-
 use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
@@ -170,7 +168,7 @@ fn rotate_f32_buffer(
     fill_value: f32,
 ) -> (usize, usize, Vec<f32>) {
     if (norm_angle - 0.0).abs() < 1e-3 {
-        return (in_w, in_h, src.to_vec());
+        (in_w, in_h, src.to_vec())
     } else if (norm_angle - 90.0).abs() < 1e-3 {
         // 90 deg CW
         let out_w = in_h;
@@ -184,9 +182,8 @@ fn rotate_f32_buffer(
                     let in_y = in_h - 1 - out_x;
                     let src_idx = (in_y * in_w + in_x) * channels;
                     let dst_idx = out_x * channels;
-                    for c in 0..channels {
-                        row[dst_idx + c] = src[src_idx + c];
-                    }
+                    row[dst_idx..dst_idx + channels]
+                        .copy_from_slice(&src[src_idx..src_idx + channels]);
                 }
             });
         (out_w, out_h, out)
@@ -200,9 +197,8 @@ fn rotate_f32_buffer(
                     let sx = in_w - 1 - x;
                     let src_idx = (sy * in_w + sx) * channels;
                     let dst_idx = x * channels;
-                    for c in 0..channels {
-                        row[dst_idx + c] = src[src_idx + c];
-                    }
+                    row[dst_idx..dst_idx + channels]
+                        .copy_from_slice(&src[src_idx..src_idx + channels]);
                 }
             });
         (in_w, in_h, out)
@@ -219,9 +215,8 @@ fn rotate_f32_buffer(
                     let in_y = out_x;
                     let src_idx = (in_y * in_w + in_x) * channels;
                     let dst_idx = out_x * channels;
-                    for c in 0..channels {
-                        row[dst_idx + c] = src[src_idx + c];
-                    }
+                    row[dst_idx..dst_idx + channels]
+                        .copy_from_slice(&src[src_idx..src_idx + channels]);
                 }
             });
         (out_w, out_h, out)

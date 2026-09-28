@@ -374,7 +374,7 @@ impl Tensor {
             return None;
         }
         let bytes = self.as_bytes()?;
-        if bytes.len() % 4 != 0 {
+        if !bytes.len().is_multiple_of(4) {
             return None;
         }
         Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4) })
@@ -394,7 +394,7 @@ impl Tensor {
             return None;
         }
         let bytes = self.as_bytes()?;
-        if bytes.len() % 4 != 0 {
+        if !bytes.len().is_multiple_of(4) {
             return None;
         }
         Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const i32, bytes.len() / 4) })

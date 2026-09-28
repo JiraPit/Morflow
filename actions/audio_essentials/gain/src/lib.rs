@@ -44,7 +44,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Payload::Tensor(tensor)
         }
         Payload::Data { mut buffer } => {
-            if buffer.len() % 4 == 0 && !buffer.is_empty() {
+            if buffer.len().is_multiple_of(4) && !buffer.is_empty() {
                 let samples: &mut [f32] = unsafe {
                     std::slice::from_raw_parts_mut(
                         buffer.as_mut_ptr() as *mut f32,

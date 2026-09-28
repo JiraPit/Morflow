@@ -1,5 +1,3 @@
-#![allow(clippy::unnecessary_lazy_evaluations)]
-
 use core_types::{ColorSpace, DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
@@ -111,7 +109,7 @@ fn tensor_to_image(
         (1, tensor.num_elements(), 1, ImageLayout::Hwc)
     };
 
-    let color_space = target_color.unwrap_or_else(|| match in_channels {
+    let color_space = target_color.unwrap_or(match in_channels {
         1 => ColorSpace::Grayscale,
         3 => ColorSpace::Rgb,
         4 => ColorSpace::Rgba,

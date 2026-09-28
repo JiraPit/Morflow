@@ -1,4 +1,4 @@
-#![allow(clippy::needless_range_loop, clippy::manual_is_multiple_of)]
+#![allow(clippy::needless_range_loop)]
 
 use core_types::{Audio, AudioChannelLayout, AudioLayout, DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
@@ -249,7 +249,7 @@ fn try_parse_wav(bytes: &[u8], override_sr: Option<u32>) -> Option<Audio> {
 
         offset += 8 + chunk_size;
         // RIFF word alignment
-        if chunk_size % 2 != 0 {
+        if !chunk_size.is_multiple_of(2) {
             offset += 1;
         }
     }
@@ -392,7 +392,7 @@ fn decode_raw_pcm_to_planar_f32(
 ) -> Vec<f32> {
     match dtype.to_lowercase().as_str() {
         "f32" | "float" | "float32" => {
-            if bytes.len() % 4 != 0 {
+            if !bytes.len().is_multiple_of(4) {
                 return Vec::new();
             }
             let total_samples = bytes.len() / 4;
@@ -421,7 +421,7 @@ fn decode_raw_pcm_to_planar_f32(
             }
         }
         "i24" | "int24" => {
-            if bytes.len() % 3 != 0 {
+            if !bytes.len().is_multiple_of(3) {
                 return Vec::new();
             }
             let total_samples = bytes.len() / 3;
@@ -477,7 +477,7 @@ fn decode_raw_pcm_to_planar_f32(
             planar
         }
         "i32" | "int32" => {
-            if bytes.len() % 4 != 0 {
+            if !bytes.len().is_multiple_of(4) {
                 return Vec::new();
             }
             let total_samples = bytes.len() / 4;
@@ -560,7 +560,7 @@ fn decode_raw_pcm_to_planar_f32(
             planar
         }
         _ /* "i16" / "int16" */ => {
-            if bytes.len() % 2 != 0 {
+            if !bytes.len().is_multiple_of(2) {
                 return Vec::new();
             }
             let total_samples = bytes.len() / 2;

@@ -113,7 +113,7 @@ fn tensor_input_to_payload(input: TensorInput) -> napi::Result<Payload> {
                 .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?
         }
         _ /* "f32" */ => {
-            if bytes.len() % 4 != 0 {
+            if !bytes.len().is_multiple_of(4) {
                 return Err(napi::Error::new(
                     napi::Status::InvalidArg,
                     "Data buffer size is not a multiple of 4 for Float32 tensor",
