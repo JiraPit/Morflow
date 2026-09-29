@@ -1,3 +1,4 @@
+pub mod check;
 pub mod cli;
 pub mod engine;
 pub mod outputs;
@@ -6,13 +7,13 @@ pub mod resolver;
 pub mod scheduler;
 pub mod validator;
 
+pub use core_types;
+pub use core_types::{Audio, ColorSpace, DataType, Image, Payload, RVec, Tensor};
 pub use engine::{Morflow, MorflowError, MorflowPipeline};
 pub use outputs::PipelineOutputs;
 pub use registry::{ActionRegistry, LoadedAction};
 pub use resolver::ActionResolver;
 pub use scheduler::AutoParallelScheduler;
-pub use core_types;
-pub use core_types::{Audio, ColorSpace, DataType, Image, Payload, RVec, Tensor};
 
 #[cfg(test)]
 mod tests {

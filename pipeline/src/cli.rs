@@ -80,10 +80,20 @@ enum Commands {
         #[arg(short, long)]
         force: bool,
     },
+
+    /// Checks a .morf pipeline for syntax correctness, SSA compliance, action dependencies, and data type flow
+    Check {
+        /// Path to the .morf pipeline definition file
+        file: PathBuf,
+
+        /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
 }
 
 // Built-in catalog of Morflow action packs and actions
-const KNOWN_ACTIONS: &[(&str, &str)] = &[
+pub(crate) const KNOWN_ACTIONS: &[(&str, &str)] = &[
     ("base", "identity"),
     ("base", "to_tensor"),
     ("audio_essentials", "to_audio"),
@@ -172,7 +182,7 @@ const KNOWN_ACTIONS: &[(&str, &str)] = &[
     ("linalg_essentials", "cholesky"),
 ];
 
-fn get_host_platform() -> (&'static str, &'static str) {
+pub(crate) fn get_host_platform() -> (&'static str, &'static str) {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     {
         ("linux-x86_64", "so")
@@ -205,7 +215,7 @@ fn get_host_platform() -> (&'static str, &'static str) {
     }
 }
 
-fn resolve_action_cache_dir(custom: Option<PathBuf>) -> PathBuf {
+pub(crate) fn resolve_action_cache_dir(custom: Option<PathBuf>) -> PathBuf {
     if let Some(p) = custom {
         return p;
     }
@@ -303,7 +313,7 @@ fn get_actions_for_pack(pack: &str) -> Vec<&'static str> {
     actions
 }
 
-fn resolve_repo() -> String {
+pub(crate) fn resolve_repo() -> String {
     env::var("MORFLOW_REPO").unwrap_or_else(|_| "JiraPit/Morflow".to_string())
 }
 
@@ -373,6 +383,10 @@ where
 
 fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
     match command {
+        Commands::Check { file, path } => {
+            crate::check::check_pipeline(&file, path.as_deref())?;
+        }
+
         Commands::Prep { file, path, force } => {
             if !file.exists() {
                 return Err(format!("Pipeline file '{}' does not exist.", file.display()).into());
