@@ -70,3 +70,11 @@ export function fromStr(source: string): Pipeline;
  * Alias for `fromStr`.
  */
 export function fromString(source: string): Pipeline;
+
+/**
+ * Executes the Morflow CLI with the given array of argument strings.
+ * @param args - Command-line arguments.
+ * @returns Exit code (0 for success).
+ */
+export function runCli(args: string[]): number;
+

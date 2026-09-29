@@ -324,3 +324,11 @@ pub fn from_str(source: String) -> napi::Result<Pipeline> {
     let pipeline = Morflow::from_str(&source).map_err(map_error)?;
     Ok(Pipeline { inner: pipeline })
 }
+
+/// Executes the Morflow CLI with the specified command-line arguments.
+#[napi]
+pub fn run_cli(args: Vec<String>) -> napi::Result<i32> {
+    let mut full_args = vec!["morflow".to_string()];
+    full_args.extend(args);
+    Ok(pipeline::cli::run_cli(full_args))
+}

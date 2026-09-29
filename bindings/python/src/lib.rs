@@ -295,11 +295,20 @@ pub fn from_str(source: &str) -> PyResult<PyPipeline> {
     Ok(PyPipeline { inner: pipeline })
 }
 
+/// Executes the Morflow CLI with the specified command-line arguments.
+#[pyfunction]
+pub fn run_cli(args: Vec<String>) -> PyResult<i32> {
+    let mut full_args = vec!["morflow".to_string()];
+    full_args.extend(args);
+    Ok(pipeline::cli::run_cli(full_args))
+}
+
 /// Python module initialization.
 #[pymodule]
 fn _morflow(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(load, m)?)?;
     m.add_function(wrap_pyfunction!(from_str, m)?)?;
+    m.add_function(wrap_pyfunction!(run_cli, m)?)?;
     m.add_class::<PyPipeline>()?;
     Ok(())
 }

@@ -163,10 +163,20 @@ function fromStr(source) {
   return new MorflowPipelineWrapper(native);
 }
 
+/**
+ * Executes the Morflow CLI with the given array of argument strings.
+ * @param {string[]} args - Command-line arguments.
+ * @returns {number} Exit code (0 for success).
+ */
+function runCli(args) {
+  return nativeBinding.runCli(args || []);
+}
+
 module.exports = {
   load,
   fromStr,
   fromString: fromStr,
+  runCli,
   wrapTensor,
   Pipeline: MorflowPipelineWrapper,
   MorflowTensor: nativeBinding.MorflowTensor

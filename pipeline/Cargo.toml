@@ -3,6 +3,10 @@ name = "pipeline"
 version = "0.1.2"
 edition = "2021"
 
+[[bin]]
+name = "morflow"
+path = "src/main.rs"
+
 [dependencies]
 core_types = { path = "../core_types" }
 parser = { path = "../parser" }
