@@ -299,20 +299,11 @@ pub fn check_pipeline(
     // ==========================================
     // Phase 4: Dynamic Type Checking Dry-Run (via get_input_type & get_output_type)
     // ==========================================
-    let mut var_types: HashMap<String, DataType> = HashMap::new();
+    let mut var_types: HashMap<String, Option<DataType>> = HashMap::new();
 
-    // Initialize pipeline parameters (defaulting to RawBytes unless specified)
+    // Initialize pipeline parameters as unconstrained input payloads
     for param in &ast.params {
-        let param_type = if param.name.contains("audio") || param.name.contains("wav") {
-            DataType::Audio
-        } else if param.name.contains("img") || param.name.contains("image") {
-            DataType::Image
-        } else if param.name.contains("tensor") {
-            DataType::Tensor
-        } else {
-            DataType::RawBytes
-        };
-        var_types.insert(param.name.clone(), param_type);
+        var_types.insert(param.name.clone(), None);
     }
 
     struct FlowInspection {
@@ -333,6 +324,7 @@ pub fn check_pipeline(
         let mut steps_summary = Vec::new();
         let mut type_transitions = Vec::new();
         let mut prev_step_desc = String::new();
+        let mut initial_var_name: Option<String> = None;
 
         for (step_idx, step) in chain.steps.iter().enumerate() {
             match step {
@@ -372,12 +364,14 @@ pub fn check_pipeline(
                         return Err("Undefined variable error".into());
                     }
 
-                    let v_type = *var_types.get(&var_ref.name).unwrap_or(&DataType::RawBytes);
-                    curr_type = Some(v_type);
+                    curr_type = *var_types.get(&var_ref.name).unwrap_or(&None);
                     if step_idx == 0 {
                         source_desc = format!("${}", var_ref.name);
+                        initial_var_name = Some(var_ref.name.clone());
                     }
-                    type_transitions.push(v_type);
+                    if let Some(t) = curr_type {
+                        type_transitions.push(t);
+                    }
                     prev_step_desc = format!("${}", var_ref.name);
                 }
                 FlowStep::Action(call) => {
@@ -443,6 +437,9 @@ pub fn check_pipeline(
                             ));
                             return Err("Type mismatch error".into());
                         }
+                    } else if let Some(init_var) = &initial_var_name {
+                        // Infer the initial variable's accepted type from the first action it is fed into
+                        var_types.insert(init_var.clone(), Some(action_in));
                     }
 
                     curr_type = Some(action_out);
@@ -451,17 +448,13 @@ pub fn check_pipeline(
                     prev_step_desc = call.name.clone();
                 }
                 FlowStep::Tap(var_name) => {
-                    if let Some(t) = curr_type {
-                        var_types.insert(var_name.clone(), t);
-                    }
+                    var_types.insert(var_name.clone(), curr_type);
                     steps_summary.push(format!(">> ${}", var_name));
                     output_desc = format!("${}", var_name);
                     prev_step_desc = format!("${}", var_name);
                 }
                 FlowStep::Each(each_loop) => {
-                    if let Some(t) = curr_type {
-                        var_types.insert(each_loop.var_name.clone(), t);
-                    }
+                    var_types.insert(each_loop.var_name.clone(), curr_type);
                     steps_summary.push(format!("each (${})", each_loop.var_name));
                 }
                 FlowStep::IfElse(_) => {
@@ -515,8 +508,9 @@ pub fn check_pipeline(
             .map(|p| {
                 let ty = var_types
                     .get(&p.name)
-                    .map(|t| format_data_type(*t))
-                    .unwrap_or("RawBytes");
+                    .and_then(|t| *t)
+                    .map(format_data_type)
+                    .unwrap_or("Payload (Any)");
                 if let Some(def) = &p.default_value {
                     format!("${}: {} = {:?}", p.name, ty, def)
                 } else {
