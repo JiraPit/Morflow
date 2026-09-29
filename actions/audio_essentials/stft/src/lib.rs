@@ -6,7 +6,7 @@ use std::f32::consts::PI;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Audio
 }
 
 #[no_mangle]

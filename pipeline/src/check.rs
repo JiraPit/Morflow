@@ -76,11 +76,12 @@ fn are_types_compatible(source_type: DataType, target_input_type: DataType) -> b
         // Disallow direct piping between Audio and Image without conversion
         (DataType::Audio, DataType::Image) => false,
         (DataType::Image, DataType::Audio) => false,
-        // Audio and Image can bridge to/from Tensor
+        // Audio and Image can be consumed as generic Tensors (they encapsulate a Tensor)
         (DataType::Audio, DataType::Tensor) => true,
         (DataType::Image, DataType::Tensor) => true,
-        (DataType::Tensor, DataType::Audio) => true,
-        (DataType::Tensor, DataType::Image) => true,
+        // Raw tensors require explicit conversion to Audio/Image (e.g. to_audio, to_image)
+        (DataType::Tensor, DataType::Audio) => false,
+        (DataType::Tensor, DataType::Image) => false,
         (DataType::Composite, DataType::Tensor) => true,
         (DataType::Tensor, DataType::Composite) => true,
         _ => false,
@@ -455,7 +456,84 @@ pub fn check_pipeline(
                 }
                 FlowStep::Each(each_loop) => {
                     var_types.insert(each_loop.var_name.clone(), curr_type);
-                    steps_summary.push(format!("each (${})", each_loop.var_name));
+                    let mut inner_type = curr_type;
+                    let mut inner_actions = Vec::new();
+                    let mut prev_inner_desc = format!("${}", each_loop.var_name);
+
+                    for inner_stmt in &each_loop.body {
+                        let Statement::Flow(inner_chain) = inner_stmt;
+                        for sub_step in &inner_chain.steps {
+                            match sub_step {
+                                FlowStep::Var(v) => {
+                                    inner_type = *var_types.get(&v.name).unwrap_or(&None);
+                                    prev_inner_desc = format!("${}", v.name);
+                                }
+                                FlowStep::Action(call) => {
+                                    if call.name == "emit" || call.name == "resurface" {
+                                        continue;
+                                    }
+                                    inner_actions.push(call.name.clone());
+                                    if let Some(loaded) = loaded_actions.get(&call.name) {
+                                        let action_in = loaded.input_type;
+                                        let action_out = loaded.output_type;
+
+                                        if let Some(src_ty) = inner_type {
+                                            if !are_types_compatible(src_ty, action_in) {
+                                                let curr_span = find_token_span(&source, &call.name, 0);
+                                                let prev_span = find_token_span(&source, &prev_inner_desc, 0);
+
+                                                let report = Report::build(
+                                                    ReportKind::Error,
+                                                    (filename_str.as_str(), curr_span.clone()),
+                                                )
+                                                .with_code("E005")
+                                                .with_message(format!(
+                                                    "Data type mismatch inside each loop: '{}' requires input type {:?}, but previous step produces {:?}",
+                                                    call.name, action_in, src_ty
+                                                ))
+                                                .with_label(
+                                                    Label::new((filename_str.as_str(), prev_span))
+                                                        .with_message(format!("Produces {:?}", src_ty))
+                                                        .with_color(Color::Blue),
+                                                )
+                                                .with_label(
+                                                    Label::new((filename_str.as_str(), curr_span))
+                                                        .with_message(format!(
+                                                            "Action '{}' get_input_type() returned {:?}",
+                                                            call.name, action_in
+                                                        ))
+                                                        .with_color(Color::Red),
+                                                );
+
+                                                let _ = report
+                                                    .finish()
+                                                    .print((filename_str.as_str(), Source::from(&source)));
+
+                                                return Err("Type mismatch in loop".into());
+                                            }
+                                        }
+                                        inner_type = Some(action_out);
+                                        type_transitions.push(action_out);
+                                        prev_inner_desc = call.name.clone();
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+
+                    if inner_actions.is_empty() {
+                        steps_summary.push(format!("each (${})", each_loop.var_name));
+                    } else {
+                        steps_summary.push(format!(
+                            "each (${}) {{ {} }}",
+                            each_loop.var_name,
+                            inner_actions.join(" >> ")
+                        ));
+                    }
+                    if inner_type.is_some() {
+                        curr_type = inner_type;
+                    }
                 }
                 FlowStep::IfElse(_) => {
                     steps_summary.push("if/else".to_string());

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Morflow Action Pack Change Detection Script
-Discovers action packages in actions/*/*, inspects version changes via Cargo.toml/git,
-and outputs dynamic build matrix JSON for GitHub Actions.
+Discovers action packages in actions/*/*, inspects version changes and existing
+GitHub Releases, limits matrix size to avoid GitHub Actions' 256-configuration limit,
+and outputs dynamic build matrix JSON.
 """
 
 import argparse
@@ -10,7 +11,15 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
+
+TARGET_PLATFORMS = [
+    ("linux-x86_64", "so"),
+    ("darwin-arm64", "dylib"),
+    ("windows-x86_64", "dll"),
+]
 
 
 def parse_cargo_toml(path: Path) -> dict:
@@ -44,7 +53,6 @@ def parse_cargo_toml(path: Path) -> dict:
 def get_git_changed_files() -> list:
     """Retrieves changed files in the latest commit using git diff."""
     try:
-        # Check if HEAD~1 exists
         res = subprocess.run(
             ["git", "rev-parse", "--verify", "HEAD~1"],
             stdout=subprocess.PIPE,
@@ -61,7 +69,6 @@ def get_git_changed_files() -> list:
             )
             return [f.strip() for f in diff_res.stdout.splitlines() if f.strip()]
         else:
-            # First commit or shallow clone
             return []
     except Exception as e:
         print(f"Warning: Failed to get git diff: {e}", file=sys.stderr)
@@ -96,43 +103,107 @@ def discover_all_actions(repo_root: Path) -> list:
     return actions
 
 
+def get_release_assets(repo: str, tag: str, token: str = None) -> set:
+    """Fetches the set of asset filenames for a release tag from GitHub API."""
+    url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "Morflow-CI",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return {a["name"] for a in data.get("assets", [])}
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            # Release tag doesn't exist yet
+            return set()
+        print(f"Warning: HTTP {e.code} while fetching assets for {tag}: {e.reason}", file=sys.stderr)
+        return set()
+    except Exception as e:
+        print(f"Warning: Failed to fetch assets for {tag}: {e}", file=sys.stderr)
+        return set()
+
+
+def is_action_fully_released(act: dict, release_assets: set) -> bool:
+    """Checks if all required platform binaries for this action version are present in the release."""
+    act_name = act["name"]
+    version = act["version"]
+    for plat, ext in TARGET_PLATFORMS:
+        expected = f"{act_name}_action-{version}-{plat}.{ext}"
+        if expected not in release_assets:
+            return False
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Detect changed Morflow actions for CI build.")
     parser.add_argument("--event", default="push", help="GitHub event name (push, workflow_dispatch, etc.)")
     parser.add_argument("--pack", default="all", help="Target action pack or 'all'")
     parser.add_argument("--action", default="all", help="Target action name or 'all'")
-    parser.add_argument("--force", default="false", help="Force build regardless of git diff")
+    parser.add_argument("--force", default="false", help="Force build regardless of existing releases")
+    parser.add_argument("--limit", type=int, default=50, help="Max actions per matrix batch (50 * 3 = 150 <= 256)")
+    parser.add_argument("--repo", default="", help="GitHub owner/repo (e.g. JiraPit/Morflow)")
 
     args = parser.parse_args()
     repo_root = Path(__file__).resolve().parent.parent
 
-    all_actions = discover_all_actions(repo_root)
+    repo = args.repo or os.environ.get("GITHUB_REPOSITORY", "JiraPit/Morflow")
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     force_build = args.force.lower() in ("true", "1", "yes")
 
-    selected_actions = []
+    all_actions = discover_all_actions(repo_root)
 
-    if args.event == "workflow_dispatch" or force_build:
-        for act in all_actions:
-            if args.pack != "all" and act["pack"] != args.pack:
-                continue
-            if args.action != "all" and act["name"] != args.action:
-                continue
-            selected_actions.append(act)
-    else:
-        # Push event: check changed files
-        changed_files = get_git_changed_files()
-        if not changed_files:
-            # If unable to determine diff, build all discovered actions as fallback
-            selected_actions = all_actions
+    # 1. Filter by requested pack / action
+    candidates = []
+    for act in all_actions:
+        if args.pack != "all" and act["pack"] != args.pack:
+            continue
+        if args.action != "all" and act["name"] != args.action:
+            continue
+        candidates.append(act)
+
+    print(f"Total discovered actions matching filter: {len(candidates)}")
+
+    # 2. Skip actions that are already fully released on GitHub Releases (unless forced)
+    unbuilt_actions = []
+    already_released_count = 0
+    release_cache = {}
+
+    for act in candidates:
+        if force_build:
+            unbuilt_actions.append(act)
+            continue
+
+        pack = act["pack"]
+        version = act["version"]
+        tag = f"action_packs/{pack}/v{version}"
+
+        if tag not in release_cache:
+            release_cache[tag] = get_release_assets(repo, tag, token)
+
+        assets = release_cache[tag]
+        if is_action_fully_released(act, assets):
+            already_released_count += 1
         else:
-            for act in all_actions:
-                act_prefix = act["path"] + "/"
-                # Check if any changed file belongs to this action or core_types
-                has_changed = any(f.startswith(act_prefix) or f.startswith("core_types/") for f in changed_files)
-                if has_changed:
-                    selected_actions.append(act)
+            unbuilt_actions.append(act)
 
-    # Group packs
+    print(f"Already released actions skipped: {already_released_count}")
+    print(f"Total actions requiring build: {len(unbuilt_actions)}")
+
+    # 3. Limit batch size to stay safely within GitHub Actions matrix limit (max 256 configurations)
+    # With 3 target platforms (Linux, macOS, Windows), limit=50 produces 150 configurations.
+    limit = max(1, args.limit)
+    selected_actions = unbuilt_actions[:limit]
+    remaining_count = len(unbuilt_actions) - len(selected_actions)
+    has_more = remaining_count > 0
+    has_actions = len(selected_actions) > 0
+
+    # Group packs for selected actions
     packs_dict = {}
     for act in selected_actions:
         p = act["pack"]
@@ -141,26 +212,27 @@ def main():
             packs_dict[p] = v
 
     packs_list = [{"name": k, "version": v} for k, v in packs_dict.items()]
-    has_actions = len(selected_actions) > 0
 
     matrix_json = json.dumps(selected_actions)
     packs_json = json.dumps(packs_list)
 
-    print(f"Discovered total actions: {len(all_actions)}")
-    print(f"Selected actions to build: {len(selected_actions)}")
+    print(f"Selected for current batch: {len(selected_actions)} actions ({len(selected_actions) * len(TARGET_PLATFORMS)} matrix jobs)")
     for act in selected_actions:
-        print(f"  - [{act['pack']}] {act['name']} v{act['version']} ({act['path']})")
-    print(f"Action packs targeted: {[p['name'] for p in packs_list]}")
+        print(f"  - [{act['pack']}] {act['name']} v{act['version']}")
+    print(f"Remaining for subsequent triggers: {remaining_count}")
+    print(f"Has more batches: {has_more}")
 
-    # Set GitHub Actions step output
+    # Set GitHub Actions step outputs
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write(f"matrix={matrix_json}\n")
             f.write(f"packs={packs_json}\n")
             f.write(f"has_actions={'true' if has_actions else 'false'}\n")
+            f.write(f"has_more={'true' if has_more else 'false'}\n")
+            f.write(f"remaining_count={remaining_count}\n")
     else:
-        print(f"\nGitHub Output:\nmatrix={matrix_json}\npacks={packs_json}\nhas_actions={'true' if has_actions else 'false'}")
+        print(f"\nGitHub Output:\nmatrix={matrix_json}\npacks={packs_json}\nhas_actions={'true' if has_actions else 'false'}\nhas_more={'true' if has_more else 'false'}\nremaining_count={remaining_count}")
 
 
 if __name__ == "__main__":

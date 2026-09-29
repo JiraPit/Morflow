@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   detect-actions:
@@ -32,6 +33,8 @@ jobs:
       matrix: ${{ steps.detector.outputs.matrix }}
       has_actions: ${{ steps.detector.outputs.has_actions }}
       packs: ${{ steps.detector.outputs.packs }}
+      has_more: ${{ steps.detector.outputs.has_more }}
+      remaining_count: ${{ steps.detector.outputs.remaining_count }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,12 +48,16 @@ jobs:
 
       - name: Detect Actions to Build
         id: detector
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/detect_changed_actions.py \
             --event "${{ github.event_name }}" \
             --pack "${{ github.event.inputs.action_pack || 'all' }}" \
             --action "${{ github.event.inputs.action_name || 'all' }}" \
-            --force "${{ github.event.inputs.force_build || 'false' }}"
+            --force "${{ github.event.inputs.force_build || 'false' }}" \
+            --limit 40 \
+            --repo "${{ github.repository }}"
 
   build-action:
     name: Build ${{ matrix.action.name }} (${{ matrix.target.platform }})
@@ -165,4 +172,22 @@ jobs:
             gh release create "$TAG_NAME" release_assets/* \
               --title "$RELEASE_TITLE" \
               --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}."
+          fi
+
+  trigger-next-batch:
+    name: Trigger Next Batch (${{ needs.detect-actions.outputs.remaining_count }} remaining)
+    needs: [detect-actions, publish-packs]
+    if: needs.detect-actions.outputs.has_more == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger subsequent batch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Remaining actions to build: ${{ needs.detect-actions.outputs.remaining_count }}"
+          echo "Triggering next batch of actions via workflow dispatch..."
+          if gh workflow run build-actions.yml --ref "${{ github.ref_name }}"; then
+            echo "✓ Successfully triggered subsequent batch."
+          else
+            echo "::notice ::Automatic workflow dispatch could not be triggered. Please trigger the workflow dispatch manually to build the remaining ${{ needs.detect-actions.outputs.remaining_count }} actions."
           fi

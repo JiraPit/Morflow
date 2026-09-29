@@ -170,15 +170,39 @@ impl MorflowPipeline {
 
 pub fn collect_action_names(statements: &[Statement]) -> Vec<String> {
     let mut names = Vec::new();
+    collect_actions_internal(statements, &mut names);
+    names
+}
+
+fn collect_actions_internal(statements: &[Statement], names: &mut Vec<String>) {
     for stmt in statements {
         let Statement::Flow(chain) = stmt;
         for step in &chain.steps {
-            if let FlowStep::Action(call) = step {
-                if call.name != "emit" && call.name != "resurface" && !names.contains(&call.name) {
-                    names.push(call.name.clone());
+            match step {
+                FlowStep::Action(call) => {
+                    if call.name != "emit" && call.name != "resurface" && !names.contains(&call.name) {
+                        names.push(call.name.clone());
+                    }
                 }
+                FlowStep::Each(each_loop) => {
+                    collect_actions_internal(&each_loop.body, names);
+                }
+                FlowStep::IfElse(if_else) => {
+                    collect_actions_internal(&if_else.then_branch, names);
+                    if let Some(else_branch) = &if_else.else_branch {
+                        collect_actions_internal(else_branch, names);
+                    }
+                }
+                FlowStep::Route(route) => {
+                    for arm in &route.arms {
+                        collect_actions_internal(&arm.body, names);
+                    }
+                    if let Some(default_arm) = &route.default_arm {
+                        collect_actions_internal(default_arm, names);
+                    }
+                }
+                _ => {}
             }
         }
     }
-    names
 }

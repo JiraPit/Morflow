@@ -3,12 +3,12 @@ use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Audio
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Audio
 }
 
 #[derive(Clone, Copy)]

@@ -4,12 +4,12 @@ use std::f32::consts::PI;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Audio
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Audio
 }
 
 /// Computes windowed sinc interpolation for high-quality audio resampling.
