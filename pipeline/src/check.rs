@@ -341,7 +341,6 @@ pub fn check_pipeline(
         source_desc: String,
         steps_summary: Vec<String>,
         output_desc: String,
-        type_transitions: Vec<DataType>,
     }
 
     let mut inspected_flows: Vec<FlowInspection> = Vec::new();
@@ -352,7 +351,6 @@ pub fn check_pipeline(
         let mut source_desc = "stream".to_string();
         let mut output_desc = "-".to_string();
         let mut steps_summary = Vec::new();
-        let mut type_transitions = Vec::new();
         let mut prev_step_desc = String::new();
         let mut initial_var_name: Option<String> = None;
 
@@ -398,9 +396,6 @@ pub fn check_pipeline(
                     if step_idx == 0 {
                         source_desc = format_var_ref(var_ref);
                         initial_var_name = Some(var_ref.name.clone());
-                    }
-                    if let Some(t) = curr_type {
-                        type_transitions.push(t);
                     }
                     prev_step_desc = format!("${}", var_ref.name);
                 }
@@ -483,7 +478,6 @@ pub fn check_pipeline(
 
                     curr_type = Some(action_out);
                     steps_summary.push(call.name.clone());
-                    type_transitions.push(action_out);
                     prev_step_desc = call.name.clone();
                 }
                 FlowStep::Tap(var_name) => {
@@ -551,7 +545,6 @@ pub fn check_pipeline(
                                             }
                                         }
                                         inner_type = Some(action_out);
-                                        type_transitions.push(action_out);
                                         prev_inner_desc = call.name.clone();
                                     }
                                 }
@@ -587,7 +580,6 @@ pub fn check_pipeline(
             source_desc,
             steps_summary,
             output_desc,
-            type_transitions,
         });
     }
 
@@ -721,99 +713,34 @@ pub fn check_pipeline(
     }
 
     // 1. Flow Execution Simulation Table
-    let width = console.width();
-    let wide_mode = width >= 110;
-
     let mut flow_table = Table::new()
         .box_style(&ROUNDED)
         .border_style(Style::parse("bright_cyan").unwrap_or_default())
-        .header_style(Style::parse("bold white on blue").unwrap_or_default());
-
-    if wide_mode {
-        flow_table = flow_table
-            .with_column(Column::new("Flow").width(6).justify(JustifyMethod::Center))
-            .with_column(Column::new("Stage").width(12).justify(JustifyMethod::Center))
-            .with_column(Column::new("Depends On").no_wrap())
-            .with_column(Column::new("Input Source").width(16).no_wrap())
-            .with_column(Column::new("Execution Chain").no_wrap())
-            .with_column(Column::new("Output Destination").width(20).no_wrap())
-            .with_column(Column::new("Type Flow").no_wrap());
-    } else {
-        flow_table = flow_table
-            .with_column(Column::new("Flow (Stage)").width(12).justify(JustifyMethod::Center))
-            .with_column(Column::new("Input Source").width(14).no_wrap())
-            .with_column(Column::new("Execution Chain").no_wrap())
-            .with_column(Column::new("Output Destination").width(18).no_wrap())
-            .with_column(Column::new("Type Flow").no_wrap());
-    }
+        .header_style(Style::parse("bold white on blue").unwrap_or_default())
+        .with_column(Column::new("Flow").width(6).justify(JustifyMethod::Center))
+        .with_column(Column::new("Stage").width(14).justify(JustifyMethod::Center))
+        .with_column(Column::new("Input Source").no_wrap())
+        .with_column(Column::new("Execution Chain").no_wrap())
+        .with_column(Column::new("Output Destination").no_wrap());
 
     for (f_idx, flow) in inspected_flows.iter().enumerate() {
         let chain_str = flow.steps_summary.join(" [cyan]>>[/] ");
-        let type_flow_str = flow
-            .type_transitions
-            .iter()
-            .map(|t| format!("[green]{}[/]", format_data_type(*t)))
-            .collect::<Vec<_>>()
-            .join(" [dim]→[/] ");
-
         let s_idx = flow_to_stage.get(f_idx).copied().unwrap_or(0);
         let is_parallel = stages.get(s_idx).map(|s| s.len() > 1).unwrap_or(false);
 
-        if wide_mode {
-            let stage_str = if is_parallel {
-                format!("Stage {} [bold green]⚡ Par[/]", s_idx + 1)
-            } else {
-                format!("Stage {} [dim](Seq)[/]", s_idx + 1)
-            };
-
-            let deps = all_flow_deps.get(f_idx);
-            let deps_str = if deps.map(|d| d.is_empty()).unwrap_or(true) {
-                "[dim]— (Pipeline Input)[/]".to_string()
-            } else {
-                let mut sorted_deps: Vec<usize> = deps.unwrap().iter().copied().collect();
-                sorted_deps.sort();
-                sorted_deps
-                    .iter()
-                    .map(|&d_idx| {
-                        let vars = all_flow_dep_vars[f_idx]
-                            .get(&d_idx)
-                            .map(|vs| {
-                                vs.iter()
-                                    .map(|v| format!("${}", v))
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            })
-                            .unwrap_or_default();
-                        format!("[yellow]Flow #{}[/] [dim]({})[/]", d_idx + 1, vars)
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            };
-
-            flow_table.add_row_markup([
-                format!("#{}", flow.stmt_idx).as_str(),
-                stage_str.as_str(),
-                deps_str.as_str(),
-                flow.source_desc.as_str(),
-                chain_str.as_str(),
-                flow.output_desc.as_str(),
-                type_flow_str.as_str(),
-            ]);
+        let stage_str = if is_parallel {
+            format!("Stage {} [bold green](Par)[/]", s_idx + 1)
         } else {
-            let flow_stage_badge = if is_parallel {
-                format!("#{} [bold green](S{} ⚡)[/]", flow.stmt_idx, s_idx + 1)
-            } else {
-                format!("#{} [dim](S{})[/]", flow.stmt_idx, s_idx + 1)
-            };
+            format!("Stage {}", s_idx + 1)
+        };
 
-            flow_table.add_row_markup([
-                flow_stage_badge.as_str(),
-                flow.source_desc.as_str(),
-                chain_str.as_str(),
-                flow.output_desc.as_str(),
-                type_flow_str.as_str(),
-            ]);
-        }
+        flow_table.add_row_markup([
+            format!("#{}", flow.stmt_idx).as_str(),
+            stage_str.as_str(),
+            flow.source_desc.as_str(),
+            chain_str.as_str(),
+            flow.output_desc.as_str(),
+        ]);
     }
 
     console.print_renderable(&flow_table);
@@ -821,7 +748,7 @@ pub fn check_pipeline(
 
     // 2. Execution DAG & Concurrency Plan Tree
     let mut dag_tree = Tree::with_label(rich_rust::markup::render_or_plain(
-        "[bold cyan]Pipeline Execution DAG[/] [dim]── Stages & Concurrency Waves[/]",
+        "[bold cyan]Pipeline Execution DAG[/]",
     ))
     .guides(TreeGuides::Rounded);
 
@@ -830,16 +757,9 @@ pub fn check_pipeline(
         let is_parallel = stage_flows.len() > 1;
 
         let stage_title = if is_parallel {
-            format!(
-                "[bold yellow]Stage {}[/] [bold green]⚡ Concurrent Wave[/] [dim]({} flows execute in parallel)[/]",
-                stage_num,
-                stage_flows.len()
-            )
+            format!("[bold yellow]Stage {}[/] [bold green](Parallel)[/]", stage_num)
         } else {
-            format!(
-                "[bold yellow]Stage {}[/] [cyan](Sequential Flow)[/]",
-                stage_num
-            )
+            format!("[bold yellow]Stage {}[/]", stage_num)
         };
 
         let mut stage_node = TreeNode::new(rich_rust::markup::render_or_plain(&stage_title));
