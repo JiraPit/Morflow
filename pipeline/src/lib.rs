@@ -357,6 +357,57 @@ mod tests {
     }
 
     #[test]
+    fn test_compile_error_on_emit_inside_if_branch() {
+        let invalid_morf = r#"
+            accept $audio
+
+            $audio >> if ($audio.peak > 1.0) {
+                identity >> emit("branch_out")
+            } >> emit
+        "#;
+
+        let res = Morflow::from_str(invalid_morf);
+        assert!(res.is_err(), "Must reject emit inside if branch");
+        if let Err(MorflowError::Compile(msg)) = res {
+            assert!(
+                msg.contains("'emit' cannot be called inside a nested sub-flow"),
+                "Unexpected message: {}",
+                msg
+            );
+        } else {
+            panic!("Expected MorflowError::Compile error");
+        }
+    }
+
+    #[test]
+    fn test_each_loop_tapped_and_emitted_in_subsequent_flow() {
+        let morf_src = r#"
+            accept $tensor_in
+
+            $tensor_in >> each ($ch) {
+                $ch >> identity
+            } >> $processed_tensor
+
+            $processed_tensor >> identity >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let data: Vec<f32> = (0..16).map(|x| x as f32).collect();
+        let tensor = Tensor::from_f32_shape(&data, vec![4, 4]).unwrap();
+
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+        if let Payload::Tensor(out_t) = result {
+            assert_eq!(out_t.shape.as_slice(), &[4, 4]);
+            assert_eq!(out_t.num_elements(), 16);
+        } else {
+            panic!("Expected Tensor payload");
+        }
+    }
+
+    #[test]
     fn test_compile_error_on_top_level_variable_reassignment() {
         let invalid_morf = r#"
             accept $source
