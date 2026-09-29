@@ -57,19 +57,19 @@ jobs:
           - os: ubuntu-latest
             triple: x86_64-unknown-linux-gnu
             platform: linux-x86_64
-            bin_name: pipeline
+            bin_name: morflow
             target_bin: morflow
             archive_ext: tar.gz
           - os: macos-latest
             triple: aarch64-apple-darwin
             platform: darwin-arm64
-            bin_name: pipeline
+            bin_name: morflow
             target_bin: morflow
             archive_ext: tar.gz
           - os: windows-latest
             triple: x86_64-pc-windows-msvc
             platform: windows-x86_64
-            bin_name: pipeline.exe
+            bin_name: morflow.exe
             target_bin: morflow.exe
             archive_ext: zip
     runs-on: ${{ matrix.os }}
@@ -88,6 +88,12 @@ jobs:
           cargo build --release -p pipeline --target "${{ matrix.triple }}"
           mkdir -p dist/bin
           SRC="target/${{ matrix.triple }}/release/${{ matrix.bin_name }}"
+          if [ ! -f "$SRC" ]; then
+            SRC="target/${{ matrix.triple }}/release/${{ matrix.target_bin }}"
+          fi
+          if [ ! -f "$SRC" ]; then
+            SRC="target/release/${{ matrix.bin_name }}"
+          fi
           DEST="dist/bin/${{ matrix.target_bin }}"
           cp "$SRC" "$DEST"
           
