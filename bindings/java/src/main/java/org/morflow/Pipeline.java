@@ -57,14 +57,6 @@ public class Pipeline implements AutoCloseable {
     }
 
     /**
-     * Preloads and warms up all declared actions in memory.
-     */
-    public void warmup() {
-        checkClosed();
-        nativeWarmup(nativeHandle);
-    }
-
-    /**
      * Executes the pipeline with a multi-dimensional {@link MorflowTensor} input.
      *
      * @param input Input tensor or buffer.
@@ -161,7 +153,6 @@ public class Pipeline implements AutoCloseable {
     private static native long nativeLoad(String path);
     private static native long nativeFromStr(String source);
     private static native String[] nativeGetParams(long handle);
-    private static native void nativeWarmup(long handle);
     private static native MorflowTensor nativeRun(long handle, MorflowTensor input);
     private static native MorflowTensor nativeRunDirect(long handle, ByteBuffer buffer, int[] shape, String dtype);
     private static native Map<String, MorflowTensor> nativeRunAll(long handle, MorflowTensor input);

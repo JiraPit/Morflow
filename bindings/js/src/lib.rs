@@ -254,12 +254,6 @@ impl Pipeline {
         self.inner.params().iter().map(|p| p.name.clone()).collect()
     }
 
-    /// Preloads and warms up all declared actions in memory.
-    #[napi]
-    pub fn warmup(&self) -> napi::Result<()> {
-        self.inner.warmup().map_err(map_error)
-    }
-
     /// Executes the pipeline synchronously with a TensorInput, Float32Array, or Buffer.
     #[napi]
     pub fn run_sync(

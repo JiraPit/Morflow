@@ -72,7 +72,9 @@ impl Morflow {
         crate::validator::validate_pipeline(&ast)?;
 
         let registry = Arc::new(ActionRegistry::default());
-        Ok(MorflowPipeline { ast, registry })
+        let pipeline = MorflowPipeline { ast, registry };
+        pipeline.preload_actions()?;
+        Ok(pipeline)
     }
 }
 
@@ -90,7 +92,7 @@ impl MorflowPipeline {
     }
 
     /// Preloads all actions declared across all steps in this pipeline into memory.
-    pub fn warmup(&self) -> Result<(), MorflowError> {
+    fn preload_actions(&self) -> Result<(), MorflowError> {
         let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
         let action_names = collect_action_names(&self.ast.statements);
         for action in action_names {

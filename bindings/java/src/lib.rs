@@ -123,22 +123,6 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeGetParams<'local>(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_morflow_Pipeline_nativeWarmup<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-    handle: jlong,
-) {
-    if handle == 0 {
-        throw_exception(&mut env, "Pipeline handle is null");
-        return;
-    }
-    let pipeline = unsafe { &mut *(handle as *mut MorflowPipeline) };
-    if let Err(e) = pipeline.warmup() {
-        map_error_to_exception(&mut env, e);
-    }
-}
-
-#[no_mangle]
 pub extern "system" fn Java_org_morflow_Pipeline_nativeRun<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,

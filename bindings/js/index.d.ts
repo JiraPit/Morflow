@@ -33,11 +33,6 @@ export class Pipeline {
   readonly params: string[];
 
   /**
-   * Preloads and warms up all declared action dynamic libraries in memory.
-   */
-  warmup(): void;
-
-  /**
    * Executes the pipeline synchronously on the current thread.
    */
   runSync(input?: PipelineInput): MorflowTensor;

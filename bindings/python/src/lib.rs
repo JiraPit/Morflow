@@ -226,11 +226,6 @@ impl PyPipeline {
         self.inner.params().iter().map(|p| p.name.clone()).collect()
     }
 
-    /// Preloads and warms up all declared actions in memory.
-    fn warmup(&self) -> PyResult<()> {
-        self.inner.warmup().map_err(map_error)
-    }
-
     /// Executes the pipeline with a single input or positional arguments.
     /// Returns either a single NumPy array/object, or a dictionary of named outputs.
     #[pyo3(signature = (*args, **kwargs))]

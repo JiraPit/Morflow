@@ -86,10 +86,6 @@ class MorflowPipelineWrapper {
     return this._native.params;
   }
 
-  warmup() {
-    return this._native.warmup();
-  }
-
   /**
    * Executes the pipeline synchronously on the current thread.
    * @param {Float32Array | Uint8Array | Buffer | { data: Buffer | ArrayBuffer, shape: number[], dtype?: string }} [input]
