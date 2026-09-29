@@ -68,30 +68,19 @@ fn find_token_span(source: &str, token: &str, occurrence: usize) -> std::ops::Ra
 fn are_types_compatible(source_type: DataType, target_input_type: DataType) -> bool {
     // 1. Direct type intersection: does target accept this source type?
     // e.g. target accepts (RawBytes | Tensor), source is RawBytes -> true
+    // e.g. target accepts (Tensor | Image | Audio), source is Audio -> true
     // e.g. target accepts Audio, source is Audio -> true
     if target_input_type.intersects(source_type) {
         return true;
     }
 
-    // 2. Encapsulated Tensor unpacking:
-    // Audio and Image are specialized data types that encapsulate an underlying Tensor.
-    // Therefore, if the target action accepts Tensor, an Audio or Image can be unpacked as a Tensor.
-    if target_input_type.intersects(DataType::Tensor)
-        && (source_type == DataType::Audio || source_type == DataType::Image)
-    {
-        return true;
-    }
-
-    // 3. Composite tensor unpacking:
+    // 2. Composite tensor unpacking:
     if (source_type == DataType::Composite && target_input_type.intersects(DataType::Tensor))
         || (source_type == DataType::Tensor && target_input_type.intersects(DataType::Composite))
     {
         return true;
     }
 
-    // Notice: If target_input_type is strictly DataType::Audio, and source_type is DataType::Tensor,
-    // target_input_type.intersects(source_type) is FALSE.
-    // Audio actions (resample, biquad_filter, etc.) ONLY accept Audio, so Tensor -> Audio is REJECTED!
     false
 }
 
@@ -736,6 +725,7 @@ mod tests {
         let audio_action_input = DataType::Audio;
         let bridge_action_input = DataType::RawBytes | DataType::Tensor;
         let generic_tensor_input = DataType::Tensor;
+        let to_tensor_input = DataType::Tensor | DataType::Image | DataType::Audio;
 
         // 1. Audio actions strictly accept Audio
         assert!(are_types_compatible(DataType::Audio, audio_action_input));
@@ -743,19 +733,25 @@ mod tests {
         assert!(!are_types_compatible(DataType::RawBytes, audio_action_input), "RawBytes must not be piped directly into Audio action");
         assert!(!are_types_compatible(DataType::Image, audio_action_input), "Image must not be piped directly into Audio action");
 
-        // 2. to_audio accepts RawBytes, Tensor, and Audio / Image (via Tensor)
+        // 2. to_audio strictly accepts RawBytes and Tensor (Audio / Image cannot bypass)
         assert!(are_types_compatible(DataType::RawBytes, bridge_action_input));
         assert!(are_types_compatible(DataType::Tensor, bridge_action_input));
-        assert!(are_types_compatible(DataType::Audio, bridge_action_input));
-        assert!(are_types_compatible(DataType::Image, bridge_action_input));
+        assert!(!are_types_compatible(DataType::Audio, bridge_action_input));
+        assert!(!are_types_compatible(DataType::Image, bridge_action_input));
 
-        // 3. Audio & Image can be consumed as generic Tensors
-        assert!(are_types_compatible(DataType::Audio, generic_tensor_input));
-        assert!(are_types_compatible(DataType::Image, generic_tensor_input));
+        // 3. Tensor actions strictly accept Tensor (Audio and Image cannot be piped directly)
+        assert!(!are_types_compatible(DataType::Audio, generic_tensor_input));
+        assert!(!are_types_compatible(DataType::Image, generic_tensor_input));
         assert!(are_types_compatible(DataType::Tensor, generic_tensor_input));
         assert!(!are_types_compatible(DataType::RawBytes, generic_tensor_input));
 
-        // 4. Any accepts everything
+        // 4. to_tensor explicitly accepts Tensor, Image, and Audio
+        assert!(are_types_compatible(DataType::Audio, to_tensor_input));
+        assert!(are_types_compatible(DataType::Image, to_tensor_input));
+        assert!(are_types_compatible(DataType::Tensor, to_tensor_input));
+        assert!(!are_types_compatible(DataType::RawBytes, to_tensor_input));
+
+        // 5. Any accepts everything
         assert!(are_types_compatible(DataType::RawBytes, DataType::Any));
         assert!(are_types_compatible(DataType::Tensor, DataType::Any));
         assert!(are_types_compatible(DataType::Audio, DataType::Any));

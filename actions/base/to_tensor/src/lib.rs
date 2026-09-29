@@ -3,7 +3,7 @@ use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Any
+    DataType::Tensor | DataType::Image | DataType::Audio
 }
 
 #[no_mangle]
@@ -556,6 +556,19 @@ mod tests {
             assert!((slice[2] - (10.0 / 255.0)).abs() < 1e-3);
         } else {
             panic!("Expected Payload::Tensor");
+        }
+    }
+
+    #[test]
+    fn test_to_tensor_from_audio() {
+        let audio = core_types::Audio::from_f32_planar(&[0.1f32, -0.2, 0.3], 1, 44100).unwrap();
+        let payload = Payload::Audio(audio);
+        let result = process(payload);
+        if let Payload::Tensor(t) = result {
+            assert_eq!(t.shape.as_slice(), &[3]);
+            assert_eq!(t.as_f32_slice().unwrap(), &[0.1f32, -0.2, 0.3]);
+        } else {
+            panic!("Expected Payload::Tensor from Audio conversion");
         }
     }
 }
