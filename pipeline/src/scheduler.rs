@@ -692,7 +692,7 @@ impl AutoParallelScheduler {
     }
 }
 
-fn extract_dependencies(stmt: &Statement) -> HashSet<String> {
+pub(crate) fn extract_dependencies(stmt: &Statement) -> HashSet<String> {
     let mut reads = HashSet::new();
 
     let Statement::Flow(chain) = stmt;
@@ -766,6 +766,49 @@ fn extract_dependencies(stmt: &Statement) -> HashSet<String> {
     }
 
     reads
+}
+
+pub(crate) fn extract_writes(stmt: &Statement) -> HashSet<String> {
+    let mut writes = HashSet::new();
+
+    let Statement::Flow(chain) = stmt;
+    for step in &chain.steps {
+        match step {
+            FlowStep::Tap(name) => {
+                writes.insert(name.clone());
+            }
+            FlowStep::IfElse(branch) => {
+                for sub_stmt in &branch.then_branch {
+                    writes.extend(extract_writes(sub_stmt));
+                }
+                if let Some(else_branch) = &branch.else_branch {
+                    for sub_stmt in else_branch {
+                        writes.extend(extract_writes(sub_stmt));
+                    }
+                }
+            }
+            FlowStep::Each(each_loop) => {
+                for sub_stmt in &each_loop.body {
+                    writes.extend(extract_writes(sub_stmt));
+                }
+            }
+            FlowStep::Route(route) => {
+                for arm in &route.arms {
+                    for sub_stmt in &arm.body {
+                        writes.extend(extract_writes(sub_stmt));
+                    }
+                }
+                if let Some(default_arm) = &route.default_arm {
+                    for sub_stmt in default_arm {
+                        writes.extend(extract_writes(sub_stmt));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    writes
 }
 
 fn eval_condition(cond: &Condition, env: &EnvRef<'_>, current: Option<&Payload>) -> bool {
