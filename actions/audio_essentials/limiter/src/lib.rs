@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, TensorDType};
+use core_types::{DataType, Payload, RString, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -69,15 +69,27 @@ impl LimiterParams {
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let mut audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'limiter' requires Payload::Audio",
+            ));
+        }
+    };
+
+    if audio.dtype() != TensorDType::F32 {
+        return Payload::Error(RString::from(format!(
+            "Action 'limiter' requires F32 audio samples, found {:?}",
+            audio.dtype()
+        )));
+    }
+
     let mut ceiling_db = -0.1f32;
     let mut release_ms = 50.0f32;
     let mut mode = "brickwall".to_string();
     let mut drive = 1.0f32;
-    let mut sample_rate = 44100.0f32;
-
-    if let Payload::Audio(audio) = &inner_payload {
-        sample_rate = audio.sample_rate as f32;
-    }
+    let mut sample_rate = audio.sample_rate as f32;
 
     if let Some(args) = &args_opt {
         if let Some(c) = args
@@ -116,53 +128,33 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     let params = LimiterParams::new(ceiling_db, release_ms, &mode, drive, sample_rate);
 
-    match inner_payload {
-        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let channel_len = if audio.channels() > 1 {
-                audio.num_samples()
-            } else {
-                0
-            };
-            let samples = audio.tensor.as_f32_slice_mut();
+    let channel_len = if audio.channels() > 1 {
+        audio.num_samples()
+    } else {
+        0
+    };
+    let samples = audio.tensor.as_f32_slice_mut();
 
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Audio(audio)
-        }
-        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
-            let shape = tensor.shape.as_slice();
-            let channel_len = if shape.len() == 2 { shape[1] } else { 0 };
-            let samples = tensor.as_f32_slice_mut();
-
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Tensor(tensor)
-        }
-        other => other,
+    if channel_len > 0 {
+        samples
+            .par_chunks_mut(channel_len)
+            .for_each(|ch| params.process_channel(ch));
+    } else {
+        params.process_channel(samples);
     }
+
+    Payload::Audio(audio)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
+    use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
     fn test_limiter_brickwall() {
         let input_samples = vec![2.0f32, -3.0f32, 1.5f32, -0.2f32];
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 4]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 44100).unwrap();
 
         let mut named = core_types::RVec::new();
         named.push(Tuple2(RString::from("ceiling_db"), RString::from("0.0")));
@@ -172,18 +164,18 @@ mod tests {
         };
 
         let payload = Payload::WithArgs {
-            payload: RBox::new(Payload::Tensor(tensor)),
+            payload: RBox::new(Payload::Audio(audio)),
             args,
         };
 
         let result = process(payload);
-        if let Payload::Tensor(out_t) = result {
-            let out_slice: &[f32] = out_t.as_f32_slice().unwrap();
+        if let Payload::Audio(out_aud) = result {
+            let out_slice: &[f32] = out_aud.as_f32_slice().unwrap();
             for &s in out_slice {
                 assert!(s.abs() <= 1.0 + 1e-5, "Sample exceeded ceiling: {}", s);
             }
         } else {
-            panic!("Expected Payload::Tensor");
+            panic!("Expected Payload::Audio");
         }
     }
 }

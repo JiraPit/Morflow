@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, TensorDType};
+use core_types::{DataType, Payload, RString, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -53,14 +53,26 @@ impl DelayParams {
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let mut audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'delay' requires Payload::Audio",
+            ));
+        }
+    };
+
+    if audio.dtype() != TensorDType::F32 {
+        return Payload::Error(RString::from(format!(
+            "Action 'delay' requires F32 audio samples, found {:?}",
+            audio.dtype()
+        )));
+    }
+
     let mut time_ms = 120.0f32;
     let mut feedback = 0.35f32;
     let mut mix = 0.3f32;
-    let mut sample_rate = 44100.0f32;
-
-    if let Payload::Audio(audio) = &inner_payload {
-        sample_rate = audio.sample_rate as f32;
-    }
+    let mut sample_rate = audio.sample_rate as f32;
 
     if let Some(args) = &args_opt {
         if let Some(t) = args
@@ -94,83 +106,59 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     let params = DelayParams::new(time_ms, feedback, mix, sample_rate);
 
-    match inner_payload {
-        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let channel_len = if audio.channels() > 1 {
-                audio.num_samples()
-            } else {
-                0
-            };
-            let samples = audio.tensor.as_f32_slice_mut();
+    let channel_len = if audio.channels() > 1 {
+        audio.num_samples()
+    } else {
+        0
+    };
+    let samples = audio.tensor.as_f32_slice_mut();
 
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Audio(audio)
-        }
-        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
-            let shape = tensor.shape.as_slice();
-            let channel_len = if shape.len() == 2 { shape[1] } else { 0 };
-            let samples = tensor.as_f32_slice_mut();
-
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Tensor(tensor)
-        }
-        other => other,
+    if channel_len > 0 {
+        samples
+            .par_chunks_mut(channel_len)
+            .for_each(|ch| params.process_channel(ch));
+    } else {
+        params.process_channel(samples);
     }
+
+    Payload::Audio(audio)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
+    use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
     fn test_delay_echo() {
         // Single impulse at index 0 [1.0, 0.0, 0.0, 0.0]
         let input_samples = vec![1.0f32, 0.0f32, 0.0f32, 0.0f32];
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 4]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 1000).unwrap();
 
         // Delay 2 samples at 1000 Hz = 2 ms
         let mut named = core_types::RVec::new();
         named.push(Tuple2(RString::from("time_ms"), RString::from("2.0")));
         named.push(Tuple2(RString::from("feedback"), RString::from("0.0")));
         named.push(Tuple2(RString::from("mix"), RString::from("0.5")));
-        named.push(Tuple2(
-            RString::from("sample_rate"),
-            RString::from("1000.0"),
-        ));
         let args = ActionArgs {
             positional: core_types::RVec::new(),
             named,
         };
 
         let payload = Payload::WithArgs {
-            payload: RBox::new(Payload::Tensor(tensor)),
+            payload: RBox::new(Payload::Audio(audio)),
             args,
         };
 
         let result = process(payload);
-        if let Payload::Tensor(out_t) = result {
-            let out_slice: &[f32] = out_t.as_f32_slice().unwrap();
+        if let Payload::Audio(out_aud) = result {
+            let out_slice: &[f32] = out_aud.as_f32_slice().unwrap();
             // Dry at index 0: 0.5 * 1.0 = 0.5
             assert!((out_slice[0] - 0.5).abs() < 1e-4);
             // Echo at index 2 (2 samples later): 0.5 * 1.0 = 0.5
             assert!((out_slice[2] - 0.5).abs() < 1e-4);
         } else {
-            panic!("Expected Payload::Tensor");
+            panic!("Expected Payload::Audio");
         }
     }
 }

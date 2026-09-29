@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, RVec, TensorDType};
+use core_types::{DataType, Payload, RString, RVec};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -43,35 +43,19 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    let (planar_f32, channels, num_samples, sample_rate) = match inner_payload {
-        Payload::Audio(audio) => {
-            let ch = audio.channels().max(1);
-            let samples = audio.num_samples();
-            let sr = target_sample_rate.unwrap_or(audio.sample_rate);
-            let f32_vec = audio.to_vec_f32();
-            (f32_vec, ch, samples, sr)
+    let audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'to_wav' requires Payload::Audio",
+            ));
         }
-        Payload::Tensor(tensor) => {
-            let shape = tensor.shape.as_slice();
-            let (ch, samples) = match shape.len() {
-                1 => (1, shape[0]),
-                2 => (shape[0], shape[1]),
-                _ => (1, tensor.num_elements()),
-            };
-            let sr = target_sample_rate.unwrap_or(44100);
-            let f32_vec = if tensor.dtype == TensorDType::F32 {
-                tensor.to_vec_f32()
-            } else {
-                let bytes = tensor.to_contiguous_bytes();
-                bytes.iter().map(|&b| (b as f32 - 128.0) / 128.0).collect()
-            };
-            (f32_vec, ch, samples, sr)
-        }
-        Payload::Data { buffer } => {
-            return Payload::Data { buffer };
-        }
-        other => return other,
     };
+
+    let channels = audio.channels().max(1);
+    let num_samples = audio.num_samples();
+    let sample_rate = target_sample_rate.unwrap_or(audio.sample_rate);
+    let planar_f32 = audio.to_vec_f32();
 
     let wav_bytes = encode_wav_binary(
         &planar_f32,

@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, RString, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -74,12 +74,24 @@ fn resample_channel_sinc(
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
-    let mut from_rate = 48000.0f32;
-    let mut to_rate = 44100.0f32;
+    let audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'resample' requires Payload::Audio",
+            ));
+        }
+    };
 
-    if let Payload::Audio(audio) = &inner_payload {
-        from_rate = audio.sample_rate as f32;
+    if audio.dtype() != TensorDType::F32 {
+        return Payload::Error(RString::from(format!(
+            "Action 'resample' requires F32 audio samples, found {:?}",
+            audio.dtype()
+        )));
     }
+
+    let mut from_rate = audio.sample_rate as f32;
+    let mut to_rate = 44100.0f32;
 
     if let Some(args) = &args_opt {
         if let Some(fr) = args
@@ -101,104 +113,64 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
     }
 
-    match inner_payload {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
-            let samples = match audio.as_f32_slice() {
-                Some(s) => s,
-                None => return Payload::Audio(audio),
-            };
-            let num_channels = audio.channels();
-            let channel_len = audio.num_samples();
+    let samples = match audio.as_f32_slice() {
+        Some(s) => s,
+        None => return Payload::Audio(audio),
+    };
+    let num_channels = audio.channels();
+    let channel_len = audio.num_samples();
 
-            if num_channels > 1 {
-                let channel_slices: Vec<&[f32]> = (0..num_channels)
-                    .map(|ch| &samples[ch * channel_len..(ch + 1) * channel_len])
-                    .collect();
+    if num_channels > 1 {
+        let channel_slices: Vec<&[f32]> = (0..num_channels)
+            .map(|ch| &samples[ch * channel_len..(ch + 1) * channel_len])
+            .collect();
 
-                let resampled_channels: Vec<Vec<f32>> = channel_slices
-                    .into_par_iter()
-                    .map(|ch| resample_channel_sinc(ch, from_rate, to_rate, 8))
-                    .collect();
+        let resampled_channels: Vec<Vec<f32>> = channel_slices
+            .into_par_iter()
+            .map(|ch| resample_channel_sinc(ch, from_rate, to_rate, 8))
+            .collect();
 
-                let out_channel_len = resampled_channels.first().map(|v| v.len()).unwrap_or(0);
-                let mut combined = Vec::with_capacity(num_channels * out_channel_len);
-                for ch_data in resampled_channels {
-                    combined.extend_from_slice(&ch_data);
-                }
-
-                let out_tensor =
-                    Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
-                        .unwrap_or_else(|_| audio.tensor.clone());
-                let out_audio = core_types::Audio {
-                    tensor: out_tensor,
-                    sample_rate: to_rate as u32,
-                    channel_layout: audio.channel_layout,
-                    layout: audio.layout,
-                };
-                Payload::Audio(out_audio)
-            } else {
-                let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
-                let out_len = resampled.len();
-                let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
-                    .unwrap_or_else(|_| audio.tensor.clone());
-                let out_audio = core_types::Audio {
-                    tensor: out_tensor,
-                    sample_rate: to_rate as u32,
-                    channel_layout: audio.channel_layout,
-                    layout: audio.layout,
-                };
-                Payload::Audio(out_audio)
-            }
+        let out_channel_len = resampled_channels.first().map(|v| v.len()).unwrap_or(0);
+        let mut combined = Vec::with_capacity(num_channels * out_channel_len);
+        for ch_data in resampled_channels {
+            combined.extend_from_slice(&ch_data);
         }
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
-            let samples = tensor.to_vec_f32();
-            let shape = tensor.shape.as_slice();
-            if shape.len() == 2 {
-                let num_channels = shape[0];
-                let channel_len = shape[1];
 
-                let channel_slices: Vec<&[f32]> = (0..num_channels)
-                    .map(|ch| &samples[ch * channel_len..(ch + 1) * channel_len])
-                    .collect();
-
-                // Resample all channels in parallel across Rayon workers
-                let resampled_channels: Vec<Vec<f32>> = channel_slices
-                    .into_par_iter()
-                    .map(|ch| resample_channel_sinc(ch, from_rate, to_rate, 8))
-                    .collect();
-
-                let out_channel_len = resampled_channels.first().map(|v| v.len()).unwrap_or(0);
-                let mut combined = Vec::with_capacity(num_channels * out_channel_len);
-                for ch_data in resampled_channels {
-                    combined.extend_from_slice(&ch_data);
-                }
-
-                let out_tensor =
-                    Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
-                        .unwrap_or_else(|_| tensor.clone());
-                Payload::Tensor(out_tensor)
-            } else {
-                let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8);
-                let out_len = resampled.len();
-                let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
-                    .unwrap_or_else(|_| tensor.clone());
-                Payload::Tensor(out_tensor)
-            }
-        }
-        other => other,
+        let out_tensor =
+            Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
+                .unwrap_or_else(|_| audio.tensor.clone());
+        let out_audio = core_types::Audio {
+            tensor: out_tensor,
+            sample_rate: to_rate as u32,
+            channel_layout: audio.channel_layout,
+            layout: audio.layout,
+        };
+        Payload::Audio(out_audio)
+    } else {
+        let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
+        let out_len = resampled.len();
+        let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
+            .unwrap_or_else(|_| audio.tensor.clone());
+        let out_audio = core_types::Audio {
+            tensor: out_tensor,
+            sample_rate: to_rate as u32,
+            channel_layout: audio.channel_layout,
+            layout: audio.layout,
+        };
+        Payload::Audio(out_audio)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tuple2};
+    use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
     fn test_resample_ratio() {
         // 100 samples at 48000 Hz resampled to 24000 Hz -> 50 samples
         let input_samples: Vec<f32> = (0..100).map(|i| (i as f32 * 0.1).sin()).collect();
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 100]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 48000).unwrap();
 
         let mut named = core_types::RVec::new();
         named.push(Tuple2(RString::from("from_rate"), RString::from("48000.0")));
@@ -209,15 +181,16 @@ mod tests {
         };
 
         let payload = Payload::WithArgs {
-            payload: RBox::new(Payload::Tensor(tensor)),
+            payload: RBox::new(Payload::Audio(audio)),
             args,
         };
 
         let result = process(payload);
-        if let Payload::Tensor(out_t) = result {
-            assert_eq!(out_t.shape.as_slice(), &[1, 50]);
+        if let Payload::Audio(out_aud) = result {
+            assert_eq!(out_aud.sample_rate, 24000);
+            assert_eq!(out_aud.num_samples(), 50);
         } else {
-            panic!("Expected Payload::Tensor");
+            panic!("Expected Payload::Audio");
         }
     }
 }

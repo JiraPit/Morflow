@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::RawBytes
+    DataType::RawBytes | DataType::Tensor
 }
 
 #[no_mangle]

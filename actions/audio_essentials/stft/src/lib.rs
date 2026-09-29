@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{DataType, Payload, RString, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -125,6 +125,22 @@ fn next_power_of_two(mut x: usize) -> usize {
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'stft' requires Payload::Audio",
+            ));
+        }
+    };
+
+    if audio.dtype() != TensorDType::F32 {
+        return Payload::Error(RString::from(format!(
+            "Action 'stft' requires F32 audio samples, found {:?}",
+            audio.dtype()
+        )));
+    }
+
     let mut n_fft = 1024usize;
     let mut hop_size = 256usize;
 
@@ -151,76 +167,61 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let num_bins = fft_size / 2 + 1;
     let window = compute_hann_window(n_fft);
 
-    let (num_channels, channel_len, tensor) = match inner_payload {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
-            let ch = audio.channels();
-            let len = audio.num_samples();
-            (ch, len, audio.tensor)
-        }
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
-            let shape = tensor.shape.as_slice();
-            let (ch, len) = if shape.len() == 2 {
-                (shape[0], shape[1])
-            } else {
-                (1, tensor.num_elements())
-            };
-            (ch, len, tensor)
-        }
-        other => return other,
-    };
+    let num_channels = audio.channels();
+    let channel_len = audio.num_samples();
+    let tensor = audio.tensor;
 
     let samples = tensor.to_vec_f32();
     if channel_len < n_fft {
         return Payload::Tensor(tensor);
     }
 
-        let num_frames = (channel_len - n_fft) / hop_size + 1;
+    let num_frames = (channel_len - n_fft) / hop_size + 1;
+    let mut all_spectrograms = Vec::with_capacity(num_channels * num_bins * num_frames);
 
-        let mut all_spectrograms = Vec::with_capacity(num_channels * num_bins * num_frames);
+    for ch in 0..num_channels {
+        let ch_samples = &samples[ch * channel_len..(ch + 1) * channel_len];
 
-        for ch in 0..num_channels {
-            let ch_samples = &samples[ch * channel_len..(ch + 1) * channel_len];
+        // Compute STFT frames in parallel across Rayon workers
+        let frames: Vec<Vec<f32>> = (0..num_frames)
+            .into_par_iter()
+            .map(|f_idx| {
+                let start = f_idx * hop_size;
+                let mut frame_buf = vec![Complex::default(); fft_size];
 
-            // Compute STFT frames in parallel across Rayon workers
-            let frames: Vec<Vec<f32>> = (0..num_frames)
-                .into_par_iter()
-                .map(|f_idx| {
-                    let start = f_idx * hop_size;
-                    let mut frame_buf = vec![Complex::default(); fft_size];
-
-                    for i in 0..n_fft {
-                        if start + i < ch_samples.len() {
-                            frame_buf[i] = Complex::new(ch_samples[start + i] * window[i], 0.0);
-                        }
+                for i in 0..n_fft {
+                    if start + i < ch_samples.len() {
+                        frame_buf[i] = Complex::new(ch_samples[start + i] * window[i], 0.0);
                     }
-
-                    fft_radix2(&mut frame_buf);
-
-                    // Take first (N/2 + 1) magnitude bins
-                    frame_buf[0..num_bins].iter().map(|c| c.mag()).collect()
-                })
-                .collect();
-
-            // Format into [bins, frames] order for this channel
-            for bin_idx in 0..num_bins {
-                for frame_idx in 0..num_frames {
-                    all_spectrograms.push(frames[frame_idx][bin_idx]);
                 }
+
+                fft_radix2(&mut frame_buf);
+
+                // Take first (N/2 + 1) magnitude bins
+                frame_buf[0..num_bins].iter().map(|c| c.mag()).collect()
+            })
+            .collect();
+
+        // Format into [bins, frames] order for this channel
+        for bin_idx in 0..num_bins {
+            for frame_idx in 0..num_frames {
+                all_spectrograms.push(frames[frame_idx][bin_idx]);
             }
         }
+    }
 
-        // Output tensor shape: [channels, freq_bins, time_frames]
-        let out_tensor =
-            Tensor::from_f32_vec(all_spectrograms, vec![num_channels, num_bins, num_frames])
-                .unwrap_or_else(|_| tensor.clone());
+    // Output tensor shape: [channels, freq_bins, time_frames]
+    let out_tensor =
+        Tensor::from_f32_vec(all_spectrograms, vec![num_channels, num_bins, num_frames])
+            .unwrap_or_else(|_| tensor.clone());
 
-        Payload::Tensor(out_tensor)
+    Payload::Tensor(out_tensor)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tuple2};
+    use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
     fn test_stft_dimensions() {
@@ -228,7 +229,7 @@ mod tests {
         // num_frames = (1024 - 256) / 128 + 1 = 7 frames
         // num_bins = 256 / 2 + 1 = 129 bins
         let input_samples: Vec<f32> = (0..1024).map(|i| (i as f32 * 0.1).sin()).collect();
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 1024]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 44100).unwrap();
 
         let mut named = core_types::RVec::new();
         named.push(Tuple2(RString::from("n_fft"), RString::from("256")));
@@ -239,7 +240,7 @@ mod tests {
         };
 
         let payload = Payload::WithArgs {
-            payload: RBox::new(Payload::Tensor(tensor)),
+            payload: RBox::new(Payload::Audio(audio)),
             args,
         };
 

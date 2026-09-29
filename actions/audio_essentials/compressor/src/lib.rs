@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, TensorDType};
+use core_types::{DataType, Payload, RString, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -95,17 +95,29 @@ impl CompressorParams {
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let mut audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'compressor' requires Payload::Audio",
+            ));
+        }
+    };
+
+    if audio.dtype() != TensorDType::F32 {
+        return Payload::Error(RString::from(format!(
+            "Action 'compressor' requires F32 audio samples, found {:?}",
+            audio.dtype()
+        )));
+    }
+
     let mut threshold_db = -12.0f32;
     let mut ratio = 4.0f32;
     let mut attack_ms = 10.0f32;
     let mut release_ms = 100.0f32;
     let mut knee_db = 2.0f32;
     let mut makeup_db = 0.0f32;
-    let mut sample_rate = 44100.0f32;
-
-    if let Payload::Audio(audio) = &inner_payload {
-        sample_rate = audio.sample_rate as f32;
-    }
+    let mut sample_rate = audio.sample_rate as f32;
 
     if let Some(args) = &args_opt {
         if let Some(t) = args
@@ -170,54 +182,34 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         sample_rate,
     );
 
-    match inner_payload {
-        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let channel_len = if audio.channels() > 1 {
-                audio.num_samples()
-            } else {
-                0
-            };
-            let samples = audio.tensor.as_f32_slice_mut();
+    let channel_len = if audio.channels() > 1 {
+        audio.num_samples()
+    } else {
+        0
+    };
+    let samples = audio.tensor.as_f32_slice_mut();
 
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Audio(audio)
-        }
-        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
-            let shape = tensor.shape.as_slice();
-            let channel_len = if shape.len() == 2 { shape[1] } else { 0 };
-            let samples = tensor.as_f32_slice_mut();
-
-            if channel_len > 0 {
-                samples
-                    .par_chunks_mut(channel_len)
-                    .for_each(|ch| params.process_channel(ch));
-            } else {
-                params.process_channel(samples);
-            }
-
-            Payload::Tensor(tensor)
-        }
-        other => other,
+    if channel_len > 0 {
+        samples
+            .par_chunks_mut(channel_len)
+            .for_each(|ch| params.process_channel(ch));
+    } else {
+        params.process_channel(samples);
     }
+
+    Payload::Audio(audio)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
+    use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
     fn test_compressor_gain_reduction() {
         // High level signal at 1.0 (0 dBFS) with threshold -20dB
         let input_samples = vec![1.0f32; 1000];
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 1000]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 44100).unwrap();
 
         let mut named = core_types::RVec::new();
         named.push(Tuple2(
@@ -232,13 +224,13 @@ mod tests {
         };
 
         let payload = Payload::WithArgs {
-            payload: RBox::new(Payload::Tensor(tensor)),
+            payload: RBox::new(Payload::Audio(audio)),
             args,
         };
 
         let result = process(payload);
-        if let Payload::Tensor(out_t) = result {
-            let out_slice: &[f32] = out_t.as_f32_slice().unwrap();
+        if let Payload::Audio(out_aud) = result {
+            let out_slice: &[f32] = out_aud.as_f32_slice().unwrap();
             // Gain should be significantly reduced at steady state (< 0.5)
             let end_sample = out_slice[999];
             assert!(
@@ -247,7 +239,7 @@ mod tests {
                 end_sample
             );
         } else {
-            panic!("Expected Payload::Tensor");
+            panic!("Expected Payload::Audio");
         }
     }
 }

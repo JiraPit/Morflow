@@ -63,39 +63,40 @@ fn find_token_span(source: &str, token: &str, occurrence: usize) -> std::ops::Ra
     }
 }
 
-/// Checks compatibility between output of previous step and required input of next action
+/// Checks compatibility between output of previous step (source_type)
+/// and required/accepted input of next action (target_input_type).
 fn are_types_compatible(source_type: DataType, target_input_type: DataType) -> bool {
-    if source_type == target_input_type {
+    // 1. Direct type intersection: does target accept this source type?
+    // e.g. target accepts (RawBytes | Tensor), source is RawBytes -> true
+    // e.g. target accepts Audio, source is Audio -> true
+    if target_input_type.intersects(source_type) {
         return true;
     }
-    // Universal converters accepting raw bytes
-    if target_input_type == DataType::RawBytes {
+
+    // 2. Encapsulated Tensor unpacking:
+    // Audio and Image are specialized data types that encapsulate an underlying Tensor.
+    // Therefore, if the target action accepts Tensor, an Audio or Image can be unpacked as a Tensor.
+    if target_input_type.intersects(DataType::Tensor)
+        && (source_type == DataType::Audio || source_type == DataType::Image)
+    {
         return true;
     }
-    match (source_type, target_input_type) {
-        // Disallow direct piping between Audio and Image without conversion
-        (DataType::Audio, DataType::Image) => false,
-        (DataType::Image, DataType::Audio) => false,
-        // Audio and Image can be consumed as generic Tensors (they encapsulate a Tensor)
-        (DataType::Audio, DataType::Tensor) => true,
-        (DataType::Image, DataType::Tensor) => true,
-        // Raw tensors require explicit conversion to Audio/Image (e.g. to_audio, to_image)
-        (DataType::Tensor, DataType::Audio) => false,
-        (DataType::Tensor, DataType::Image) => false,
-        (DataType::Composite, DataType::Tensor) => true,
-        (DataType::Tensor, DataType::Composite) => true,
-        _ => false,
+
+    // 3. Composite tensor unpacking:
+    if (source_type == DataType::Composite && target_input_type.intersects(DataType::Tensor))
+        || (source_type == DataType::Tensor && target_input_type.intersects(DataType::Composite))
+    {
+        return true;
     }
+
+    // Notice: If target_input_type is strictly DataType::Audio, and source_type is DataType::Tensor,
+    // target_input_type.intersects(source_type) is FALSE.
+    // Audio actions (resample, biquad_filter, etc.) ONLY accept Audio, so Tensor -> Audio is REJECTED!
+    false
 }
 
-fn format_data_type(dt: DataType) -> &'static str {
-    match dt {
-        DataType::RawBytes => "RawBytes",
-        DataType::Tensor => "Tensor",
-        DataType::Composite => "Composite",
-        DataType::Image => "Image",
-        DataType::Audio => "Audio",
-    }
+fn format_data_type(dt: DataType) -> String {
+    dt.to_string()
 }
 
 /// Executes the comprehensive static check & dry run on a .morf file
@@ -588,7 +589,7 @@ pub fn check_pipeline(
                     .get(&p.name)
                     .and_then(|t| *t)
                     .map(format_data_type)
-                    .unwrap_or("Payload (Any)");
+                    .unwrap_or_else(|| "Payload (Any)".to_string());
                 if let Some(def) = &p.default_value {
                     format!("${}: {} = {:?}", p.name, ty, def)
                 } else {
@@ -712,4 +713,52 @@ pub fn check_pipeline(
     ));
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::DataType;
+
+    #[test]
+    fn test_datatype_bitmask_and_formatting() {
+        let combined = DataType::RawBytes | DataType::Tensor;
+        assert!(combined.contains(DataType::RawBytes));
+        assert!(combined.contains(DataType::Tensor));
+        assert!(!combined.contains(DataType::Audio));
+        assert_eq!(format_data_type(combined), "RawBytes | Tensor");
+        assert_eq!(format_data_type(DataType::Audio), "Audio");
+        assert_eq!(format_data_type(DataType::Any), "Any");
+    }
+
+    #[test]
+    fn test_are_types_compatible_audio_exclusivity() {
+        let audio_action_input = DataType::Audio;
+        let bridge_action_input = DataType::RawBytes | DataType::Tensor;
+        let generic_tensor_input = DataType::Tensor;
+
+        // 1. Audio actions strictly accept Audio
+        assert!(are_types_compatible(DataType::Audio, audio_action_input));
+        assert!(!are_types_compatible(DataType::Tensor, audio_action_input), "Tensor must not be piped directly into Audio action");
+        assert!(!are_types_compatible(DataType::RawBytes, audio_action_input), "RawBytes must not be piped directly into Audio action");
+        assert!(!are_types_compatible(DataType::Image, audio_action_input), "Image must not be piped directly into Audio action");
+
+        // 2. to_audio accepts RawBytes, Tensor, and Audio / Image (via Tensor)
+        assert!(are_types_compatible(DataType::RawBytes, bridge_action_input));
+        assert!(are_types_compatible(DataType::Tensor, bridge_action_input));
+        assert!(are_types_compatible(DataType::Audio, bridge_action_input));
+        assert!(are_types_compatible(DataType::Image, bridge_action_input));
+
+        // 3. Audio & Image can be consumed as generic Tensors
+        assert!(are_types_compatible(DataType::Audio, generic_tensor_input));
+        assert!(are_types_compatible(DataType::Image, generic_tensor_input));
+        assert!(are_types_compatible(DataType::Tensor, generic_tensor_input));
+        assert!(!are_types_compatible(DataType::RawBytes, generic_tensor_input));
+
+        // 4. Any accepts everything
+        assert!(are_types_compatible(DataType::RawBytes, DataType::Any));
+        assert!(are_types_compatible(DataType::Tensor, DataType::Any));
+        assert!(are_types_compatible(DataType::Audio, DataType::Any));
+        assert!(are_types_compatible(DataType::Image, DataType::Any));
+    }
 }

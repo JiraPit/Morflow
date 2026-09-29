@@ -540,22 +540,22 @@ mod tests {
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile DSP pipeline");
         let input_samples: Vec<f32> = (0..200).map(|i| (i as f32 * 0.05).sin() * 0.5).collect();
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 200]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 44100).unwrap();
 
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Failed to execute DSP pipeline");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(out_t) = result {
-            assert_eq!(out_t.shape.as_slice(), &[1, 200]);
-            let peak = out_t.peak_abs();
+        if let Payload::Audio(out_aud) = result {
+            assert_eq!(out_aud.num_samples(), 200);
+            let peak = out_aud.tensor.peak_abs();
             assert!(
                 (peak - 0.9).abs() < 1e-3,
                 "Expected normalized peak near 0.9, got {}",
                 peak
             );
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Audio output");
         }
     }
 
@@ -572,17 +572,17 @@ mod tests {
         let right: Vec<f32> = (0..100).map(|i| (i as f32 * 0.1).cos()).collect();
         let mut combined = left;
         combined.extend(right);
-        let tensor = Tensor::from_f32_shape(&combined, vec![2, 100]).unwrap();
+        let audio = Audio::from_f32_planar(&combined, 2, 44100).unwrap();
 
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Failed to run stereo pipeline");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(out_t) = result {
-            assert_eq!(out_t.shape.as_slice(), &[2, 100]);
-            assert!(out_t.peak_abs() > 0.0);
+        if let Payload::Audio(out_aud) = result {
+            assert_eq!(out_aud.tensor.shape.as_slice(), &[2, 100]);
+            assert!(out_aud.tensor.peak_abs() > 0.0);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Audio output");
         }
     }
 
@@ -597,10 +597,10 @@ mod tests {
         let mut pipeline =
             Morflow::from_str(morf_src).expect("Failed to compile spectral pipeline");
         let input_samples: Vec<f32> = (0..1024).map(|i| (i as f32 * 0.05).sin()).collect();
-        let tensor = Tensor::from_f32_shape(&input_samples, vec![1, 1024]).unwrap();
+        let audio = Audio::from_f32_planar(&input_samples, 1, 48000).unwrap();
 
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Failed to run spectral pipeline");
         let result = outputs.into_single().expect("Expected single output");
         if let Payload::Tensor(out_t) = result {
@@ -730,27 +730,27 @@ mod tests {
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
-        let tensor = Tensor::from_f32_slice(&[1.0, 2.0, 3.0]);
+        let audio = Audio::from_f32_planar(&[1.0, 2.0, 3.0], 1, 44100).unwrap();
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Execution failed");
 
         assert_eq!(outputs.len(), 2);
         assert!(outputs.contains_key("boosted"));
         assert!(outputs.contains_key("amplified_final"));
 
-        if let Payload::Tensor(boosted) = &outputs["boosted"] {
+        if let Payload::Audio(boosted) = &outputs["boosted"] {
             let slice = boosted.as_f32_slice().unwrap();
             assert_eq!(slice, &[2.0, 4.0, 6.0]);
         } else {
-            panic!("Expected Tensor for boosted");
+            panic!("Expected Audio for boosted");
         }
 
-        if let Payload::Tensor(final_t) = &outputs["amplified_final"] {
-            let slice = final_t.as_f32_slice().unwrap();
+        if let Payload::Audio(final_a) = &outputs["amplified_final"] {
+            let slice = final_a.as_f32_slice().unwrap();
             assert_eq!(slice, &[6.0, 12.0, 18.0]);
         } else {
-            panic!("Expected Tensor for amplified_final");
+            panic!("Expected Audio for amplified_final");
         }
     }
 
@@ -765,15 +765,15 @@ mod tests {
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
-        let tensor = Tensor::from_f32_slice(&[2.0, 4.0]);
+        let audio = Audio::from_f32_planar(&[2.0, 4.0], 1, 44100).unwrap();
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Execution failed");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(t) = result {
-            assert_eq!(t.as_f32_slice().unwrap(), &[5.0, 10.0]);
+        if let Payload::Audio(a) = result {
+            assert_eq!(a.as_f32_slice().unwrap(), &[5.0, 10.0]);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Audio output");
         }
     }
 
@@ -789,15 +789,15 @@ mod tests {
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
-        let tensor = Tensor::from_f32_slice(&[1.0, 3.0]);
+        let audio = Audio::from_f32_planar(&[1.0, 3.0], 1, 44100).unwrap();
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Execution failed");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(t) = result {
-            assert_eq!(t.as_f32_slice().unwrap(), &[3.0, 9.0]);
+        if let Payload::Audio(a) = result {
+            assert_eq!(a.as_f32_slice().unwrap(), &[3.0, 9.0]);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Audio output");
         }
     }
 
@@ -810,15 +810,15 @@ mod tests {
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
-        let tensor = Tensor::from_f32_slice(&[2.0, 5.0]);
+        let audio = Audio::from_f32_planar(&[2.0, 5.0], 1, 44100).unwrap();
         let outputs = pipeline
-            .run(Payload::Tensor(tensor))
+            .run(Payload::Audio(audio))
             .expect("Execution failed");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(t) = result {
-            assert_eq!(t.as_f32_slice().unwrap(), &[8.0, 20.0]);
+        if let Payload::Audio(a) = result {
+            assert_eq!(a.as_f32_slice().unwrap(), &[8.0, 20.0]);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Audio output");
         }
     }
 

@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, RVec, TensorDType};
+use core_types::{DataType, Payload, RString, RVec};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -40,33 +40,18 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let is_interleaved = target_layout.eq_ignore_ascii_case("interleaved")
         || target_layout.eq_ignore_ascii_case("packed");
 
-    let (planar_f32, channels, num_samples) = match inner_payload {
-        Payload::Audio(audio) => {
-            let ch = audio.channels().max(1);
-            let samples = audio.num_samples();
-            let f32_vec = audio.to_vec_f32();
-            (f32_vec, ch, samples)
+    let audio = match inner_payload {
+        Payload::Audio(a) => a,
+        _ => {
+            return Payload::Error(RString::from(
+                "Action 'to_pcm' requires Payload::Audio",
+            ));
         }
-        Payload::Tensor(tensor) => {
-            let shape = tensor.shape.as_slice();
-            let (ch, samples) = match shape.len() {
-                1 => (1, shape[0]),
-                2 => (shape[0], shape[1]),
-                _ => (1, tensor.num_elements()),
-            };
-            let f32_vec = if tensor.dtype == TensorDType::F32 {
-                tensor.to_vec_f32()
-            } else {
-                let bytes = tensor.to_contiguous_bytes();
-                bytes.iter().map(|&b| (b as f32 - 128.0) / 128.0).collect()
-            };
-            (f32_vec, ch, samples)
-        }
-        Payload::Data { buffer } => {
-            return Payload::Data { buffer };
-        }
-        other => return other,
     };
+
+    let channels = audio.channels().max(1);
+    let num_samples = audio.num_samples();
+    let planar_f32 = audio.to_vec_f32();
 
     if num_samples == 0 || channels == 0 {
         return Payload::Data {
