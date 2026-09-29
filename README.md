@@ -17,7 +17,7 @@
 
 ---
 
-**Morflow** (pronounced *morph-flow*) is a modular, high-performance data processing engine that allows developers to define media, audio, and tensor pipelines in declarative `.morf` files and execute them identically across many platforms and languages with native speed and zero train-serve skew.
+**Morflow** (pronounced *morph-flow*) is a modular, high-performance data processing engine built for AI/ML input/output processing and tensor transformations. Define processing pipelines for images, audio, tensors and more in declarative `.morf` files and execute them identically across training and production serving with zero-copy, multi-threaded performance and zero train-serve skew.
 
 Instead of hardcoding data transformations into application code or manually copying training scripts into production backends, Morflow provides a portable, high-performance runtime that executes the exact same deterministic operations anywhere.
 
