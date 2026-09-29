@@ -14,14 +14,14 @@ pub extern "C" fn get_output_type() -> DataType {
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
-    let mut axis = 0usize;
+    let mut axis = 0isize;
     if let Some(args) = &args_opt {
         if let Some(ax_str) = args
             .get_named("axis")
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<usize>() {
+            if let Ok(ax) = ax_str.parse::<isize>() {
                 axis = ax;
             }
         }

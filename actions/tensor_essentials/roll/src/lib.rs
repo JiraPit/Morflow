@@ -15,7 +15,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut shift = 0isize;
-    let mut axis = 0usize;
+    let mut axis = 0isize;
 
     if let Some(args) = &args_opt {
         if let Some(sh_str) = args
@@ -32,7 +32,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.get(1).map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<usize>() {
+            if let Ok(ax) = ax_str.parse::<isize>() {
                 axis = ax;
             }
         }
@@ -55,17 +55,23 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 }
 
-fn roll_tensor(tensor: &Tensor, shift: isize, axis: usize) -> Result<Tensor, String> {
+fn roll_tensor(tensor: &Tensor, shift: isize, raw_ax: isize) -> Result<Tensor, String> {
     let r = tensor.rank();
     if r == 0 {
         return Ok(tensor.clone());
     }
-    if axis >= r {
+    let axis_idx = if raw_ax < 0 {
+        raw_ax + r as isize
+    } else {
+        raw_ax
+    };
+    if axis_idx < 0 || axis_idx as usize >= r {
         return Err(format!(
             "Axis {} out of bounds for tensor of rank {}",
-            axis, r
+            raw_ax, r
         ));
     }
+    let axis = axis_idx as usize;
     let dim_len = tensor.shape[axis];
     if dim_len == 0 {
         return Ok(tensor.clone());
@@ -84,7 +90,7 @@ fn roll_tensor(tensor: &Tensor, shift: isize, axis: usize) -> Result<Tensor, Str
         .slice_range(axis, 0, split_idx, 1)
         .map_err(|e| e.to_string())?;
 
-    Tensor::concat(&[part1, part2], axis).map_err(|e| e.to_string())
+    Tensor::concat(&[part1, part2], axis as isize).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

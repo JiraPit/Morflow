@@ -84,12 +84,14 @@ fn compute_matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
             let cur_b = &b_vals[b_offset..b_offset + mat_b_size];
 
             for i in 0..m {
-                for j in 0..n {
-                    let mut sum = 0.0f32;
-                    for p in 0..k_a {
-                        sum += cur_a[i * k_a + p] * cur_b[p * n + j];
+                let a_row = &cur_a[i * k_a..(i + 1) * k_a];
+                let c_row = &mut c_mat[i * n..(i + 1) * n];
+                for p in 0..k_a {
+                    let a_ip = a_row[p];
+                    let b_row = &cur_b[p * n..(p + 1) * n];
+                    for j in 0..n {
+                        c_row[j] += a_ip * b_row[j];
                     }
-                    c_mat[i * n + j] = sum;
                 }
             }
         });

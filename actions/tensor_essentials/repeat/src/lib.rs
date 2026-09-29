@@ -86,7 +86,7 @@ fn repeat_tensor(tensor: &Tensor, repeats: &[usize]) -> Result<Tensor, String> {
     for (axis, &rep) in full_repeats.iter().enumerate() {
         if rep > 1 {
             let clones: Vec<Tensor> = vec![current.clone(); rep];
-            current = Tensor::concat(&clones, axis).map_err(|e| e.to_string())?;
+            current = Tensor::concat(&clones, axis as isize).map_err(|e| e.to_string())?;
         }
     }
 

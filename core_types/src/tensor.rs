@@ -486,18 +486,24 @@ impl Tensor {
     }
 
     /// Swaps two dimensions in O(1) zero-copy by adjusting shape and strides.
-    pub fn transpose(&self, dim0: usize, dim1: usize) -> Result<Self, RString> {
+    pub fn transpose(&self, dim0: isize, dim1: isize) -> Result<Self, RString> {
         let r = self.rank();
-        if dim0 >= r || dim1 >= r {
+        let d0_idx = if dim0 < 0 { dim0 + r as isize } else { dim0 };
+        let d1_idx = if dim1 < 0 { dim1 + r as isize } else { dim1 };
+
+        if d0_idx < 0 || d0_idx as usize >= r || d1_idx < 0 || d1_idx as usize >= r {
             return Err(RString::from(format!(
                 "Transpose dimensions ({}, {}) out of bounds for tensor of rank {}",
                 dim0, dim1, r
             )));
         }
+        let d0 = d0_idx as usize;
+        let d1 = d1_idx as usize;
+
         let mut new_shape = self.shape.clone();
         let mut new_strides = self.strides.clone();
-        new_shape.swap(dim0, dim1);
-        new_strides.swap(dim0, dim1);
+        new_shape.swap(d0, d1);
+        new_strides.swap(d0, d1);
 
         Ok(Self {
             storage: self.storage.clone(),
@@ -546,15 +552,17 @@ impl Tensor {
     }
 
     /// Eliminates dimension(s) of size 1 in O(1) zero-copy.
-    pub fn squeeze(&self, dim: Option<usize>) -> Result<Self, RString> {
+    pub fn squeeze(&self, dim: Option<isize>) -> Result<Self, RString> {
         let r = self.rank();
         if let Some(d) = dim {
-            if d >= r {
+            let d_idx = if d < 0 { d + r as isize } else { d };
+            if d_idx < 0 || d_idx as usize >= r {
                 return Err(RString::from(format!(
                     "Squeeze dimension {} out of bounds for rank {}",
                     d, r
                 )));
             }
+            let d = d_idx as usize;
             if self.shape[d] == 1 {
                 let mut new_shape = Vec::with_capacity(r.saturating_sub(1));
                 let mut new_strides = Vec::with_capacity(r.saturating_sub(1));
@@ -602,14 +610,16 @@ impl Tensor {
     }
 
     /// Inserts a singleton dimension (size 1) at `dim` in O(1) zero-copy.
-    pub fn unsqueeze(&self, dim: usize) -> Result<Self, RString> {
+    pub fn unsqueeze(&self, dim: isize) -> Result<Self, RString> {
         let r = self.rank();
-        if dim > r {
+        let d_idx = if dim < 0 { dim + (r + 1) as isize } else { dim };
+        if d_idx < 0 || d_idx as usize > r {
             return Err(RString::from(format!(
                 "Unsqueeze position {} out of bounds for tensor of rank {}",
                 dim, r
             )));
         }
+        let dim = d_idx as usize;
         let elem_size = self.dtype.element_size();
         let next_stride = if dim < r {
             self.strides[dim] * self.shape[dim] as isize
@@ -723,7 +733,7 @@ impl Tensor {
     }
 
     /// Concatenates multiple tensors along `axis`.
-    pub fn concat(tensors: &[Tensor], axis: usize) -> Result<Self, RString> {
+    pub fn concat(tensors: &[Tensor], raw_axis: isize) -> Result<Self, RString> {
         if tensors.is_empty() {
             return Err(RString::from("Cannot concatenate empty list of tensors"));
         }
@@ -733,12 +743,18 @@ impl Tensor {
 
         let first = &tensors[0];
         let r = first.rank();
-        if axis >= r {
+        let ax_idx = if raw_axis < 0 {
+            raw_axis + r as isize
+        } else {
+            raw_axis
+        };
+        if ax_idx < 0 || ax_idx as usize >= r {
             return Err(RString::from(format!(
                 "Concat axis {} out of bounds for tensor of rank {}",
-                axis, r
+                raw_axis, r
             )));
         }
+        let axis = ax_idx as usize;
         let dtype = first.dtype;
         let base_shape = first.shape.as_slice();
 

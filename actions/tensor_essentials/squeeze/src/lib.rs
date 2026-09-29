@@ -21,7 +21,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<usize>() {
+            if let Ok(ax) = ax_str.parse::<isize>() {
                 axis = Some(ax);
             }
         }
@@ -66,6 +66,24 @@ mod tests {
         let res = process(payload);
         if let Payload::Tensor(out) = res {
             assert_eq!(out.shape.as_slice(), &[4, 1]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+
+        // Squeeze axis -1
+        let mut named_neg = core_types::RVec::new();
+        named_neg.push(Tuple2(RString::from("axis"), RString::from("-1")));
+        let payload_neg = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor.clone())),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named: named_neg,
+            },
+        };
+
+        let res_neg = process(payload_neg);
+        if let Payload::Tensor(out) = res_neg {
+            assert_eq!(out.shape.as_slice(), &[1, 4]);
         } else {
             panic!("Expected Tensor output");
         }

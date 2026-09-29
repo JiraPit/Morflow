@@ -25,7 +25,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<usize>() {
+            if let Ok(ax) = ax_str.parse::<isize>() {
                 axis = Some(ax);
             }
         }
@@ -56,18 +56,31 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
 fn reduce_std(
     tensor: &Tensor,
-    axis: Option<usize>,
+    axis: Option<isize>,
     unbiased: bool,
     keepdim: bool,
 ) -> Result<Tensor, String> {
     let vals = tensor.to_vec_f32();
     let r = tensor.rank();
 
-    if let Some(ax) = axis {
+    if let Some(raw_ax) = axis {
+        let ax = if raw_ax < 0 {
+            let pos = raw_ax + r as isize;
+            if pos < 0 {
+                return Err(format!(
+                    "Axis {} out of bounds for tensor of rank {}",
+                    raw_ax, r
+                ));
+            }
+            pos as usize
+        } else {
+            raw_ax as usize
+        };
+
         if ax >= r {
             return Err(format!(
                 "Axis {} out of bounds for tensor of rank {}",
-                ax, r
+                raw_ax, r
             ));
         }
 

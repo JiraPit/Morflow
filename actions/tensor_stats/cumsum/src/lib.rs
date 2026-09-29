@@ -15,7 +15,7 @@ pub extern "C" fn get_output_type() -> DataType {
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
-    let mut axis = 0usize;
+    let mut axis = 0isize;
 
     if let Some(args) = &args_opt {
         if let Some(ax_str) = args
@@ -23,7 +23,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<usize>() {
+            if let Ok(ax) = ax_str.parse::<isize>() {
                 axis = ax;
             }
         }
@@ -46,17 +46,30 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 }
 
-fn compute_cumsum(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
+fn compute_cumsum(tensor: &Tensor, raw_ax: isize) -> Result<Tensor, String> {
     let vals = tensor.to_vec_f32();
     let r = tensor.rank();
     if r == 0 {
         return Ok(tensor.clone());
     }
 
+    let axis = if raw_ax < 0 {
+        let pos = raw_ax + r as isize;
+        if pos < 0 {
+            return Err(format!(
+                "Axis {} out of bounds for tensor of rank {}",
+                raw_ax, r
+            ));
+        }
+        pos as usize
+    } else {
+        raw_ax as usize
+    };
+
     if axis >= r {
         return Err(format!(
             "Axis {} out of bounds for tensor of rank {}",
-            axis, r
+            raw_ax, r
         ));
     }
 

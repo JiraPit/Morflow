@@ -14,15 +14,15 @@ pub extern "C" fn get_output_type() -> DataType {
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
-    let mut dim0 = 0usize;
-    let mut dim1 = 1usize;
+    let mut dim0 = 0isize;
+    let mut dim1 = 1isize;
 
     if let Some(args) = &args_opt {
         if let Some(d0_str) = args
             .get_named("dim0")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(d0) = d0_str.parse::<usize>() {
+            if let Ok(d0) = d0_str.parse::<isize>() {
                 dim0 = d0;
             }
         }
@@ -30,7 +30,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .get_named("dim1")
             .or_else(|| args.positional.get(1).map(|s| s.as_str()))
         {
-            if let Ok(d1) = d1_str.parse::<usize>() {
+            if let Ok(d1) = d1_str.parse::<isize>() {
                 dim1 = d1;
             }
         }
@@ -76,6 +76,27 @@ mod tests {
         if let Payload::Tensor(out) = res {
             assert_eq!(out.shape.as_slice(), &[3, 2]);
             assert!(!out.is_contiguous());
+            assert_eq!(out.to_vec_f32(), vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+
+        // Transpose with negative dims (-2, -1)
+        let tensor2 = Tensor::from_f32_shape(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let mut named_neg = core_types::RVec::new();
+        named_neg.push(Tuple2(RString::from("dim0"), RString::from("-2")));
+        named_neg.push(Tuple2(RString::from("dim1"), RString::from("-1")));
+        let payload_neg = Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor2)),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named: named_neg,
+            },
+        };
+
+        let res_neg = process(payload_neg);
+        if let Payload::Tensor(out) = res_neg {
+            assert_eq!(out.shape.as_slice(), &[3, 2]);
             assert_eq!(out.to_vec_f32(), vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
         } else {
             panic!("Expected Tensor output");
