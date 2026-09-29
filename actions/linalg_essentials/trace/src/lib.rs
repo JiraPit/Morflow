@@ -20,11 +20,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match compute_trace(&image.tensor) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error("Action 'trace' requires Payload::Tensor".into()),
     }
 }
 

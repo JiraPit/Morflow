@@ -72,16 +72,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(mut img) => {
-            apply_blend_mut(
-                &mut img.tensor,
-                img.layout,
-                mode,
-                opacity,
-                solid_color.as_deref(),
-            );
-            Payload::Image(img)
-        }
         Payload::Tensor(mut tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -93,7 +83,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             apply_blend_mut(&mut tensor, layout, mode, opacity, solid_color.as_deref());
             Payload::Tensor(tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'blend\' requires Payload::Tensor")),
     }
 }
 

@@ -41,15 +41,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e),
         },
-        Payload::Image(image) => match image.tensor.flatten(start_dim, end_dim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        Payload::Audio(audio) => match audio.tensor.flatten(start_dim, end_dim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'flatten\' requires Payload::Tensor")),
     }
 }
 

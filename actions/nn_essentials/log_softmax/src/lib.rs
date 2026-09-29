@@ -33,15 +33,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match compute_log_softmax(&image.tensor, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match compute_log_softmax(&audio.tensor, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'log_softmax\' requires Payload::Tensor")),
     }
 }
 

@@ -1,4 +1,4 @@
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -43,14 +43,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let radius = radius_opt.unwrap_or_else(|| (3.0 * sigma).ceil().max(1.0) as usize);
 
     match inner_payload {
-        Payload::Image(img) => {
-            let res = apply_sharpen(&img.tensor, img.layout, strength, sigma, radius);
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -62,7 +54,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_sharpen(&tensor, layout, strength, sigma, radius);
             Payload::Tensor(res)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'sharpen\' requires Payload::Tensor")),
     }
 }
 

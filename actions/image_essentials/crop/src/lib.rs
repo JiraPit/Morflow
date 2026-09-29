@@ -52,20 +52,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let in_w = img.width();
-            let in_h = img.height();
-            let x0 = crop_x.min(in_w);
-            let y0 = crop_y.min(in_h);
-            let w = crop_w.unwrap_or(in_w.saturating_sub(x0)).min(in_w - x0);
-            let h = crop_h.unwrap_or(in_h.saturating_sub(y0)).min(in_h - y0);
-
-            if let Ok(cropped) = img.crop(y0, y0 + h, x0, x0 + w) {
-                Payload::Image(cropped)
-            } else {
-                Payload::Image(img)
-            }
-        }
         Payload::Tensor(tensor) => {
             let shape = tensor.shape.as_slice();
             let layout = if shape.len() == 3 && shape[2] <= 4 {
@@ -103,7 +89,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
             Payload::Tensor(tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'crop\' requires Payload::Tensor")),
     }
 }
 

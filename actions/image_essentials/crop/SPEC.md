@@ -3,8 +3,8 @@
 Spatial bounding box cropping and sub-region extraction for 2D and 3D tensors.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Image` / `Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Image` / `Payload::Tensor`)
+- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`, `U8`, `I32`
 - **Supported Layouts**: `HWC`, `CHW`, `2D [H, W]`
 

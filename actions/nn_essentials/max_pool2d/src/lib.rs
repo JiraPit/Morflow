@@ -43,11 +43,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match max_pool2d_tensor(&image.tensor, kernel_size, stride) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'max_pool2d\' requires Payload::Tensor")),
     }
 }
 

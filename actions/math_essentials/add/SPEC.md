@@ -3,8 +3,8 @@
 Performs elementwise addition with a scalar value or secondary tensor ($x + v$).
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Tensor` / `Payload::Image` / `Payload::Audio`)
-- **Output Type**: `DataType::Tensor` (`Payload::Tensor` / `Payload::Image` / `Payload::Audio`)
+- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`
 
 ## Parameters

@@ -3,8 +3,8 @@
 Pixel compositing and color blending with solid colors or alpha layers.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Image` / `Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Image` / `Payload::Tensor`)
+- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`, `U8`
 - **Supported Layouts**: `HWC`, `CHW`, `2D [H, W]`
 

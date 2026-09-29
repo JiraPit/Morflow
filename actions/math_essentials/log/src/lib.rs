@@ -48,37 +48,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
             Payload::Tensor(tensor)
         }
-        Payload::Image(mut image) if image.dtype() == TensorDType::F32 => {
-            let slice = image.tensor.as_f32_slice_mut();
-            match base {
-                "2" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log2()),
-                "10" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log10()),
-                _ => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).ln()),
-            }
-            Payload::Image(image)
-        }
-        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let slice = audio.tensor.as_f32_slice_mut();
-            match base {
-                "2" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log2()),
-                "10" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log10()),
-                _ => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).ln()),
-            }
-            Payload::Audio(audio)
-        }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'log\' requires Payload::Tensor")),
     }
 }
 

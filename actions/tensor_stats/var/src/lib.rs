@@ -42,15 +42,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match reduce_var(&image.tensor, axis, unbiased, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match reduce_var(&audio.tensor, axis, unbiased, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error("Action \'var\' requires Payload::Tensor".into()),
     }
 }
 

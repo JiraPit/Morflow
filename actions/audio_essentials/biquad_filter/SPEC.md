@@ -3,8 +3,8 @@
 Direct Form II Transposed IIR digital biquad filter for multi-channel audio equalization and frequency filtering.
 
 ## Interface
-- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
-- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [Channels, Samples]`, `1D [Samples]`
 

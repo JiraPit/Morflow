@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -76,14 +76,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let res = apply_morphology(&img.tensor, img.layout, op, kernel_size, shape, iterations);
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -95,7 +87,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_morphology(&tensor, layout, op, kernel_size, shape, iterations);
             Payload::Tensor(res)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'morphology\' requires Payload::Tensor")),
     }
 }
 

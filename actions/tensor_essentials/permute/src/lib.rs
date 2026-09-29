@@ -55,15 +55,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e),
         },
-        Payload::Image(image) => match image.tensor.permute(&dims) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        Payload::Audio(audio) => match audio.tensor.permute(&dims) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'permute\' requires Payload::Tensor")),
     }
 }
 

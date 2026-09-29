@@ -3,7 +3,7 @@ use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::RawBytes | DataType::Tensor
+    DataType::Tensor
 }
 
 #[no_mangle]
@@ -71,17 +71,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Image(img)
         }
-        Payload::Image(img) => {
-            let converted = tensor_to_image(
-                &img.tensor,
-                target_color.or(Some(img.color_space)),
-                target_dtype,
-                target_layout,
-                denormalize,
-            );
-            Payload::Image(converted)
-        }
-        other => other,
+        _ => Payload::Error(core_types::RString::from(
+            "Action 'to_image' requires Payload::Tensor",
+        )),
     }
 }
 

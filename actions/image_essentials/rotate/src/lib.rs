@@ -1,4 +1,4 @@
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -45,20 +45,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let res = apply_rotate(
-                &img.tensor,
-                img.layout,
-                angle_deg,
-                expand_canvas,
-                fill_value,
-            );
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -70,7 +56,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_rotate(&tensor, layout, angle_deg, expand_canvas, fill_value);
             Payload::Tensor(res)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'rotate\' requires Payload::Tensor")),
     }
 }
 

@@ -23,21 +23,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 .for_each(|x| *x = if *x > 0.0 { x.sqrt() } else { 0.0 });
             Payload::Tensor(tensor)
         }
-        Payload::Image(mut image) if image.dtype() == TensorDType::F32 => {
-            let slice = image.tensor.as_f32_slice_mut();
-            slice
-                .par_iter_mut()
-                .for_each(|x| *x = if *x > 0.0 { x.sqrt() } else { 0.0 });
-            Payload::Image(image)
-        }
-        Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let slice = audio.tensor.as_f32_slice_mut();
-            slice
-                .par_iter_mut()
-                .for_each(|x| *x = if *x > 0.0 { x.sqrt() } else { 0.0 });
-            Payload::Audio(audio)
-        }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'sqrt\' requires Payload::Tensor")),
     }
 }
 

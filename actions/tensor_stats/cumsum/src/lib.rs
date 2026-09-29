@@ -34,15 +34,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match compute_cumsum(&image.tensor, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match compute_cumsum(&audio.tensor, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error("Action \'cumsum\' requires Payload::Tensor".into()),
     }
 }
 

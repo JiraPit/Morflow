@@ -3,7 +3,7 @@
 Converts structured `Audio` or multidimensional sample `Tensor` into a raw PCM byte buffer (`Payload::Data`).
 
 ## Interface
-- **Input Type**: `DataType::Audio` / `DataType::Tensor` (`Payload::Audio`, `Payload::Tensor`, or `Payload::Data`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio`)
 - **Output Type**: `DataType::RawBytes` (`Payload::Data`)
 - **Supported DTypes**: `F32` (normalized `[-1.0, 1.0]`)
 - **Supported Layouts**: `Planar [Channels, Samples]` or `Interleaved [Samples, Channels]`

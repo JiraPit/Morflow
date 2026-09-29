@@ -52,15 +52,11 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(mut img) => {
-            apply_threshold(&mut img.tensor, threshold_opt, max_val_opt, mode);
-            Payload::Image(img)
-        }
         Payload::Tensor(mut tensor) => {
             apply_threshold(&mut tensor, threshold_opt, max_val_opt, mode);
             Payload::Tensor(tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'threshold\' requires Payload::Tensor")),
     }
 }
 

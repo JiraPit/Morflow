@@ -40,7 +40,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
         }
         Payload::Tensor(t) => Payload::Tensor(t),
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'cosine_similarity\' requires Payload::Tensor")),
     }
 }
 

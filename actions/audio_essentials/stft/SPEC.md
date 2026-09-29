@@ -3,7 +3,7 @@
 Short-Time Fourier Transform computing magnitude spectrograms via Radix-2 Cooley-Tukey FFT.
 
 ## Interface
-- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio`)
 - **Output Type**: `DataType::Tensor`
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: Input: `Planar [Channels, Samples]`, Output: `[Channels, FreqBins, TimeFrames]`

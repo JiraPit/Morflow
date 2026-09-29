@@ -38,15 +38,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match reduce_argmax(&image.tensor, axis, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match reduce_argmax(&audio.tensor, axis, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error("Action \'argmax\' requires Payload::Tensor".into()),
     }
 }
 

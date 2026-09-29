@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::manual_memcpy)]
 
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -72,23 +72,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let resized_tensor = resize_tensor(
-                &img.tensor,
-                img.layout,
-                target_w,
-                target_h,
-                scale_x,
-                scale_y,
-                filter,
-                keep_aspect_ratio,
-            );
-            Payload::Image(Image {
-                tensor: resized_tensor,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -109,7 +92,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(resized)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'resize\' requires Payload::Tensor")),
     }
 }
 

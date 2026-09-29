@@ -3,7 +3,7 @@
 Converts raw tensors into strongly-typed `Image` payloads with format validation and denormalization.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Tensor` / `Payload::Image`)
+- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Image` (`Payload::Image`)
 - **Supported DTypes**: Input: `F32`, `U8`; Output: `U8`, `F32`
 - **Supported Layouts**: `HWC`, `CHW`, `2D [H, W]`

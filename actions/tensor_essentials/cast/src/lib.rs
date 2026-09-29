@@ -37,15 +37,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e),
         },
-        Payload::Image(image) => match image.tensor.cast(target_dtype) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        Payload::Audio(audio) => match audio.tensor.cast(target_dtype) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'cast\' requires Payload::Tensor")),
     }
 }
 

@@ -3,7 +3,7 @@
 Applies 2D average pooling over an input spatial tensor or image.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Tensor` / `Payload::Image`)
+- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`
 

@@ -43,15 +43,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match roll_tensor(&image.tensor, shift, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match roll_tensor(&audio.tensor, shift, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'roll\' requires Payload::Tensor")),
     }
 }
 

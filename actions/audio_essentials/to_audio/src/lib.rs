@@ -148,13 +148,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 Err(err) => Payload::Error(err),
             }
         }
-        Payload::Audio(mut audio) => {
-            if let Some(sr) = target_sample_rate {
-                audio.sample_rate = sr;
-            }
-            Payload::Audio(audio)
-        }
-        other => other,
+        _ => Payload::Error(core_types::RString::from(
+            "Action 'to_audio' requires Payload::Data (RawBytes) or Payload::Tensor",
+        )),
     }
 }
 

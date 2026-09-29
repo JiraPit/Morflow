@@ -3,8 +3,8 @@
 Dynamic range compression with soft-knee smoothing, attack/release ballistics, and makeup gain.
 
 ## Interface
-- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
-- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [Channels, Samples]`, `1D [Samples]`
 

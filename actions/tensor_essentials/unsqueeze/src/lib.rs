@@ -32,15 +32,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e),
         },
-        Payload::Image(image) => match image.tensor.unsqueeze(axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        Payload::Audio(audio) => match audio.tensor.unsqueeze(axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'unsqueeze\' requires Payload::Tensor")),
     }
 }
 

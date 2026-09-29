@@ -33,8 +33,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             for item in items {
                 match item {
                     Payload::Tensor(t) => tensors.push(t),
-                    Payload::Image(img) => tensors.push(img.tensor),
-                    Payload::Audio(aud) => tensors.push(aud.tensor),
                     _ => {
                         return Payload::Error(
                             "All items in composite payload must be tensors for concat".into(),
@@ -48,7 +46,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
         }
         Payload::Tensor(t) => Payload::Tensor(t),
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'concat\' requires Payload::Composite or Payload::Tensor")),
     }
 }
 

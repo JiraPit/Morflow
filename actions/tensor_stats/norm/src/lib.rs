@@ -50,15 +50,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             Ok(t) => Payload::Tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        Payload::Image(image) => match reduce_norm(&image.tensor, p_val, is_inf, axis, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        Payload::Audio(audio) => match reduce_norm(&audio.tensor, p_val, is_inf, axis, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
+        _ => Payload::Error("Action \'norm\' requires Payload::Tensor".into()),
     }
 }
 

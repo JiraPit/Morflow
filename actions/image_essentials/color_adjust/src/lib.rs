@@ -52,18 +52,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(mut img) => {
-            adjust_color_tensor(
-                &mut img.tensor,
-                img.layout,
-                brightness,
-                contrast,
-                gamma,
-                saturation,
-                exposure,
-            );
-            Payload::Image(img)
-        }
         Payload::Tensor(mut tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -83,7 +71,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'color_adjust\' requires Payload::Tensor")),
     }
 }
 

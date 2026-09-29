@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::manual_memcpy)]
 
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -97,23 +97,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let res_tensor = apply_pad(
-                &img.tensor,
-                img.layout,
-                pad_top,
-                pad_bottom,
-                pad_left,
-                pad_right,
-                pad_mode,
-                fill_value,
-            );
-            Payload::Image(Image {
-                tensor: res_tensor,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -127,7 +110,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(res_tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'pad\' requires Payload::Tensor")),
     }
 }
 

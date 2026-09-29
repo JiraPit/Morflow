@@ -35,33 +35,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 Err(e) => Payload::Error(e),
             }
         }
-        Payload::Image(image) => {
-            let Some(s_str) = shape_str else {
-                return Payload::Error("reshape action requires 'shape' argument".into());
-            };
-            let parsed_shape = match parse_shape_str(s_str, image.tensor.num_elements()) {
-                Ok(s) => s,
-                Err(e) => return Payload::Error(e),
-            };
-            match image.tensor.reshape(parsed_shape) {
-                Ok(reshaped) => Payload::Tensor(reshaped),
-                Err(e) => Payload::Error(e),
-            }
-        }
-        Payload::Audio(audio) => {
-            let Some(s_str) = shape_str else {
-                return Payload::Error("reshape action requires 'shape' argument".into());
-            };
-            let parsed_shape = match parse_shape_str(s_str, audio.tensor.num_elements()) {
-                Ok(s) => s,
-                Err(e) => return Payload::Error(e),
-            };
-            match audio.tensor.reshape(parsed_shape) {
-                Ok(reshaped) => Payload::Tensor(reshaped),
-                Err(e) => Payload::Error(e),
-            }
-        }
-        other => other,
+                _ => Payload::Error(core_types::RString::from("Action \'reshape\' requires Payload::Tensor")),
     }
 }
 

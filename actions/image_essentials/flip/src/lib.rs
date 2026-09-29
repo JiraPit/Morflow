@@ -1,6 +1,6 @@
 #![allow(clippy::manual_memcpy)]
 
-use core_types::{DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -41,14 +41,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Image(img) => {
-            let res = apply_flip(&img.tensor, img.layout, flip_h, flip_v);
-            Payload::Image(Image {
-                tensor: res,
-                color_space: img.color_space,
-                layout: img.layout,
-            })
-        }
         Payload::Tensor(tensor) => {
             let layout = if tensor.shape.len() == 3 && tensor.shape[2] <= 4 {
                 ImageLayout::Hwc
@@ -60,7 +52,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_flip(&tensor, layout, flip_h, flip_v);
             Payload::Tensor(res)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'flip\' requires Payload::Tensor")),
     }
 }
 

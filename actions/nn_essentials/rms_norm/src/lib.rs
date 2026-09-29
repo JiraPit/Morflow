@@ -48,7 +48,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             });
             Payload::Tensor(tensor)
         }
-        other => other,
+        _ => Payload::Error(core_types::RString::from("Action \'rms_norm\' requires Payload::Tensor")),
     }
 }
 

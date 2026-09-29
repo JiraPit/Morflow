@@ -3,7 +3,7 @@
 Converts binary audio file data (e.g. WAV format), raw PCM sample buffers, or multidimensional numeric tensors into a structured, zero-copy `Payload::Audio` stream.
 
 ## Interface
-- **Input Type**: `DataType::RawBytes` / `DataType::Tensor` (`Payload::Data`, `Payload::Tensor`, or `Payload::Audio`)
+- **Input Type**: `DataType::RawBytes` / `DataType::Tensor` (`Payload::Data` or `Payload::Tensor`)
 - **Output Type**: `DataType::Audio` (`Payload::Audio`)
 - **Supported DTypes**: `F32` (normalized `[-1.0, 1.0]`)
 - **Supported Layouts**: Standard `Planar [Channels, Samples]`
