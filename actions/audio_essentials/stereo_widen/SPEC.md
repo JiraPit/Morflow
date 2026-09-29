@@ -3,8 +3,8 @@
 Mid/Side matrix audio stereo field widener and center channel balance control.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [2, Samples]`, `Planar [Channels >= 2, Samples]`
 

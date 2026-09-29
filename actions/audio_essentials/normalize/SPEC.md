@@ -3,8 +3,8 @@
 Audio peak and RMS level normalization to target amplitude or decibel headroom.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [Channels, Samples]`, `1D [Samples]`
 

@@ -3,8 +3,8 @@
 Fast peak limiter and soft-clipping saturation for peak ceiling enforcement and loudness maximization.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [Channels, Samples]`, `1D [Samples]`
 

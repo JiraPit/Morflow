@@ -3,8 +3,8 @@
 Multi-channel audio amplitude scaling and gain adjustment in linear factor or decibels.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor` / `Payload::Data`)
-- **Output Type**: `DataType::Tensor` (`Payload::Audio` / `Payload::Tensor` / `Payload::Data`)
+- **Input Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor` / `Payload::Data`)
+- **Output Type**: `DataType::Audio` (`Payload::Audio` / `Payload::Tensor` / `Payload::Data`)
 - **Supported DTypes**: `F32`
 - **Supported Layouts**: `Planar [Channels, Samples]`, `1D [Samples]`
 
