@@ -334,6 +334,29 @@ mod tests {
     }
 
     #[test]
+    fn test_compile_error_on_named_emit_inside_each_loop() {
+        let invalid_morf = r#"
+            accept $tensor_in
+
+            $tensor_in >> each ($ch) {
+                $ch >> identity >> emit("channel_out")
+            } >> emit
+        "#;
+
+        let res = Morflow::from_str(invalid_morf);
+        assert!(res.is_err(), "Must reject named emit inside each block");
+        if let Err(MorflowError::Compile(msg)) = res {
+            assert!(
+                msg.contains("'emit' cannot be called inside a nested sub-flow"),
+                "Unexpected message: {}",
+                msg
+            );
+        } else {
+            panic!("Expected MorflowError::Compile error");
+        }
+    }
+
+    #[test]
     fn test_compile_error_on_top_level_variable_reassignment() {
         let invalid_morf = r#"
             accept $source

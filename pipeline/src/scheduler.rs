@@ -131,7 +131,7 @@ impl AutoParallelScheduler {
                         None,
                         &root_env,
                         &mut step_res,
-                        &emitted_outputs,
+                        Some(&emitted_outputs),
                     )?;
 
                     Ok(())
@@ -153,7 +153,7 @@ impl AutoParallelScheduler {
         initial: Option<Payload>,
         env: &EnvRef<'_>,
         step_result: &mut Option<Payload>,
-        emitted_outputs: &Mutex<HashMap<String, Payload>>,
+        emitted_outputs: Option<&Mutex<HashMap<String, Payload>>>,
     ) -> Result<(), MorflowError> {
         let mut current: Option<Payload> = initial;
 
@@ -175,6 +175,12 @@ impl AutoParallelScheduler {
                 }
                 FlowStep::Action(call) => {
                     if call.name == "emit" || call.name == "resurface" {
+                        let Some(emitted_lock) = emitted_outputs else {
+                            return Err(MorflowError::Execution(
+                                "Emission ('emit') is not allowed inside an 'each' block or nested sub-flow".to_string(),
+                            ));
+                        };
+
                         let payload = current
                             .as_ref()
                             .ok_or_else(|| {
@@ -208,7 +214,7 @@ impl AutoParallelScheduler {
                             String::new()
                         };
 
-                        emitted_outputs.lock().unwrap().insert(name, payload);
+                        emitted_lock.lock().unwrap().insert(name, payload);
                         // Pass-through: retain `current` so downstream actions continue seamlessly
                         continue;
                     }
@@ -262,7 +268,7 @@ impl AutoParallelScheduler {
                                 branch_in.take(),
                                 env,
                                 &mut sub_step_res,
-                                emitted_outputs,
+                                None,
                             )?;
                             branch_in = sub_step_res.take();
                         }
@@ -297,7 +303,7 @@ impl AutoParallelScheduler {
                     // AUTO-PARALLELIZATION:
                     // 1. Expand the loop into N independent slice execution sub-flows.
                     // 2. Dispatch them across Rayon's parallel thread pool with zero-copy layered env.
-                    // 3. Independent iterations run 100% in parallel.
+                    // 3. Independent iterations run 100% in parallel (no emission allowed inside each).
                     let slice_results: Result<Vec<Payload>, MorflowError> = (0..num_slices)
                         .into_par_iter()
                         .map(|i| {
@@ -325,7 +331,7 @@ impl AutoParallelScheduler {
                                     iter_in.take(),
                                     &env_ref,
                                     &mut sub_step_res,
-                                    emitted_outputs,
+                                    None,
                                 )?;
                                 iter_in = sub_step_res.take();
                             }
@@ -384,7 +390,7 @@ impl AutoParallelScheduler {
                                 branch_in.take(),
                                 env,
                                 &mut sub_step_res,
-                                emitted_outputs,
+                                None,
                             )?;
                             branch_in = sub_step_res.take();
                         }
