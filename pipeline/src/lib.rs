@@ -11,6 +11,8 @@ pub use outputs::PipelineOutputs;
 pub use registry::{ActionRegistry, LoadedAction};
 pub use resolver::ActionResolver;
 pub use scheduler::AutoParallelScheduler;
+pub use core_types;
+pub use core_types::{Audio, ColorSpace, DataType, Image, Payload, RVec, Tensor};
 
 #[cfg(test)]
 mod tests {
