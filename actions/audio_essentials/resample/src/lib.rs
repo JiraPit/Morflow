@@ -103,12 +103,14 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     match inner_payload {
         Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
-            let samples = audio.to_vec_f32();
-            let shape = audio.tensor.shape.as_slice();
-            if shape.len() == 2 {
-                let num_channels = shape[0];
-                let channel_len = shape[1];
+            let samples = match audio.as_f32_slice() {
+                Some(s) => s,
+                None => return Payload::Audio(audio),
+            };
+            let num_channels = audio.channels();
+            let channel_len = audio.num_samples();
 
+            if num_channels > 1 {
                 let channel_slices: Vec<&[f32]> = (0..num_channels)
                     .map(|ch| &samples[ch * channel_len..(ch + 1) * channel_len])
                     .collect();
@@ -135,7 +137,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 };
                 Payload::Audio(out_audio)
             } else {
-                let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8);
+                let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
                 let out_len = resampled.len();
                 let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
                     .unwrap_or_else(|_| audio.tensor.clone());

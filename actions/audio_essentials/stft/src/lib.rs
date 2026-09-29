@@ -151,24 +151,28 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let num_bins = fft_size / 2 + 1;
     let window = compute_hann_window(n_fft);
 
-    let tensor_opt = match inner_payload {
-        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => Some(audio.tensor),
-        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => Some(tensor),
-        _ => None,
+    let (num_channels, channel_len, tensor) = match inner_payload {
+        Payload::Audio(audio) if audio.dtype() == TensorDType::F32 => {
+            let ch = audio.channels();
+            let len = audio.num_samples();
+            (ch, len, audio.tensor)
+        }
+        Payload::Tensor(tensor) if tensor.dtype == TensorDType::F32 => {
+            let shape = tensor.shape.as_slice();
+            let (ch, len) = if shape.len() == 2 {
+                (shape[0], shape[1])
+            } else {
+                (1, tensor.num_elements())
+            };
+            (ch, len, tensor)
+        }
+        other => return other,
     };
 
-    if let Some(tensor) = tensor_opt {
-        let samples = tensor.to_vec_f32();
-        let shape = tensor.shape.as_slice();
-        let (num_channels, channel_len) = if shape.len() == 2 {
-            (shape[0], shape[1])
-        } else {
-            (1, samples.len())
-        };
-
-        if channel_len < n_fft {
-            return Payload::Tensor(tensor);
-        }
+    let samples = tensor.to_vec_f32();
+    if channel_len < n_fft {
+        return Payload::Tensor(tensor);
+    }
 
         let num_frames = (channel_len - n_fft) / hop_size + 1;
 
@@ -211,11 +215,6 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 .unwrap_or_else(|_| tensor.clone());
 
         Payload::Tensor(out_tensor)
-    } else {
-        Payload::Error(core_types::RString::from(
-            "STFT requires an Audio or F32 Tensor input",
-        ))
-    }
 }
 
 #[cfg(test)]

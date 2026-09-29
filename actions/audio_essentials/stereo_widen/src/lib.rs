@@ -38,9 +38,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
     match inner_payload {
         Payload::Audio(mut audio) if audio.dtype() == TensorDType::F32 => {
-            let shape = audio.tensor.shape.as_slice();
-            if shape.len() == 2 && shape[0] >= 2 {
-                let num_samples = shape[1];
+            if audio.channels() >= 2 {
+                let num_samples = audio.num_samples();
                 let all_samples = audio.tensor.as_f32_slice_mut();
                 let (left_channel, rest) = all_samples.split_at_mut(num_samples);
                 let (right_channel, _) = rest.split_at_mut(num_samples);
