@@ -1,11 +1,14 @@
 use std::env;
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::engine::collect_action_names;
 use crate::resolver::ActionResolver;
 use clap::{Parser, Subcommand};
+use rich_rust::prelude::*;
+use rich_rust::r#box::ROUNDED;
+use rich_rust::renderables::markdown::Markdown;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -361,7 +364,8 @@ where
     match run_command(cli.command) {
         Ok(()) => 0,
         Err(err) => {
-            eprintln!("Error: {}", err);
+            let console = Console::new();
+            console.print(&format!("[bold red]Error:[/] {}", err));
             1
         }
     }
@@ -389,11 +393,13 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             let resolver = ActionResolver::from_imports(&pipeline.imports);
             let action_names = collect_action_names(&pipeline.statements);
 
+            let console = Console::new();
+
             if action_names.is_empty() {
-                println!(
-                    "No action calls found in '{}'. Nothing to prepare.",
+                console.print(&format!(
+                    "[yellow]⚠ No action calls found in '{}'. Nothing to prepare.[/]",
                     file.display()
-                );
+                ));
                 return Ok(());
             }
 
@@ -402,13 +408,41 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             let cache_dir = resolve_action_cache_dir(path);
             fs::create_dir_all(&cache_dir)?;
 
-            println!("==================================================");
-            println!(" Morflow Action Pre-Downloader (morflow prep)");
-            println!(" Pipeline: {}", file.display());
-            println!(" Host Platform: {} (.{})", platform, ext);
-            println!(" Cache Directory: {}", cache_dir.display());
-            println!(" Repository: {}", repo);
-            println!("==================================================");
+            console.rule(Some("Morflow Action Pre-Downloader"));
+            console.print(&format!(
+                "  [bold cyan]Pipeline:[/]        [green]{}[/]",
+                file.display()
+            ));
+            console.print(&format!(
+                "  [bold cyan]Host Platform:[/]   [yellow]{}[/] (.{})",
+                platform, ext
+            ));
+            console.print(&format!(
+                "  [bold cyan]Cache Directory:[/] [dim]{}[/]",
+                cache_dir.display()
+            ));
+            console.print(&format!(
+                "  [bold cyan]Repository:[/]      [blue]{}[/]",
+                repo
+            ));
+            console.print("");
+
+            let mut prep_table = Table::new()
+                .box_style(&ROUNDED)
+                .border_style(Style::parse("bright_cyan").unwrap_or_default())
+                .header_style(Style::parse("bold white on blue").unwrap_or_default())
+                .with_column(Column::new("Action Pack").no_wrap())
+                .with_column(Column::new("Action").no_wrap())
+                .with_column(
+                    Column::new("Version")
+                        .width(10)
+                        .justify(JustifyMethod::Center),
+                )
+                .with_column(
+                    Column::new("Status")
+                        .width(18)
+                        .justify(JustifyMethod::Center),
+                );
 
             let mut prepared_count = 0;
             let mut skipped_count = 0;
@@ -427,15 +461,15 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     cache_dir.join(format!("{}_action.{}", real_action_name, ext));
 
                 if !force && (target_file_pack.exists() || target_file_root.exists()) {
-                    println!("  [✓ Cached] [{}] {}", pack, real_action_name);
+                    prep_table.add_row_markup([
+                        pack.as_str(),
+                        real_action_name.as_str(),
+                        format!("v{}", action_version).as_str(),
+                        "[bold green]✓ Cached[/]",
+                    ]);
                     skipped_count += 1;
                     continue;
                 }
-
-                println!(
-                    "  [↓ Downloading] [{}] {} v{}...",
-                    pack, real_action_name, action_version
-                );
 
                 // Build candidate release download URLs
                 let binary_filename = format!(
@@ -467,10 +501,12 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                             let mut file_root = File::create(&target_file_root)?;
                             file_root.write_all(&bytes)?;
 
-                            println!(
-                                "    ✓ Successfully cached to {}",
-                                target_file_pack.display()
-                            );
+                            prep_table.add_row_markup([
+                                pack.as_str(),
+                                real_action_name.as_str(),
+                                format!("v{}", action_version).as_str(),
+                                "[bold cyan]↓ Downloaded[/]",
+                            ]);
                             downloaded = true;
                             prepared_count += 1;
                             break;
@@ -501,7 +537,12 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                         if cand.exists() {
                             fs::copy(cand, &target_file_pack)?;
                             fs::copy(cand, &target_file_root)?;
-                            println!("    ✓ Copied local build artifact from {}", cand.display());
+                            prep_table.add_row_markup([
+                                pack.as_str(),
+                                real_action_name.as_str(),
+                                format!("v{}", action_version).as_str(),
+                                "[bold magenta]⚡ Local Build[/]",
+                            ]);
                             copied_local = true;
                             prepared_count += 1;
                             break;
@@ -509,33 +550,36 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     if !copied_local {
-                        eprintln!(
-                            "    ✗ Warning: Could not download remote binary from GitHub Release or find local artifact for [{}] {}.",
-                            pack, real_action_name
-                        );
+                        prep_table.add_row_markup([
+                            pack.as_str(),
+                            real_action_name.as_str(),
+                            format!("v{}", action_version).as_str(),
+                            "[bold red]✗ Not Found[/]",
+                        ]);
                     }
                 }
             }
 
-            println!(
-                "\nSummary: {} action(s) prepared, {} already cached.",
-                prepared_count, skipped_count
-            );
-            println!(
-                "All actions ready in {} for offline runtime execution.\n",
-                cache_dir.display()
-            );
+            console.print_renderable(&prep_table);
+            console.print("");
+            console.print(&format!(
+                "[bold green]✓ Pipeline Ready:[/] {} action(s) prepared, {} already cached in [dim]{}[/].",
+                prepared_count, skipped_count, cache_dir.display()
+            ));
         }
 
         Commands::Clean { path } => {
+            let console = Console::new();
             let cache_dir = resolve_action_cache_dir(path);
-            println!("==================================================");
-            println!(" Morflow Action Cache Cleaner (morflow clean)");
-            println!(" Target Directory: {}", cache_dir.display());
-            println!("==================================================");
+            console.rule(Some("Morflow Action Cache Cleaner"));
+            console.print(&format!(
+                "  [bold cyan]Target Directory:[/] [dim]{}[/]",
+                cache_dir.display()
+            ));
+            console.print("");
 
             if !cache_dir.exists() {
-                println!("Cache directory does not exist. Nothing to clean.");
+                console.print("[yellow]⚠ Cache directory does not exist. Nothing to clean.[/]");
                 return Ok(());
             }
 
@@ -553,11 +597,11 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            println!(
-                "✓ Cleaned {} items from {}",
+            console.print(&format!(
+                "[bold green]✓ Successfully cleaned[/] {} items from [dim]{}[/].",
                 deleted_files,
                 cache_dir.display()
-            );
+            ));
         }
 
         Commands::Spec { action } => {
@@ -585,6 +629,20 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 fetch_latest_pack_version(&pack, &repo)
             };
 
+            let render_spec = |content: &str| {
+                let console = Console::new();
+                if std::io::stdout().is_terminal() {
+                    console.rule(Some(&format!(
+                        "Action Specification: {}/{}/{}",
+                        pack, version, action_name
+                    )));
+                    let md = Markdown::new(content);
+                    console.print_renderable(&md);
+                } else {
+                    print!("{}", content);
+                }
+            };
+
             // 1. Check local cache directory for this pack & action
             let cache_spec = resolve_action_cache_dir(None)
                 .join(&pack)
@@ -592,7 +650,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 .join("SPEC.md");
             if cache_spec.exists() {
                 if let Ok(content) = fs::read_to_string(&cache_spec) {
-                    print!("{}", content);
+                    render_spec(&content);
                     return Ok(());
                 }
             }
@@ -606,7 +664,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             for cand in &local_candidates {
                 if cand.exists() {
                     if let Ok(content) = fs::read_to_string(cand) {
-                        print!("{}", content);
+                        render_spec(&content);
                         return Ok(());
                     }
                 }
@@ -628,7 +686,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 if let Ok(response) = ureq::get(url).set("User-Agent", "Morflow-CLI/0.1.2").call() {
                     let mut content = String::new();
                     if response.into_reader().read_to_string(&mut content).is_ok() {
-                        print!("{}", content);
+                        render_spec(&content);
                         return Ok(());
                     }
                 }
@@ -645,7 +703,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             {
                 let mut content = String::new();
                 if response.into_reader().read_to_string(&mut content).is_ok() {
-                    print!("{}", content);
+                    render_spec(&content);
                     return Ok(());
                 }
             }
@@ -663,7 +721,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 Ok(response) => {
                     let mut content = String::new();
                     response.into_reader().read_to_string(&mut content)?;
-                    print!("{}", content);
+                    render_spec(&content);
                 }
                 Err(_) => {
                     return Err(format!(
@@ -694,13 +752,36 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             });
 
             let top_matches: Vec<_> = matches.into_iter().take(limit).collect();
+            let console = Console::new();
 
             if top_matches.is_empty() {
-                println!("No matching actions found for query '{}'.", query);
+                console.print(&format!(
+                    "[yellow]⚠ No matching actions found for query[/] '[bold]{}[/]'.",
+                    query
+                ));
+                console.print("[dim]Available packs: base, audio_essentials, image_essentials, tensor_essentials, math_essentials, tensor_stats, nn_essentials, linalg_essentials[/]");
             } else {
+                console.rule(Some(&format!("Action Catalog Search: '{}'", query)));
+                let mut search_table = Table::new()
+                    .box_style(&ROUNDED)
+                    .border_style(Style::parse("bright_cyan").unwrap_or_default())
+                    .header_style(Style::parse("bold white on blue").unwrap_or_default())
+                    .with_column(Column::new("Package").no_wrap())
+                    .with_column(Column::new("Action").no_wrap())
+                    .with_column(Column::new("Full Target Path").no_wrap());
+
                 for (pack, act, _, _) in top_matches {
-                    println!("{}/latest/{}", pack, act);
+                    let full_path = format!("{}/latest/{}", pack, act);
+                    search_table.add_row_markup([
+                        pack,
+                        act,
+                        &format!("[bold green]{}[/]", full_path),
+                    ]);
                 }
+
+                console.print_renderable(&search_table);
+                console.print("");
+                console.print("[dim]Tip: Run [bold cyan]morflow spec <target_path>[/] to view action documentation.[/]");
             }
         }
 
@@ -798,14 +879,69 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             }
 
             found_actions.sort();
+            let console = Console::new();
 
             if found_actions.is_empty() {
-                println!("No installed actions found in {}.", cache_dir.display());
-                println!("Run 'morflow prep <pipeline.morf>' to download required actions.");
+                console.print(&format!(
+                    "[yellow]⚠ No installed actions found in cache[/] [dim]({})[/].",
+                    cache_dir.display()
+                ));
+                console.print("[dim]Run [bold cyan]morflow prep <pipeline.morf>[/] to download required actions.[/]");
             } else {
-                for act in found_actions {
-                    println!("{}", act);
+                console.rule(Some("Installed Actions"));
+                let width = console.width();
+                let mut list_table = Table::new()
+                    .box_style(&ROUNDED)
+                    .border_style(Style::parse("bright_cyan").unwrap_or_default())
+                    .header_style(Style::parse("bold white on blue").unwrap_or_default())
+                    .with_column(Column::new("Package"))
+                    .with_column(Column::new("Action"));
+
+                let show_full_path = width >= 90;
+                if show_full_path {
+                    list_table = list_table
+                        .with_column(Column::new("Target Path"))
+                        .with_column(
+                            Column::new("SPEC.md")
+                                .width(10)
+                                .justify(JustifyMethod::Center),
+                        );
+                } else {
+                    list_table = list_table.with_column(
+                        Column::new("SPEC.md")
+                            .width(10)
+                            .justify(JustifyMethod::Center),
+                    );
                 }
+
+                for act_path in &found_actions {
+                    let parts: Vec<&str> = act_path.split('/').collect();
+                    let (pack, act) = if parts.len() >= 3 {
+                        (parts[0], parts[2])
+                    } else {
+                        ("base", act_path.as_str())
+                    };
+                    let spec_file = cache_dir.join(pack).join(act).join("SPEC.md");
+                    let spec_status = if spec_file.exists() {
+                        "[bold green]✓[/]"
+                    } else {
+                        "[dim]-[/]"
+                    };
+                    if show_full_path {
+                        list_table.add_row_markup([
+                            pack,
+                            act,
+                            &format!("[green]{}[/]", act_path),
+                            spec_status,
+                        ]);
+                    } else {
+                        list_table.add_row_markup([pack, act, spec_status]);
+                    }
+                }
+
+                console.print_renderable(&list_table);
+                console.print("");
+                console.print(&format!("[dim]Cache directory: {}[/]", cache_dir.display()));
             }
         }
 
@@ -843,27 +979,43 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     let target_file_root =
                         cache_dir.join(format!("{}_action.{}", action_name, ext));
 
+                    let console = Console::new();
+
                     if !force && (target_file_pack.exists() || target_file_root.exists()) {
-                        println!(
-                            "Action '{}/latest/{}' is already installed in {}. Use --force to reinstall.",
+                        console.print(&format!(
+                            "[yellow]⚠ Action[/] [bold]{}/latest/{}[/] is already installed in [dim]{}[/]. Use [bold]--force[/] to reinstall.",
                             pack, action_name, target_file_pack.display()
-                        );
+                        ));
                         return Ok(());
                     }
 
-                    println!("==================================================");
-                    println!(" Morflow Action Installer (morflow install)");
-                    println!(" Action: {}/latest/{}", pack, action_name);
-                    println!(" Version: v{}", version);
-                    println!(" Host Platform: {} (.{})", platform, ext);
-                    println!(" Cache Directory: {}", cache_dir.display());
-                    println!(" Repository: {}", repo);
-                    println!("==================================================");
+                    console.rule(Some("Morflow Action Installer"));
+                    console.print(&format!(
+                        "  [bold cyan]Action:[/]          [green]{}/latest/{}[/]",
+                        pack, action_name
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Version:[/]         [yellow]v{}[/]",
+                        version
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Host Platform:[/]   [yellow]{}[/] (.{})",
+                        platform, ext
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Cache Directory:[/] [dim]{}[/]",
+                        cache_dir.display()
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Repository:[/]      [blue]{}[/]",
+                        repo
+                    ));
+                    console.print("");
 
-                    println!(
-                        "  [↓ Downloading] [{}] {} v{}...",
+                    console.print(&format!(
+                        "  [bold cyan]↓ Downloading[/] [{}] {} v{}...",
                         pack, action_name, version
-                    );
+                    ));
                     let binary_filename =
                         format!("{}_action-{}-{}.{}", action_name, version, platform, ext);
 
@@ -891,10 +1043,10 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                                 let mut file_root = File::create(&target_file_root)?;
                                 file_root.write_all(&bytes)?;
 
-                                println!(
-                                    "    ✓ Successfully installed to {}",
+                                console.print(&format!(
+                                    "    [bold green]✓ Successfully installed[/] to [dim]{}[/]",
                                     target_file_pack.display()
-                                );
+                                ));
                                 downloaded = true;
                                 break;
                             }
@@ -924,10 +1076,10 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                             if cand.exists() {
                                 fs::copy(cand, &target_file_pack)?;
                                 fs::copy(cand, &target_file_root)?;
-                                println!(
-                                    "    ✓ Copied local build artifact from {}",
+                                console.print(&format!(
+                                    "    [bold magenta]⚡ Copied local build artifact[/] from [dim]{}[/]",
                                     cand.display()
-                                );
+                                ));
                                 copied_local = true;
                                 break;
                             }
@@ -952,10 +1104,10 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                         let _ = fs::copy(&local_spec, &target_spec);
                     }
 
-                    println!(
-                        "\n✓ Installation complete: {}/latest/{} is ready for runtime use.\n",
+                    console.print(&format!(
+                        "\n[bold green]✓ Installation complete:[/] [bold]{}/latest/{}[/] is ready for runtime use.\n",
                         pack, action_name
-                    );
+                    ));
                 }
                 TargetPath::Package {
                     pack,
@@ -975,14 +1127,46 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     let pack_dir = cache_dir.join(&pack);
                     fs::create_dir_all(&pack_dir)?;
 
-                    println!("==================================================");
-                    println!(" Morflow Action Pack Installer (morflow install)");
-                    println!(" Package: {} ({} actions)", pack, actions.len());
-                    println!(" Version: v{}", version);
-                    println!(" Host Platform: {} (.{})", platform, ext);
-                    println!(" Cache Directory: {}", cache_dir.display());
-                    println!(" Repository: {}", repo);
-                    println!("==================================================");
+                    let console = Console::new();
+                    console.rule(Some("Morflow Action Pack Installer"));
+                    console.print(&format!(
+                        "  [bold cyan]Package:[/]         [green]{}[/] ({} actions)",
+                        pack,
+                        actions.len()
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Version:[/]         [yellow]v{}[/]",
+                        version
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Host Platform:[/]   [yellow]{}[/] (.{})",
+                        platform, ext
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Cache Directory:[/] [dim]{}[/]",
+                        cache_dir.display()
+                    ));
+                    console.print(&format!(
+                        "  [bold cyan]Repository:[/]      [blue]{}[/]",
+                        repo
+                    ));
+                    console.print("");
+
+                    let mut pack_table = Table::new()
+                        .box_style(&ROUNDED)
+                        .border_style(Style::parse("bright_cyan").unwrap_or_default())
+                        .header_style(Style::parse("bold white on blue").unwrap_or_default())
+                        .with_column(Column::new("Action").no_wrap())
+                        .with_column(
+                            Column::new("Version")
+                                .width(10)
+                                .justify(JustifyMethod::Center),
+                        )
+                        .with_column(
+                            Column::new("Status")
+                                .width(18)
+                                .justify(JustifyMethod::Center),
+                        );
 
                     let mut installed_count = 0;
                     let mut cached_count = 0;
@@ -994,15 +1178,15 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                             cache_dir.join(format!("{}_action.{}", action_name, ext));
 
                         if !force && (target_file_pack.exists() || target_file_root.exists()) {
-                            println!("  [✓ Cached] [{}] {}", pack, action_name);
+                            pack_table.add_row_markup([
+                                action_name,
+                                format!("v{}", version).as_str(),
+                                "[bold green]✓ Cached[/]",
+                            ]);
                             cached_count += 1;
                             continue;
                         }
 
-                        println!(
-                            "  [↓ Downloading] [{}] {} v{}...",
-                            pack, action_name, version
-                        );
                         let binary_filename =
                             format!("{}_action-{}-{}.{}", action_name, version, platform, ext);
 
@@ -1029,10 +1213,11 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                                         if let Ok(mut file_root) = File::create(&target_file_root) {
                                             let _ = file_root.write_all(&bytes);
                                         }
-                                        println!(
-                                            "    ✓ Successfully installed to {}",
-                                            target_file_pack.display()
-                                        );
+                                        pack_table.add_row_markup([
+                                            action_name,
+                                            format!("v{}", version).as_str(),
+                                            "[bold cyan]↓ Installed[/]",
+                                        ]);
                                         downloaded = true;
                                         installed_count += 1;
                                         break;
@@ -1058,30 +1243,38 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                                 )),
                             ];
 
+                            let mut copied_local = false;
                             for cand in &local_candidates {
                                 if cand.exists() {
                                     let _ = fs::copy(cand, &target_file_pack);
                                     let _ = fs::copy(cand, &target_file_root);
-                                    println!(
-                                        "    ✓ Copied local build artifact from {}",
-                                        cand.display()
-                                    );
+                                    pack_table.add_row_markup([
+                                        action_name,
+                                        format!("v{}", version).as_str(),
+                                        "[bold magenta]⚡ Local Build[/]",
+                                    ]);
                                     installed_count += 1;
+                                    copied_local = true;
                                     break;
                                 }
+                            }
+
+                            if !copied_local {
+                                pack_table.add_row_markup([
+                                    action_name,
+                                    format!("v{}", version).as_str(),
+                                    "[bold red]✗ Not Found[/]",
+                                ]);
                             }
                         }
                     }
 
-                    println!(
-                        "\nSummary: {} action(s) installed/updated, {} already cached.",
-                        installed_count, cached_count
-                    );
-                    println!(
-                        "✓ Action package '{}/latest' is ready in {}.\n",
-                        pack,
-                        cache_dir.display()
-                    );
+                    console.print_renderable(&pack_table);
+                    console.print("");
+                    console.print(&format!(
+                        "[bold green]✓ Action package '{}/latest' ready:[/] {} action(s) installed/updated, {} already cached in [dim]{}[/].",
+                        pack, installed_count, cached_count, cache_dir.display()
+                    ));
                 }
             }
         }
