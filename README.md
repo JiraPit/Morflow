@@ -1,8 +1,27 @@
-# Morflow
+<p align="center">
+  <a href="https://morflow.org">
+    <img src="assets/logo.svg" alt="Morflow" width="300" />
+  </a>
+</p>
 
-**Morflow** is a data processing engine that allows developers to define processing pipelines as human-readable `.morf` files.
+<p align="center">
+  <strong>High-performance, declarative data processing engine for media, audio, and tensors with zero train-serve skew.</strong>
+</p>
 
-Instead of hardcoding data transformations into application code or manually copying training scripts into production backends, Morflow provides a portable, high-performance runtime that executes the exact same `.morf` pipeline anywhere.
+<p align="center">
+  <a href="https://morflow.org"><strong>🌐 Website (morflow.org)</strong></a> •
+  <a href="https://morflow.org/doc"><strong>📖 Documentation</strong></a> •
+  <a href="examples"><strong>💡 Examples</strong></a> •
+  <a href="LICENSE"><strong>📄 License</strong></a>
+</p>
+
+---
+
+**Morflow** (pronounced *morph-flow*) is a modular, high-performance data processing engine that allows developers to define media, audio, and tensor pipelines in declarative `.morf` files and execute them identically across many platforms and languages with native speed and zero train-serve skew.
+
+Instead of hardcoding data transformations into application code or manually copying training scripts into production backends, Morflow provides a portable, high-performance runtime that executes the exact same deterministic operations anywhere.
+
+Visit the official website and documentation at **[morflow.org](https://morflow.org)**.
 
 ---
 
@@ -97,7 +116,16 @@ try (Pipeline pipeline = Morflow.load("pipeline.morf")) {
 }
 ```
 
-Full end-to-end examples across Rust, Python, JavaScript, and Java are available in the [`examples/`](examples) directory.
+**Rust**:
+```rust
+use morflow::{ColorSpace, Image, Morflow, Payload};
+
+// Load pipeline and execute natively
+let mut pipeline = Morflow::load("pipeline.morf")?;
+let outputs = pipeline.run(Payload::Image(input_image))?;
+```
+
+Full end-to-end examples across Rust, Python, JavaScript, and Java are available in the [`examples/`](examples) directory, and comprehensive API guides are available in the **[Official Documentation (morflow.org/doc)](https://morflow.org/doc)**.
 
 ---
 
