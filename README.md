@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>High-performance, declarative data processing engine for media, audio, and tensors with zero train-serve skew.</strong>
+  <strong>Modular, high-performance data processing engine built for AI/ML input/output processing and tensor transformations.</strong>
 </p>
 
 <p align="center">
