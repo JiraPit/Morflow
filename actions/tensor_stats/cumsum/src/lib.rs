@@ -1,0 +1,100 @@
+use core_types::{DataType, Payload, Tensor};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
+
+    let mut axis = 0usize;
+
+    if let Some(args) = &args_opt {
+        if let Some(ax_str) = args
+            .get_named("axis")
+            .or_else(|| args.get_named("dim"))
+            .or_else(|| args.positional.first().map(|s| s.as_str()))
+        {
+            if let Ok(ax) = ax_str.parse::<usize>() {
+                axis = ax;
+            }
+        }
+    }
+
+    match inner_payload {
+        Payload::Tensor(tensor) => match compute_cumsum(&tensor, axis) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        Payload::Image(image) => match compute_cumsum(&image.tensor, axis) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        Payload::Audio(audio) => match compute_cumsum(&audio.tensor, axis) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        other => other,
+    }
+}
+
+fn compute_cumsum(tensor: &Tensor, axis: usize) -> Result<Tensor, String> {
+    let vals = tensor.to_vec_f32();
+    let r = tensor.rank();
+    if r == 0 {
+        return Ok(tensor.clone());
+    }
+
+    if axis >= r {
+        return Err(format!(
+            "Axis {} out of bounds for tensor of rank {}",
+            axis, r
+        ));
+    }
+
+    let axis_len = tensor.shape[axis];
+    let inner_size: usize = tensor.shape[(axis + 1)..r].iter().product();
+
+    let mut out_vals = vec![0.0f32; vals.len()];
+
+    out_vals
+        .par_chunks_mut(axis_len * inner_size)
+        .enumerate()
+        .for_each(|(outer_idx, block)| {
+            for inner_idx in 0..inner_size {
+                let mut acc = 0.0f32;
+                for a in 0..axis_len {
+                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
+                    acc += vals[in_idx];
+                    block[a * inner_size + inner_idx] = acc;
+                }
+            }
+        });
+
+    Tensor::from_f32_vec(out_vals, tensor.shape.to_vec()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::Tensor;
+
+    #[test]
+    fn test_cumsum_action() {
+        let tensor = Tensor::from_f32_slice(&[1.0, 2.0, 3.0, 4.0]);
+        let res = process(Payload::Tensor(tensor));
+        if let Payload::Tensor(out) = res {
+            assert_eq!(out.as_f32_slice().unwrap(), &[1.0, 3.0, 6.0, 10.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+}

@@ -101,6 +101,22 @@ impl ActionRegistry {
             aliases.push("audio_essentials".to_string());
         } else if pack == "audio_essentials" {
             aliases.push("audio_essential".to_string());
+        } else if pack == "tensor_essential" {
+            aliases.push("tensor_essentials".to_string());
+        } else if pack == "tensor_essentials" {
+            aliases.push("tensor_essential".to_string());
+        } else if pack == "math_essential" {
+            aliases.push("math_essentials".to_string());
+        } else if pack == "math_essentials" {
+            aliases.push("math_essential".to_string());
+        } else if pack == "nn_essential" {
+            aliases.push("nn_essentials".to_string());
+        } else if pack == "nn_essentials" {
+            aliases.push("nn_essential".to_string());
+        } else if pack == "linalg_essential" {
+            aliases.push("linalg_essentials".to_string());
+        } else if pack == "linalg_essentials" {
+            aliases.push("linalg_essential".to_string());
         }
         aliases
     }
@@ -162,6 +178,15 @@ impl ActionRegistry {
             "audio_essentials",
             "image_essential",
             "audio_essential",
+            "tensor_essentials",
+            "tensor_essential",
+            "math_essentials",
+            "math_essential",
+            "tensor_stats",
+            "nn_essentials",
+            "nn_essential",
+            "linalg_essentials",
+            "linalg_essential",
         ];
         for base_dir in &self.search_paths {
             for pack in &known_packs {

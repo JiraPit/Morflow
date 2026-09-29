@@ -1,0 +1,76 @@
+use core_types::{DataType, Payload, TensorDType};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
+
+    let mut eps = 1e-5f32;
+    if let Some(args) = &args_opt {
+        if let Some(e_str) = args
+            .get_named("eps")
+            .or_else(|| args.positional.first().map(|s| s.as_str()))
+        {
+            if let Ok(e) = e_str.parse::<f32>() {
+                eps = e;
+            }
+        }
+    }
+
+    match inner_payload {
+        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
+            let r = tensor.rank();
+            if r == 0 {
+                return Payload::Tensor(tensor);
+            }
+            let feat_dim = *tensor.shape.last().unwrap();
+            if feat_dim == 0 {
+                return Payload::Tensor(tensor);
+            }
+
+            let slice = tensor.as_f32_slice_mut();
+            slice.par_chunks_mut(feat_dim).for_each(|feat| {
+                let mean: f32 = feat.iter().sum::<f32>() / feat_dim as f32;
+                let var: f32 =
+                    feat.iter().map(|&x| (x - mean) * (x - mean)).sum::<f32>() / feat_dim as f32;
+                let inv_std = 1.0 / (var + eps).sqrt();
+                for x in feat {
+                    *x = (*x - mean) * inv_std;
+                }
+            });
+            Payload::Tensor(tensor)
+        }
+        other => other,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::Tensor;
+
+    #[test]
+    fn test_layer_norm_action() {
+        let tensor = Tensor::from_f32_shape(&[1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let res = process(Payload::Tensor(tensor));
+        if let Payload::Tensor(out) = res {
+            let slice = out.as_f32_slice().unwrap();
+            assert!((slice[0] - (-1.0)).abs() < 1e-2);
+            assert!((slice[1] - 1.0).abs() < 1e-2);
+            assert!((slice[2] - (-1.0)).abs() < 1e-2);
+            assert!((slice[3] - 1.0).abs() < 1e-2);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+}

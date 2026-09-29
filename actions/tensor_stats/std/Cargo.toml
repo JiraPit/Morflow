@@ -1,0 +1,13 @@
+[package]
+name = "std"
+version = "0.1.2"
+edition = "2021"
+
+[lib]
+name = "std"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+core_types = { path = "../../../core_types" }
+rayon = "1.10"

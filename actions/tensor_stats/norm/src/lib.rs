@@ -1,0 +1,163 @@
+use core_types::{DataType, Payload, Tensor};
+use rayon::prelude::*;
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType {
+    DataType::Tensor
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload) -> Payload {
+    let (inner_payload, args_opt) = payload.take_payload_and_args();
+
+    let mut p_val = 2.0f32;
+    let mut is_inf = false;
+    let mut axis = None;
+    let mut keepdim = false;
+
+    if let Some(args) = &args_opt {
+        if let Some(p_str) = args
+            .get_named("p")
+            .or_else(|| args.positional.first().map(|s| s.as_str()))
+        {
+            if p_str == "inf" || p_str == "infinity" {
+                is_inf = true;
+            } else if let Ok(p) = p_str.parse::<f32>() {
+                p_val = p;
+            }
+        }
+        if let Some(ax_str) = args
+            .get_named("axis")
+            .or_else(|| args.get_named("dim"))
+            .or_else(|| args.positional.get(1).map(|s| s.as_str()))
+        {
+            if let Ok(ax) = ax_str.parse::<usize>() {
+                axis = Some(ax);
+            }
+        }
+        if let Some(kd_str) = args.get_named("keepdim") {
+            keepdim = kd_str == "true" || kd_str == "1";
+        }
+    }
+
+    match inner_payload {
+        Payload::Tensor(tensor) => match reduce_norm(&tensor, p_val, is_inf, axis, keepdim) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        Payload::Image(image) => match reduce_norm(&image.tensor, p_val, is_inf, axis, keepdim) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        Payload::Audio(audio) => match reduce_norm(&audio.tensor, p_val, is_inf, axis, keepdim) {
+            Ok(t) => Payload::Tensor(t),
+            Err(e) => Payload::Error(e.into()),
+        },
+        other => other,
+    }
+}
+
+fn reduce_norm(
+    tensor: &Tensor,
+    p: f32,
+    is_inf: bool,
+    axis: Option<usize>,
+    keepdim: bool,
+) -> Result<Tensor, String> {
+    let vals = tensor.to_vec_f32();
+    let r = tensor.rank();
+
+    if let Some(ax) = axis {
+        if ax >= r {
+            return Err(format!(
+                "Axis {} out of bounds for tensor of rank {}",
+                ax, r
+            ));
+        }
+
+        let outer_size: usize = tensor.shape[0..ax].iter().product();
+        let axis_len = tensor.shape[ax];
+        if axis_len == 0 {
+            return Err("Cannot compute norm along empty dimension".into());
+        }
+        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
+
+        let out_len = outer_size * inner_size;
+        let mut out_vals = vec![0.0f32; out_len];
+        let inv_p = 1.0 / p;
+
+        out_vals
+            .par_chunks_mut(inner_size)
+            .enumerate()
+            .for_each(|(outer_idx, slice)| {
+                for (inner_idx, slot) in slice.iter_mut().enumerate() {
+                    if is_inf {
+                        let mut max_abs = 0.0f32;
+                        for a in 0..axis_len {
+                            let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
+                            max_abs = max_abs.max(vals[in_idx].abs());
+                        }
+                        *slot = max_abs;
+                    } else {
+                        let mut sum_p = 0.0f32;
+                        for a in 0..axis_len {
+                            let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
+                            sum_p += vals[in_idx].abs().powf(p);
+                        }
+                        *slot = sum_p.powf(inv_p);
+                    }
+                }
+            });
+
+        let mut out_shape = Vec::new();
+        for (i, &dim) in tensor.shape.iter().enumerate() {
+            if i == ax {
+                if keepdim {
+                    out_shape.push(1);
+                }
+            } else {
+                out_shape.push(dim);
+            }
+        }
+        if out_shape.is_empty() {
+            out_shape.push(1);
+        }
+
+        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
+    } else {
+        let norm_val = if is_inf {
+            vals.par_iter()
+                .map(|&x| x.abs())
+                .reduce(|| 0.0f32, f32::max)
+        } else {
+            let sum_p: f32 = vals.par_iter().map(|&x| x.abs().powf(p)).sum();
+            sum_p.powf(1.0 / p)
+        };
+
+        let shape = if keepdim { vec![1; r.max(1)] } else { vec![1] };
+        Tensor::from_f32_vec(vec![norm_val], shape).map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core_types::Tensor;
+
+    #[test]
+    fn test_norm_action() {
+        let tensor = Tensor::from_f32_slice(&[3.0, 4.0]);
+        let res = process(Payload::Tensor(tensor));
+        if let Payload::Tensor(out) = res {
+            let slice = out.as_f32_slice().unwrap();
+            assert!((slice[0] - 5.0).abs() < 1e-4);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+}

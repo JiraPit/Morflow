@@ -51,6 +51,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "abs"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "add"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -184,6 +200,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "argmax"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "argmin"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -244,7 +276,7 @@ dependencies = [
  "anyhow",
  "arg_enum_proc_macro",
  "arrayvec",
- "log",
+ "log 0.4.34",
  "num-rational",
  "num-traits",
  "pastey",
@@ -262,10 +294,18 @@ checksum = "8cfddb07216410377231960af4fcab838eaa12e013417781b78bd95ee22077f8"
 dependencies = [
  "anyhow",
  "arrayvec",
- "log",
+ "log 0.4.34",
  "nom",
  "num-rational",
  "v_frame",
+]
+
+[[package]]
+name = "avg_pool2d"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -351,6 +391,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "cast"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "cc"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -375,6 +423,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
+name = "cholesky"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "chumsky"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -382,6 +438,14 @@ checksum = "8eebd66744a15ded14960ab4ccdbfb51ad3b81f51f3f04a80adac98c985396c9"
 dependencies = [
  "hashbrown",
  "stacker",
+]
+
+[[package]]
+name = "clamp"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -463,6 +527,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "concat"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "const_panic"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -516,6 +588,22 @@ name = "core_types"
 version = "0.1.2"
 dependencies = [
  "abi_stable",
+ "rayon",
+]
+
+[[package]]
+name = "cos"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "cosine_similarity"
+version = "0.1.2"
+dependencies = [
+ "core_types",
  "rayon",
 ]
 
@@ -587,7 +675,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "cumsum"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "delay"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "det"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "diag"
 version = "0.1.2"
 dependencies = [
  "core_types",
@@ -624,6 +736,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "div"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "dot"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -668,6 +796,14 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "exp"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -726,6 +862,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "flatten"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "flip"
 version = "0.1.2"
 dependencies = [
@@ -767,6 +911,14 @@ dependencies = [
 
 [[package]]
 name = "gaussian_blur"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "gelu"
 version = "0.1.2"
 dependencies = [
  "core_types",
@@ -1040,6 +1192,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "inv"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1070,7 +1230,7 @@ dependencies = [
  "cfg-if",
  "combine",
  "jni-sys 0.3.1",
- "log",
+ "log 0.4.34",
  "thiserror 1.0.69",
  "walkdir",
  "windows-sys 0.45.0",
@@ -1112,6 +1272,22 @@ checksum = "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
 dependencies = [
  "getrandom 0.4.3",
  "libc",
+]
+
+[[package]]
+name = "layer_norm"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "leaky_relu"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -1202,9 +1378,25 @@ dependencies = [
 
 [[package]]
 name = "log"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "log_softmax"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
 
 [[package]]
 name = "loop9"
@@ -1213,6 +1405,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fae87c125b03c1d2c0150c90365d7d6bcc53fb73a9acaef207d2d065860f062"
 dependencies = [
  "imgref",
+]
+
+[[package]]
+name = "matmul"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -1226,12 +1426,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "max"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "max_pool2d"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "maybe-rayon"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ea1f30cedd69f0a2954655f7188c6a834246d2bcf1e315e2ac40c4b24dc9519"
 dependencies = [
  "cfg-if",
+ "rayon",
+]
+
+[[package]]
+name = "mean"
+version = "0.1.2"
+dependencies = [
+ "core_types",
  "rayon",
 ]
 
@@ -1248,6 +1472,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "min"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -1322,6 +1554,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mul"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "napi"
 version = "2.16.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1386,7 +1626,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "465500e14ea162429d264d44189adc38b199b62b1c21eea9f69e4b73cb03bbf2"
 dependencies = [
  "libc",
- "log",
+ "log 0.4.34",
  "openssl",
  "openssl-probe",
  "openssl-sys",
@@ -1409,6 +1649,14 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "rawpointer",
+]
+
+[[package]]
+name = "neg"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -1448,6 +1696,14 @@ name = "noop_proc_macro"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8"
+
+[[package]]
+name = "norm"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
 
 [[package]]
 name = "normalize"
@@ -1603,6 +1859,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "outer"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "pad"
 version = "0.1.2"
 dependencies = [
@@ -1658,6 +1922,14 @@ name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
+
+[[package]]
+name = "permute"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
 
 [[package]]
 name = "pin-project-lite"
@@ -1720,6 +1992,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d83eb9bc6d8e5cf568e7a1101d60ee05e81ed50ea106026f3d18deeb046d7661"
 dependencies = [
  "zerovec",
+]
+
+[[package]]
+name = "pow"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -1871,6 +2151,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "qr"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1945,7 +2233,7 @@ dependencies = [
  "itertools",
  "libc",
  "libfuzzer-sys",
- "log",
+ "log 0.4.34",
  "maybe-rayon",
  "new_debug_unreachable",
  "noop_proc_macro",
@@ -2066,6 +2354,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "relu"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "repeat"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "repr_offset"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2076,6 +2380,14 @@ dependencies = [
 
 [[package]]
 name = "resample"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "reshape"
 version = "0.1.2"
 dependencies = [
  "core_types",
@@ -2111,7 +2423,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rms_norm"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "roll"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "rotate"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "rsqrt"
 version = "0.1.2"
 dependencies = [
  "core_types",
@@ -2152,7 +2488,7 @@ version = "0.23.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
 dependencies = [
- "log",
+ "log 0.4.34",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -2298,6 +2634,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
+name = "sigmoid"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "sign"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "silu"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "simd-adler32"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2313,10 +2673,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "sin"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+
+[[package]]
+name = "softmax"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "sqrt"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "squeeze"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
 
 [[package]]
 name = "stable_deref_trait"
@@ -2335,6 +2727,14 @@ dependencies = [
  "libc",
  "psm",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "std"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -2360,10 +2760,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "sub"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "sum"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
 
 [[package]]
 name = "syn"
@@ -2407,6 +2823,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "tan"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "tanh"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]
@@ -2550,6 +2982,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "trace"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
+name = "transpose"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "tstr"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2595,6 +3043,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
 
 [[package]]
+name = "unsqueeze"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
+]
+
+[[package]]
 name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2607,7 +3063,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02d1a66277ed75f640d608235660df48c8e3c19f3b4edb6a263315626cc3c01d"
 dependencies = [
  "base64",
- "log",
+ "log 0.4.34",
  "native-tls",
  "once_cell",
  "rustls",
@@ -2649,6 +3105,14 @@ dependencies = [
  "aligned-vec",
  "num-traits",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "var"
+version = "0.1.2"
+dependencies = [
+ "core_types",
+ "rayon",
 ]
 
 [[package]]

@@ -856,4 +856,60 @@ mod tests {
             panic!("Expected Payload::Data output");
         }
     }
+
+    #[test]
+    fn test_tensor_and_math_pipeline() {
+        let morf_src = r#"
+            import tensor_essentials/latest
+            import math_essentials/latest
+            import tensor_stats/latest
+            import nn_essentials/latest
+
+            accept $x
+
+            $x >> reshape(shape="2,2") >> relu >> mul(scalar=2.0) >> sum(axis=1) >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let tensor = Tensor::from_f32_slice(&[-1.0, 2.0, 3.0, -4.0]);
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Execution failed");
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Tensor(t) = result {
+            // [-1, 2] -> relu -> [0, 2] -> mul 2 -> [0, 4] -> sum -> 4
+            // [3, -4] -> relu -> [3, 0] -> mul 2 -> [6, 0] -> sum -> 6
+            assert_eq!(t.shape.as_slice(), &[2]);
+            assert_eq!(t.as_f32_slice().unwrap(), &[4.0, 6.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
+
+    #[test]
+    fn test_linalg_and_nn_pipeline() {
+        let morf_src = r#"
+            import nn_essentials/latest
+            import linalg_essentials/latest
+
+            accept $x
+
+            $x >> softmax(axis=-1) >> trace >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
+        let tensor = Tensor::from_f32_shape(&[0.0, 0.0, 0.0, 0.0], vec![2, 2]).unwrap();
+        let outputs = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect("Execution failed");
+        let result = outputs.into_single().expect("Expected single output");
+        if let Payload::Tensor(t) = result {
+            // [0, 0] softmax -> [0.5, 0.5]
+            // [0, 0] softmax -> [0.5, 0.5]
+            // trace -> 0.5 + 0.5 = 1.0
+            assert_eq!(t.as_f32_slice().unwrap(), &[1.0]);
+        } else {
+            panic!("Expected Tensor output");
+        }
+    }
 }

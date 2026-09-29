@@ -8,7 +8,7 @@ pub use abi_stable::StableAbi;
 
 pub use audio::{Audio, AudioChannelLayout, AudioLayout};
 pub use image::{ColorSpace, Image, ImageLayout};
-pub use tensor::{compute_c_contiguous_strides, Tensor, TensorDType};
+pub use tensor::{compute_c_contiguous_strides, parse_shape_str, Tensor, TensorDType};
 
 #[repr(u8)]
 #[derive(StableAbi, Debug, Clone, Copy, PartialEq, Eq)]

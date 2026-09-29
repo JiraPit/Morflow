@@ -444,6 +444,367 @@ impl Tensor {
         }
     }
 
+    /// Reshapes the tensor to a new shape with matching total element count.
+    ///
+    /// If the tensor is C-contiguous, this is an **O(1) zero-copy** operation.
+    /// If non-contiguous, it creates a new contiguous buffer first.
+    pub fn reshape(&self, new_shape: Vec<usize>) -> Result<Self, RString> {
+        let total_new: usize = if new_shape.is_empty() {
+            0
+        } else {
+            new_shape.iter().product()
+        };
+        let total_cur = self.num_elements();
+        if total_new != total_cur {
+            return Err(RString::from(format!(
+                "Cannot reshape tensor of {} elements into shape {:?} with {} elements",
+                total_cur, new_shape, total_new
+            )));
+        }
+
+        let elem_size = self.dtype.element_size();
+        let new_strides = compute_c_contiguous_strides(&new_shape, elem_size);
+
+        if self.is_contiguous() {
+            Ok(Self {
+                storage: self.storage.clone(),
+                byte_offset: self.byte_offset,
+                shape: RVec::from(new_shape),
+                strides: new_strides,
+                dtype: self.dtype,
+            })
+        } else {
+            let contig_bytes = self.to_contiguous_bytes();
+            Ok(Self {
+                storage: RArc::new(contig_bytes),
+                byte_offset: 0,
+                shape: RVec::from(new_shape),
+                strides: new_strides,
+                dtype: self.dtype,
+            })
+        }
+    }
+
+    /// Swaps two dimensions in O(1) zero-copy by adjusting shape and strides.
+    pub fn transpose(&self, dim0: usize, dim1: usize) -> Result<Self, RString> {
+        let r = self.rank();
+        if dim0 >= r || dim1 >= r {
+            return Err(RString::from(format!(
+                "Transpose dimensions ({}, {}) out of bounds for tensor of rank {}",
+                dim0, dim1, r
+            )));
+        }
+        let mut new_shape = self.shape.clone();
+        let mut new_strides = self.strides.clone();
+        new_shape.swap(dim0, dim1);
+        new_strides.swap(dim0, dim1);
+
+        Ok(Self {
+            storage: self.storage.clone(),
+            byte_offset: self.byte_offset,
+            shape: new_shape,
+            strides: new_strides,
+            dtype: self.dtype,
+        })
+    }
+
+    /// Reorders all dimensions according to `dims` in O(1) zero-copy.
+    pub fn permute(&self, dims: &[usize]) -> Result<Self, RString> {
+        let r = self.rank();
+        if dims.len() != r {
+            return Err(RString::from(format!(
+                "Permute dimensions length {} does not match tensor rank {}",
+                dims.len(),
+                r
+            )));
+        }
+        let mut seen = vec![false; r];
+        for &d in dims {
+            if d >= r || seen[d] {
+                return Err(RString::from(format!(
+                    "Invalid permutation {:?} for tensor of rank {}",
+                    dims, r
+                )));
+            }
+            seen[d] = true;
+        }
+
+        let mut new_shape = Vec::with_capacity(r);
+        let mut new_strides = Vec::with_capacity(r);
+        for &d in dims {
+            new_shape.push(self.shape[d]);
+            new_strides.push(self.strides[d]);
+        }
+
+        Ok(Self {
+            storage: self.storage.clone(),
+            byte_offset: self.byte_offset,
+            shape: RVec::from(new_shape),
+            strides: RVec::from(new_strides),
+            dtype: self.dtype,
+        })
+    }
+
+    /// Eliminates dimension(s) of size 1 in O(1) zero-copy.
+    pub fn squeeze(&self, dim: Option<usize>) -> Result<Self, RString> {
+        let r = self.rank();
+        if let Some(d) = dim {
+            if d >= r {
+                return Err(RString::from(format!(
+                    "Squeeze dimension {} out of bounds for rank {}",
+                    d, r
+                )));
+            }
+            if self.shape[d] == 1 {
+                let mut new_shape = Vec::with_capacity(r.saturating_sub(1));
+                let mut new_strides = Vec::with_capacity(r.saturating_sub(1));
+                for i in 0..r {
+                    if i != d {
+                        new_shape.push(self.shape[i]);
+                        new_strides.push(self.strides[i]);
+                    }
+                }
+                if new_shape.is_empty() {
+                    new_shape.push(1);
+                    new_strides.push(self.dtype.element_size() as isize);
+                }
+                Ok(Self {
+                    storage: self.storage.clone(),
+                    byte_offset: self.byte_offset,
+                    shape: RVec::from(new_shape),
+                    strides: RVec::from(new_strides),
+                    dtype: self.dtype,
+                })
+            } else {
+                Ok(self.clone())
+            }
+        } else {
+            let mut new_shape = Vec::new();
+            let mut new_strides = Vec::new();
+            for i in 0..r {
+                if self.shape[i] != 1 {
+                    new_shape.push(self.shape[i]);
+                    new_strides.push(self.strides[i]);
+                }
+            }
+            if new_shape.is_empty() {
+                new_shape.push(1);
+                new_strides.push(self.dtype.element_size() as isize);
+            }
+            Ok(Self {
+                storage: self.storage.clone(),
+                byte_offset: self.byte_offset,
+                shape: RVec::from(new_shape),
+                strides: RVec::from(new_strides),
+                dtype: self.dtype,
+            })
+        }
+    }
+
+    /// Inserts a singleton dimension (size 1) at `dim` in O(1) zero-copy.
+    pub fn unsqueeze(&self, dim: usize) -> Result<Self, RString> {
+        let r = self.rank();
+        if dim > r {
+            return Err(RString::from(format!(
+                "Unsqueeze position {} out of bounds for tensor of rank {}",
+                dim, r
+            )));
+        }
+        let elem_size = self.dtype.element_size();
+        let next_stride = if dim < r {
+            self.strides[dim] * self.shape[dim] as isize
+        } else {
+            elem_size as isize
+        };
+
+        let mut new_shape = self.shape.to_vec();
+        let mut new_strides = self.strides.to_vec();
+        new_shape.insert(dim, 1);
+        new_strides.insert(dim, next_stride);
+
+        Ok(Self {
+            storage: self.storage.clone(),
+            byte_offset: self.byte_offset,
+            shape: RVec::from(new_shape),
+            strides: RVec::from(new_strides),
+            dtype: self.dtype,
+        })
+    }
+
+    /// Flattens a contiguous range of dimensions [start_dim, end_dim] into a single dimension.
+    pub fn flatten(&self, start_dim: usize, end_dim: isize) -> Result<Self, RString> {
+        let r = self.rank();
+        if r == 0 {
+            return Ok(self.clone());
+        }
+        let end_idx = if end_dim < 0 {
+            (r as isize + end_dim).max(0) as usize
+        } else {
+            (end_dim as usize).min(r - 1)
+        };
+
+        if start_dim >= r || start_dim > end_idx {
+            return Err(RString::from(format!(
+                "Invalid flatten range [{}, {}] for tensor of rank {}",
+                start_dim, end_idx, r
+            )));
+        }
+
+        let mut new_shape = Vec::new();
+        for i in 0..start_dim {
+            new_shape.push(self.shape[i]);
+        }
+        let flat_size: usize = self.shape[start_dim..=end_idx].iter().product();
+        new_shape.push(flat_size);
+        for i in (end_idx + 1)..r {
+            new_shape.push(self.shape[i]);
+        }
+
+        self.reshape(new_shape)
+    }
+
+    /// Casts the tensor data type to `target_dtype`.
+    pub fn cast(&self, target_dtype: TensorDType) -> Result<Self, RString> {
+        if self.dtype == target_dtype {
+            return Ok(self.clone());
+        }
+
+        let total = self.num_elements();
+        let f32_vals = self.to_vec_f32();
+
+        match target_dtype {
+            TensorDType::F32 => Self::from_f32_vec(f32_vals, self.shape.to_vec()),
+            TensorDType::U8 => {
+                let u8_vec: Vec<u8> = f32_vals
+                    .par_iter()
+                    .map(|&x| x.clamp(0.0, 255.0).round() as u8)
+                    .collect();
+                Self::from_rvec_u8(RVec::from(u8_vec), self.shape.to_vec(), TensorDType::U8)
+            }
+            TensorDType::I32 => {
+                let i32_vec: Vec<i32> = f32_vals
+                    .par_iter()
+                    .map(|&x| x.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32)
+                    .collect();
+                Self::from_i32_vec(i32_vec, self.shape.to_vec())
+            }
+            TensorDType::F64 => {
+                let f64_vec: Vec<f64> = f32_vals.par_iter().map(|&x| x as f64).collect();
+                let byte_len = total * 8;
+                let mut bytes = vec![0u8; byte_len];
+                bytes
+                    .par_chunks_exact_mut(8)
+                    .zip(f64_vec.par_iter())
+                    .for_each(|(chunk, &val)| {
+                        chunk.copy_from_slice(&val.to_ne_bytes());
+                    });
+                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::F64)
+            }
+            TensorDType::I16 => {
+                let i16_vec: Vec<i16> = f32_vals
+                    .par_iter()
+                    .map(|&x| x.clamp(i16::MIN as f32, i16::MAX as f32).round() as i16)
+                    .collect();
+                let byte_len = total * 2;
+                let mut bytes = vec![0u8; byte_len];
+                bytes
+                    .par_chunks_exact_mut(2)
+                    .zip(i16_vec.par_iter())
+                    .for_each(|(chunk, &val)| {
+                        chunk.copy_from_slice(&val.to_ne_bytes());
+                    });
+                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::I16)
+            }
+            _ => Err(RString::from(format!(
+                "Unsupported cast to target dtype {:?}",
+                target_dtype
+            ))),
+        }
+    }
+
+    /// Concatenates multiple tensors along `axis`.
+    pub fn concat(tensors: &[Tensor], axis: usize) -> Result<Self, RString> {
+        if tensors.is_empty() {
+            return Err(RString::from("Cannot concatenate empty list of tensors"));
+        }
+        if tensors.len() == 1 {
+            return Ok(tensors[0].clone());
+        }
+
+        let first = &tensors[0];
+        let r = first.rank();
+        if axis >= r {
+            return Err(RString::from(format!(
+                "Concat axis {} out of bounds for tensor of rank {}",
+                axis, r
+            )));
+        }
+        let dtype = first.dtype;
+        let base_shape = first.shape.as_slice();
+
+        let mut total_axis_len = 0usize;
+        for t in tensors {
+            if t.rank() != r || t.dtype != dtype {
+                return Err(RString::from(
+                    "All tensors in concat must have identical rank and dtype",
+                ));
+            }
+            for (i, &base_dim) in base_shape.iter().enumerate() {
+                if i != axis && t.shape[i] != base_dim {
+                    return Err(RString::from(format!(
+                        "Dimension mismatch along axis {}: expected {}, got {}",
+                        i, base_dim, t.shape[i]
+                    )));
+                }
+            }
+            total_axis_len += t.shape[axis];
+        }
+
+        let mut out_shape = base_shape.to_vec();
+        out_shape[axis] = total_axis_len;
+
+        let outer_size: usize = out_shape[0..axis].iter().product();
+        let inner_size: usize = out_shape[(axis + 1)..r].iter().product();
+        let elem_size = dtype.element_size();
+        let total_bytes = out_shape.iter().product::<usize>() * elem_size;
+
+        let mut out_bytes = vec![0u8; total_bytes];
+
+        let contig_tensors: Vec<Vec<u8>> = tensors
+            .iter()
+            .map(|t| {
+                if let Some(b) = t.as_bytes() {
+                    b.to_vec()
+                } else {
+                    t.to_contiguous_bytes().to_vec()
+                }
+            })
+            .collect();
+
+        // Copy slice blocks into proper offset in output
+        let mut axis_offset = 0usize;
+        for (t_idx, t) in tensors.iter().enumerate() {
+            let cur_axis_len = t.shape[axis];
+            let t_bytes = &contig_tensors[t_idx];
+
+            let block_size = cur_axis_len * inner_size * elem_size;
+            let out_block_size = total_axis_len * inner_size * elem_size;
+
+            for out_idx in 0..outer_size {
+                let src_start = out_idx * block_size;
+                let src_end = src_start + block_size;
+                let dst_start = out_idx * out_block_size + axis_offset * inner_size * elem_size;
+                let dst_end = dst_start + block_size;
+
+                out_bytes[dst_start..dst_end].copy_from_slice(&t_bytes[src_start..src_end]);
+            }
+
+            axis_offset += cur_axis_len;
+        }
+
+        Self::from_rvec_u8(RVec::from(out_bytes), out_shape, dtype)
+    }
+
     /// Converts non-contiguous or contiguous tensor into an owned Vec<f32>.
     pub fn to_vec_f32(&self) -> Vec<f32> {
         let bytes = self.to_contiguous_bytes();
@@ -634,9 +995,119 @@ pub fn compute_c_contiguous_strides(shape: &[usize], elem_size: usize) -> RVec<i
     RVec::from(strides)
 }
 
+/// Helper to parse a shape string like `"[2, 4]"`, `"2, 4"`, `"(2, 4)"`, or `"2, -1"` into `Vec<usize>`.
+/// If `-1` is present (at most once), infers the missing dimension from `total_elements`.
+pub fn parse_shape_str(s: &str, total_elements: usize) -> Result<Vec<usize>, RString> {
+    let clean = s
+        .trim()
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .trim_start_matches('(')
+        .trim_end_matches(')');
+    if clean.is_empty() {
+        return Ok(Vec::new());
+    }
+    let parts: Vec<&str> = clean
+        .split(',')
+        .map(|p| p.trim())
+        .filter(|p| !p.is_empty())
+        .collect();
+    let mut shape = Vec::with_capacity(parts.len());
+    let mut infer_idx = None;
+
+    for (i, p) in parts.iter().enumerate() {
+        if *p == "-1" {
+            if infer_idx.is_some() {
+                return Err(RString::from(
+                    "Only one dimension can be inferred (-1) in shape",
+                ));
+            }
+            infer_idx = Some(i);
+            shape.push(0); // placeholder
+        } else {
+            let val = p
+                .parse::<usize>()
+                .map_err(|e| RString::from(format!("Invalid dimension '{}': {}", p, e)))?;
+            shape.push(val);
+        }
+    }
+
+    if let Some(idx) = infer_idx {
+        let known_product: usize = shape
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != idx)
+            .map(|(_, v)| *v)
+            .product();
+        if known_product == 0 || !total_elements.is_multiple_of(known_product) {
+            return Err(RString::from(format!(
+                "Cannot infer dimension -1 for total elements {} with known product {}",
+                total_elements, known_product
+            )));
+        }
+        shape[idx] = total_elements / known_product;
+    }
+
+    Ok(shape)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_tensor_reshape_permute_squeeze() {
+        let data: Vec<f32> = (0..24).map(|x| x as f32).collect();
+        let t = Tensor::from_f32_shape(&data, vec![2, 3, 4]).unwrap();
+
+        // Reshape
+        let reshaped = t.reshape(vec![6, 4]).unwrap();
+        assert_eq!(reshaped.shape.as_slice(), &[6, 4]);
+        assert_eq!(reshaped.as_f32_slice().unwrap()[0], 0.0);
+        assert_eq!(reshaped.as_f32_slice().unwrap()[23], 23.0);
+
+        // Transpose
+        let transposed = t.transpose(0, 1).unwrap();
+        assert_eq!(transposed.shape.as_slice(), &[3, 2, 4]);
+
+        // Permute
+        let permuted = t.permute(&[2, 0, 1]).unwrap();
+        assert_eq!(permuted.shape.as_slice(), &[4, 2, 3]);
+
+        // Unsqueeze & Squeeze
+        let unsq = t.unsqueeze(1).unwrap();
+        assert_eq!(unsq.shape.as_slice(), &[2, 1, 3, 4]);
+        let sq = unsq.squeeze(Some(1)).unwrap();
+        assert_eq!(sq.shape.as_slice(), &[2, 3, 4]);
+
+        // Flatten
+        let flat = t.flatten(1, 2).unwrap();
+        assert_eq!(flat.shape.as_slice(), &[2, 12]);
+
+        // Parse shape
+        let s = parse_shape_str("[2, -1]", 24).unwrap();
+        assert_eq!(s, vec![2, 12]);
+    }
+
+    #[test]
+    fn test_tensor_concat() {
+        let t1 = Tensor::from_f32_shape(&[1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let t2 = Tensor::from_f32_shape(&[5.0, 6.0, 7.0, 8.0], vec![2, 2]).unwrap();
+
+        let c0 = Tensor::concat(&[t1.clone(), t2.clone()], 0).unwrap();
+        assert_eq!(c0.shape.as_slice(), &[4, 2]);
+        assert_eq!(
+            c0.as_f32_slice().unwrap(),
+            &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+        );
+
+        let c1 = Tensor::concat(&[t1, t2], 1).unwrap();
+        assert_eq!(c1.shape.as_slice(), &[2, 4]);
+        assert_eq!(
+            c1.as_f32_slice().unwrap(),
+            &[1.0, 2.0, 5.0, 6.0, 3.0, 4.0, 7.0, 8.0]
+        );
+    }
 
     #[test]
     fn test_tensor_zero_copy_slicing() {
