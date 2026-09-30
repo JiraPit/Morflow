@@ -9,8 +9,16 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, axis};
+    contract::finish((|| {
+        let _shift = arg::<isize>(&args, &["shift", "shifts"], Some(0), Some(0))?;
+        let dim = arg::<isize>(&args, &["axis", "dim"], Some(1), Some(0))?.unwrap();
+        if input.rank() > 0 {
+            axis(dim, input.rank(), false)?;
+        }
+        Ok(input)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -18,11 +26,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut shift = 0isize;

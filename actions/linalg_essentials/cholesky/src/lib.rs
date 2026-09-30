@@ -9,8 +9,19 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self};
+    contract::finish((|| {
+        if input.rank() != 2 {
+            return Err("cholesky requires a rank-2 matrix".into());
+        }
+        let rank = input.rank();
+        let (h, w) = (input.dims()[rank - 2], input.dims()[rank - 1]);
+        if h != 0 && w != 0 && h != w {
+            return Err("Matrix must be square".into());
+        }
+        Ok(input)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -18,11 +29,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, _) = payload.take_payload_and_args();
 
     match inner_payload {

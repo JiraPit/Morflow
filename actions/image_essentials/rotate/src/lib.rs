@@ -13,42 +13,42 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let dims_ = input.dims();
-    let r = dims_.len();
-    if r < 2 {
-        return input;
-    }
-    let mut angle_deg = 0.0f32;
-    if let Some(a_str) = args
-        .get_named("angle")
-        .or_else(|| args.get_named("degrees"))
-        .or_else(|| args.get_named("angle_deg"))
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
-    {
-        if let Ok(a) = a_str.parse::<f32>() {
-            angle_deg = a;
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, Error};
+    contract::finish((|| {
+        let (h, w, c, _chw) = contract::image_dims(&input)?;
+        let angle = arg::<f32>(&args, &["angle", "angle_deg"], Some(0), Some(90.0))?.unwrap();
+        if !angle.is_finite() {
+            return Err("Rotation angle must be finite".into());
         }
-    }
-    let norm = ((angle_deg % 360.0) + 360.0) % 360.0;
-    let mut out = Vec::with_capacity(r);
-    let swap = (norm - 90.0).abs() < 1e-3 || (norm - 270.0).abs() < 1e-3;
-    if r == 2 {
-        if swap {
-            out.push(dims_[1]);
-            out.push(dims_[0]);
+        let expand = contract::value(&args, &["expand", "expand_canvas"], None)?
+            .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
+            .unwrap_or(true);
+        if h == 0 || w == 0 {
+            return Err(Error::Unknown);
+        }
+        let norm = ((angle % 360.0) + 360.0) % 360.0;
+        let (oh, ow) = if (norm - 90.0).abs() < 1e-3 || (norm - 270.0).abs() < 1e-3 {
+            (w, h)
+        } else if norm.abs() < 1e-3 || (norm - 180.0).abs() < 1e-3 || !expand {
+            (h, w)
         } else {
-            out.push(dims_[0]);
-            out.push(dims_[1]);
-        }
-    } else if swap {
-        out.push(dims_[1]);
-        out.push(dims_[0]);
-        out.push(dims_[2]);
-    } else {
-        out.extend_from_slice(dims_);
-    }
-    Shape::new(out)
+            let rad = norm.to_radians();
+            let sin = rad.sin().abs();
+            let cos = rad.cos().abs();
+            let ow = (w as f32 * cos + h as f32 * sin).round().max(1.0);
+            let oh = (w as f32 * sin + h as f32 * cos).round().max(1.0);
+            if !ow.is_finite()
+                || !oh.is_finite()
+                || ow >= usize::MAX as f32
+                || oh >= usize::MAX as f32
+            {
+                return Err("Rotated dimensions overflow".into());
+            }
+            (oh as usize, ow as usize)
+        };
+        contract::image_shape(oh, ow, c, input.rank(), false)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -56,11 +56,19 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
+    let payload = match core_types::contract::image_input(payload, true) {
+        Ok(payload) => payload,
+        Err(error) => return Payload::Error(error),
+    };
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut angle_deg = 90.0f32;
     let mut expand_canvas = true;

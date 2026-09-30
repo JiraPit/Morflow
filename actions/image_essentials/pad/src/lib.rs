@@ -15,66 +15,32 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let dims_ = input.dims();
-    let r = dims_.len();
-    if r < 2 {
-        return input;
-    }
-    let mut pad_top = 0usize;
-    let mut pad_bottom = 0usize;
-    let mut pad_left = 0usize;
-    let mut pad_right = 0usize;
-    if let Some(p_str) = args
-        .get_named("pad")
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
-    {
-        if let Ok(p) = p_str.parse::<usize>() {
-            pad_top = p;
-            pad_bottom = p;
-            pad_left = p;
-            pad_right = p;
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, Error};
+    contract::finish((|| {
+        let (h, w, c, _chw) = contract::image_dims(&input)?;
+        let pad = arg::<usize>(&args, &["pad"], Some(0), Some(0))?.unwrap();
+        let top = arg::<usize>(&args, &["top", "pad_top"], None, Some(pad))?.unwrap();
+        let bottom = arg::<usize>(&args, &["bottom", "pad_bottom"], None, Some(pad))?.unwrap();
+        let left = arg::<usize>(&args, &["left", "pad_left"], None, Some(pad))?.unwrap();
+        let right = arg::<usize>(&args, &["right", "pad_right"], None, Some(pad))?.unwrap();
+        if top == 0 && bottom == 0 && left == 0 && right == 0 {
+            return Ok(input);
         }
-    }
-    if let Some(v) = args.get_named("top").or_else(|| args.get_named("pad_top")) {
-        if let Ok(p) = v.parse::<usize>() {
-            pad_top = p;
+        if h == 0 || w == 0 {
+            return Err(Error::Unknown);
         }
-    }
-    if let Some(v) = args
-        .get_named("bottom")
-        .or_else(|| args.get_named("pad_bottom"))
-    {
-        if let Ok(p) = v.parse::<usize>() {
-            pad_bottom = p;
-        }
-    }
-    if let Some(v) = args
-        .get_named("left")
-        .or_else(|| args.get_named("pad_left"))
-    {
-        if let Ok(p) = v.parse::<usize>() {
-            pad_left = p;
-        }
-    }
-    if let Some(v) = args
-        .get_named("right")
-        .or_else(|| args.get_named("pad_right"))
-    {
-        if let Ok(p) = v.parse::<usize>() {
-            pad_right = p;
-        }
-    }
-    let mut out = Vec::with_capacity(r);
-    if r == 2 {
-        out.push(dims_[0] + pad_top + pad_bottom);
-        out.push(dims_[1] + pad_left + pad_right);
-    } else {
-        out.push(dims_[0] + pad_top + pad_bottom);
-        out.push(dims_[1] + pad_left + pad_right);
-        out.push(dims_[2]);
-    }
-    Shape::new(out)
+        let h = h
+            .checked_add(top)
+            .and_then(|n| n.checked_add(bottom))
+            .ok_or(Error::from("Padded height overflows"))?;
+        let w = w
+            .checked_add(left)
+            .and_then(|n| n.checked_add(right))
+            .ok_or(Error::from("Padded width overflows"))?;
+        // Padding materializes an HWC buffer even for CHW input.
+        contract::image_shape(h, w, c, input.rank(), false)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -82,7 +48,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -94,6 +60,14 @@ enum PadMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
+    let payload = match core_types::contract::image_input(payload, true) {
+        Ok(payload) => payload,
+        Err(error) => return Payload::Error(error),
+    };
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut pad_top = 0usize;
     let mut pad_bottom = 0usize;

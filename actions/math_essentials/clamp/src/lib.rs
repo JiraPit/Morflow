@@ -24,6 +24,10 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut min_val = f32::NEG_INFINITY;

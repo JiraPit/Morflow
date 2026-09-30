@@ -9,38 +9,23 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let r = input.rank();
-    let repeats_str = args
-        .get_named("repeats")
-        .or_else(|| args.positional.first().map(|s| s.as_str()));
-    let Some(r_str) = repeats_str else {
-        return input;
-    };
-    let repeats = match parse_repeats_str(r_str) {
-        Ok(rr) => rr,
-        Err(_) => return input,
-    };
-    let k = repeats.len();
-    if k == 0 {
-        return input;
-    }
-    let dims_ = input.dims();
-    let mut out = Vec::new();
-    if r >= k {
-        out.extend_from_slice(&dims_[..r - k]);
-        for (i, &rep) in repeats.iter().enumerate() {
-            out.push(dims_[r - k + i] * rep);
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, Error};
+    contract::finish((|| {
+        let text = contract::value(&args, &["repeats"], Some(0))?
+            .ok_or(Error::from("repeat requires 'repeats'"))?;
+        let repeats = parse_repeats_str(text).map_err(Error::from)?;
+        let rank = input.rank().max(repeats.len());
+        let mut out = vec![1; rank - input.rank()];
+        out.extend_from_slice(input.dims());
+        let offset = rank - repeats.len();
+        for (i, repeat) in repeats.iter().enumerate() {
+            out[offset + i] = out[offset + i]
+                .checked_mul((*repeat).max(1))
+                .ok_or(Error::from("Repeated dimension overflows"))?;
         }
-    } else {
-        for &rep in repeats.iter().take(k - r) {
-            out.push(rep);
-        }
-        for i in 0..r {
-            out.push(dims_[i] * repeats[k - r + i]);
-        }
-    }
-    Shape::new(out)
+        contract::shape(out)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -48,7 +33,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 fn parse_repeats_str(s: &str) -> Result<Vec<usize>, String> {
@@ -73,6 +58,10 @@ fn parse_repeats_str(s: &str) -> Result<Vec<usize>, String> {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut repeats_str = None;

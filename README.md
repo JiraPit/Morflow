@@ -88,6 +88,8 @@ Pre-downloads all actions required by your `.morf` file ahead of time, ensuring 
 morflow prep pipeline.morf
 ```
 
+Shape checks use native action contracts, with execution validating known output dimensions. See [shape contracts](docs/shape-contracts.md) for coverage, unresolved metadata, and local validation.
+
 ### Action versions and cache
 
 Imports select the action version used by both preparation and execution:

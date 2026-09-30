@@ -13,13 +13,32 @@ pub extern "C" fn get_output_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+    // Validate the same selected argument that execution consumes.
+    for value in [
+        core_types::contract::value(&args, &["axis", "dim"], Some(1)),
+        core_types::contract::value(&args, &["keepdim"], None),
+    ] {
+        if let Err(error) = value {
+            return core_types::contract::finish(Err(error));
+        }
+    }
+    if let Some(value) = args
+        .get_named("axis")
+        .or_else(|| args.get_named("dim"))
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
+    {
+        if value.parse::<isize>().is_err() {
+            return ShapeResult::Invalid(format!("Invalid axis argument '{value}'").into());
+        }
+    }
+
     let r = input.rank();
     let mut axis: Option<isize> = None;
     let mut keepdim = false;
     if let Some(ax_str) = args
         .get_named("axis")
         .or_else(|| args.get_named("dim"))
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
     {
         if let Ok(ax) = ax_str.parse::<isize>() {
             axis = Some(ax);
@@ -60,6 +79,10 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut p_val = 2.0f32;

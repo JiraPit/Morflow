@@ -9,25 +9,15 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let r = input.rank();
-    let Some(s_dim) = args
-        .get_named("dim")
-        .or_else(|| args.get_named("axis"))
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
-    else {
-        return input;
-    };
-    let Ok(dim) = s_dim.parse::<isize>() else {
-        return input;
-    };
-    let d_idx = if dim < 0 { dim + (r + 1) as isize } else { dim };
-    if d_idx < 0 || d_idx as usize > r {
-        return input;
-    }
-    let mut out = input.dims().to_vec();
-    out.insert(d_idx as usize, 1);
-    Shape::new(out)
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, axis};
+    contract::finish((|| {
+        let dim = arg::<isize>(&args, &["axis", "dim"], Some(0), Some(0))?.unwrap();
+        let index = axis(dim, input.rank(), true)?;
+        let mut out = input.dims().to_vec();
+        out.insert(index, 1);
+        contract::shape(out)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -35,11 +25,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut axis = 0isize;

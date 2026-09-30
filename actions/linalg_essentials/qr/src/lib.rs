@@ -1,3 +1,4 @@
+use core_types::{ActionArgs, Shape, ShapeResult};
 use core_types::{DataType, Payload, RVec, Tensor};
 
 #[no_mangle]
@@ -11,7 +12,22 @@ pub extern "C" fn get_output_type() -> DataType {
 }
 
 #[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
+    if input.rank() != 2 {
+        return ShapeResult::Invalid("qr received an unsupported input rank".into());
+    }
+    if input.dims()[1].checked_mul(input.dims()[1]).is_none() {
+        return ShapeResult::Invalid("QR output matrix element count overflows".into());
+    }
+    ShapeResult::Unknown
+}
+
+#[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, _) = payload.take_payload_and_args();
 
     match inner_payload {

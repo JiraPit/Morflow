@@ -14,8 +14,8 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(_input: Shape, _args: ActionArgs) -> ShapeResult {
+    ShapeResult::Unknown
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -23,7 +23,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -40,6 +40,10 @@ enum TargetLayout {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_color: Option<ColorSpace> = None;
     let mut target_dtype = TargetDType::F32;

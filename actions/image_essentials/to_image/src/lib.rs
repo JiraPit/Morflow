@@ -14,8 +14,39 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Image
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, Error};
+    contract::finish((|| {
+        // Tensor conversion uses HWC-first layout detection and can change channels.
+        let (h, w, channels) = if matches!(input.rank(), 2 | 3) {
+            let (h, w, c, _) = contract::image_dims(&input)?;
+            (h, w, c)
+        } else {
+            if input.dims().contains(&0) {
+                return Err(Error::Unknown);
+            }
+            let n = input
+                .dims()
+                .iter()
+                .try_fold(1usize, |n, d| n.checked_mul(*d))
+                .ok_or(Error::from("Image dimensions overflow"))?;
+            (1, n, 1)
+        };
+        let color = contract::value(&args, &["color", "color_space"], Some(0))?;
+        let channels = match color.map(str::to_lowercase).as_deref() {
+            Some("gray" | "grey" | "grayscale") => 1,
+            Some("rgb" | "bgr") => 3,
+            Some("rgba" | "bgra") => 4,
+            _ => match channels {
+                1 => 1,
+                4 => 4,
+                _ => 3,
+            },
+        };
+        let chw = contract::value(&args, &["layout"], None)?
+            .is_some_and(|s| matches!(s.to_lowercase().as_str(), "chw" | "planar"));
+        contract::image_shape(h, w, channels, if channels == 1 { 2 } else { 3 }, chw)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -23,11 +54,19 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
+    let payload = match core_types::contract::image_input(payload, true) {
+        Ok(payload) => payload,
+        Err(error) => return Payload::Error(error),
+    };
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_color: Option<ColorSpace> = None;
     let mut target_dtype = TensorDType::U8;

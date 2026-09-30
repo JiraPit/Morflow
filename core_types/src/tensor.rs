@@ -1052,7 +1052,8 @@ pub fn parse_shape_str(s: &str, total_elements: usize) -> Result<Vec<usize>, RSt
             .enumerate()
             .filter(|(i, _)| *i != idx)
             .map(|(_, v)| *v)
-            .product();
+            .try_fold(1usize, |n, dim| n.checked_mul(dim))
+            .ok_or_else(|| RString::from("Shape dimension product overflows"))?;
         if known_product == 0 || !total_elements.is_multiple_of(known_product) {
             return Err(RString::from(format!(
                 "Cannot infer dimension -1 for total elements {} with known product {}",

@@ -9,29 +9,17 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let r = input.rank();
-    let d0 = args
-        .get_named("dim0")
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
-        .and_then(|s| s.parse::<isize>().ok())
-        .unwrap_or(-1);
-    let d1 = args
-        .get_named("dim1")
-        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
-        .and_then(|s| s.parse::<isize>().ok())
-        .unwrap_or(-2);
-    if r == 0 {
-        return input;
-    }
-    let d0_idx = if d0 < 0 { d0 + r as isize } else { d0 };
-    let d1_idx = if d1 < 0 { d1 + r as isize } else { d1 };
-    if d0_idx < 0 || d0_idx as usize >= r || d1_idx < 0 || d1_idx as usize >= r {
-        return input;
-    }
-    let mut out = input.dims().to_vec();
-    out.swap(d0_idx as usize, d1_idx as usize);
-    Shape::new(out)
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, axis};
+    contract::finish((|| {
+        let d0 = arg::<isize>(&args, &["dim0"], Some(0), Some(0))?.unwrap();
+        let d1 = arg::<isize>(&args, &["dim1"], Some(1), Some(1))?.unwrap();
+        let d0 = axis(d0, input.rank(), false)?;
+        let d1 = axis(d1, input.rank(), false)?;
+        let mut out = input.dims().to_vec();
+        out.swap(d0, d1);
+        contract::shape(out)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -39,11 +27,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut dim0 = 0isize;

@@ -16,8 +16,36 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(_input: Shape, _args: ActionArgs) -> Shape {
-    Shape::new(vec![0, 0])
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, Error};
+    contract::finish((|| {
+        if !matches!(input.rank(), 1 | 2) {
+            return Err("STFT requires mono or planar audio".into());
+        }
+        let n = arg::<usize>(&args, &["n_fft"], Some(0), Some(1024))?.unwrap();
+        let hop = arg::<usize>(&args, &["hop_size", "hop_length"], None, Some(256))?
+            .unwrap()
+            .max(1);
+        if n < 2 {
+            return Err("STFT n_fft must be at least 2".into());
+        }
+        let fft = n
+            .max(16)
+            .checked_next_power_of_two()
+            .ok_or(Error::from("STFT FFT size overflows"))?;
+        let (channels, samples) = if input.rank() == 1 {
+            (1, input.dims()[0])
+        } else {
+            (input.dims()[0], input.dims()[1])
+        };
+        if samples == 0 {
+            return Err(Error::Unknown);
+        }
+        if samples < n {
+            return Ok(input);
+        }
+        contract::shape([channels, fft / 2 + 1, (samples - n) / hop + 1])
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -25,7 +53,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, Default)]
@@ -138,6 +166,10 @@ fn next_power_of_two(mut x: usize) -> usize {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let audio = match inner_payload {
         Payload::Audio(a) => a,
@@ -145,6 +177,10 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             return Payload::Error(RString::from("Action 'stft' requires Payload::Audio"));
         }
     };
+
+    if audio.tensor.rank() == 2 && audio.layout != core_types::AudioLayout::Planar {
+        return Payload::Error("STFT requires planar multi-channel audio".into());
+    }
 
     if audio.dtype() != TensorDType::F32 {
         return Payload::Error(RString::from(format!(

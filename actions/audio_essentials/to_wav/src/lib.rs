@@ -1,3 +1,4 @@
+use core_types::{ActionArgs, Shape, ShapeResult};
 use core_types::{DataType, Payload, RString, RVec};
 use rayon::prelude::*;
 
@@ -12,7 +13,19 @@ pub extern "C" fn get_output_type() -> DataType {
 }
 
 #[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
+    if !matches!(input.rank(), 1 | 2) {
+        return ShapeResult::Invalid("to_wav received an unsupported input rank".into());
+    }
+    ShapeResult::Unknown
+}
+
+#[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_dtype = "i16";
     let mut target_sample_rate: Option<u32> = None;

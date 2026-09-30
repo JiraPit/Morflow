@@ -9,43 +9,30 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let r = input.rank();
-    let dim = args
-        .get_named("dim")
-        .or_else(|| args.get_named("axis"))
-        .or_else(|| args.positional.first().map(|s| s.as_str()))
-        .and_then(|s| s.parse::<isize>().ok());
-    let dims_ = input.dims();
-    let mut out = Vec::new();
-    if let Some(d) = dim {
-        let d_idx = if d < 0 { d + r as isize } else { d };
-        if d_idx < 0 || d_idx as usize >= r {
-            return input;
-        }
-        let d = d_idx as usize;
-        for (i, &dim) in dims_.iter().enumerate() {
-            if i != d {
-                out.push(dim);
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, axis, Error};
+    contract::finish((|| {
+        let dim = arg::<isize>(&args, &["axis", "dim"], Some(0), None)?;
+        let mut out = input.dims().to_vec();
+        if let Some(dim) = dim {
+            let index = axis(dim, input.rank(), false)?;
+            if out[index] == 0 {
+                return Err(Error::Unknown);
             }
-        }
-        if dims_[d] != 1 {
-            return input;
+            if out[index] == 1 {
+                out.remove(index);
+            }
+        } else {
+            if out.contains(&0) {
+                return Err(Error::Unknown);
+            }
+            out.retain(|d| *d != 1);
         }
         if out.is_empty() {
             out.push(1);
         }
-    } else {
-        for &dim in dims_.iter() {
-            if dim != 1 {
-                out.push(dim);
-            }
-        }
-        if out.is_empty() {
-            out.push(1);
-        }
-    }
-    Shape::new(out)
+        contract::shape(out)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -53,11 +40,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut axis = None;

@@ -15,8 +15,14 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self};
+    contract::finish((|| {
+        if !matches!(input.rank(), 2 | 3) {
+            return Err("Image operations require rank 2 or 3".into());
+        }
+        Ok(input)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -24,7 +30,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -42,6 +48,14 @@ enum BlendMode {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
+    let payload = match core_types::contract::image_input(payload, true) {
+        Ok(payload) => payload,
+        Err(error) => return Payload::Error(error),
+    };
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut mode = BlendMode::Alpha;
     let mut opacity = 1.0f32;

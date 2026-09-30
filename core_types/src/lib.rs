@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod contract;
 pub mod image;
 pub mod shape;
 pub mod tensor;

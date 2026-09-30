@@ -11,8 +11,15 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(_input: Shape, _args: ActionArgs) -> Shape {
-    Shape::new(Vec::new())
+fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self};
+    contract::finish((|| {
+        if input.rank() < 2 {
+            return Err("trace requires rank at least 2".into());
+        }
+        let rank = input.rank();
+        contract::shape(input.dims()[..rank - 2].iter().copied())
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -20,11 +27,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, _) = payload.take_payload_and_args();
 
     match inner_payload {

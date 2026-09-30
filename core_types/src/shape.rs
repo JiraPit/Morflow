@@ -570,7 +570,7 @@ impl fmt::Display for PType {
 pub enum ShapeResult {
     /// The call is valid and produces this concrete shape.
     Ok(Shape),
-    /// The call is valid but the output shape is not statically known.
+    /// Static information is insufficient to determine validity or output shape.
     Unknown,
     /// The arguments make the call invalid (e.g. an out-of-bounds axis).
     Invalid(RString),

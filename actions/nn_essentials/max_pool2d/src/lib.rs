@@ -11,46 +11,31 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let r = input.rank();
-    let mut kernel_size = 2usize;
-    let mut stride = 2usize;
-    if let Some(k_str) = args
-        .get_named("kernel_size")
-        .or_else(|| args.get_named("kernel"))
-    {
-        if let Ok(k) = k_str.parse::<usize>() {
-            kernel_size = k.max(1);
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg};
+    contract::finish((|| {
+        if input.rank() < 2 {
+            return Err("pool2d requires rank at least 2".into());
         }
-    }
-    if let Some(s_str) = args.get_named("stride") {
-        if let Ok(s) = s_str.parse::<usize>() {
-            stride = s.max(1);
+        let kernel = arg::<usize>(&args, &["kernel_size", "kernel"], Some(0), Some(2))?
+            .unwrap()
+            .max(1);
+        let stride = arg::<usize>(&args, &["stride"], Some(1), Some(2))?
+            .unwrap()
+            .max(1);
+        let mut out = input.dims().to_vec();
+        let rank = out.len();
+        for d in &mut out[rank - 2..] {
+            if *d == 0 {
+                continue;
+            }
+            if *d < kernel {
+                return Err("Pooling kernel exceeds input spatial dimension".into());
+            }
+            *d = (*d - kernel) / stride + 1;
         }
-    }
-    if r < 2 {
-        return input;
-    }
-    let dims_ = input.dims();
-    let h = dims_[r - 2];
-    let w = dims_[r - 1];
-    let out_h = if h >= kernel_size {
-        (h - kernel_size) / stride + 1
-    } else {
-        0
-    };
-    let out_w = if w >= kernel_size {
-        (w - kernel_size) / stride + 1
-    } else {
-        0
-    };
-    if out_h == 0 || out_w == 0 {
-        return input;
-    }
-    let mut out = dims_[0..r - 2].to_vec();
-    out.push(out_h);
-    out.push(out_w);
-    Shape::new(out)
+        contract::shape(out)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -58,11 +43,15 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
     let mut kernel_size = 2usize;

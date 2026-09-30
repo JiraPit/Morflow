@@ -15,62 +15,53 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
-    let dims_ = input.dims();
-    let r = dims_.len();
-    if r < 2 {
-        return input;
-    }
-    let in_w = dims_[1];
-    let in_h = dims_[0];
-    let target_w: Option<usize> = args
-        .get_named("width")
-        .or_else(|| args.get_named("w"))
-        .and_then(|s| s.parse::<usize>().ok());
-    let target_h: Option<usize> = args
-        .get_named("height")
-        .or_else(|| args.get_named("h"))
-        .and_then(|s| s.parse::<usize>().ok());
-    let scale_x: Option<f32> = args
-        .get_named("scale_x")
-        .or_else(|| args.get_named("scale"))
-        .and_then(|s| s.parse::<f32>().ok());
-    let scale_y: Option<f32> = args
-        .get_named("scale_y")
-        .or_else(|| args.get_named("scale"))
-        .and_then(|s| s.parse::<f32>().ok());
-    let mut out_w = target_w.unwrap_or_else(|| {
-        if in_w == 0 {
-            return 0; // unknown dimension stays unknown
+fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+    use core_types::contract::{self, arg, Error};
+    contract::finish((|| {
+        let (h, w, c, chw) = contract::image_dims(&input)?;
+        let width = arg::<usize>(&args, &["width", "w"], Some(0), None)?;
+        let height = arg::<usize>(&args, &["height", "h"], Some(1), None)?;
+        let sx = arg::<f32>(&args, &["scale_x", "scale"], None, None)?;
+        let sy = arg::<f32>(&args, &["scale_y", "scale"], None, None)?;
+        if sx.into_iter().chain(sy).any(|s| !s.is_finite() || s <= 0.0) {
+            return Err("Resize scales must be positive and finite".into());
         }
-        scale_x
-            .map(|s| (in_w as f32 * s).round().max(1.0) as usize)
-            .unwrap_or(in_w)
-    });
-    let mut out_h = target_h.unwrap_or_else(|| {
-        if in_h == 0 {
-            return 0; // unknown dimension stays unknown
+        let aspect = contract::value(&args, &["keep_aspect_ratio"], None)?
+            .is_some_and(|s| s.eq_ignore_ascii_case("true") || s == "1");
+        if h == 0 || w == 0 {
+            return Err(Error::Unknown);
         }
-        scale_y
-            .map(|s| (in_h as f32 * s).round().max(1.0) as usize)
-            .unwrap_or(in_h)
-    });
-    if out_w == 0 && dims_[1] != 0 {
-        out_w = 1;
-    }
-    if out_h == 0 && dims_[0] != 0 {
-        out_h = 1;
-    }
-    let mut out = Vec::with_capacity(r);
-    if r == 2 {
-        out.push(out_h);
-        out.push(out_w);
-    } else {
-        out.push(out_h);
-        out.push(out_w);
-        out.push(dims_[2]);
-    }
-    Shape::new(out)
+        let scale = |n: usize, s: Option<f32>| -> core_types::contract::Result<usize> {
+            let Some(s) = s else {
+                return Ok(n);
+            };
+            let n = (n as f32 * s).round().max(1.0);
+            if !n.is_finite() || n >= usize::MAX as f32 {
+                return Err("Resized dimension overflows".into());
+            }
+            Ok(n as usize)
+        };
+        let mut ow = match width {
+            Some(w) => w,
+            None => scale(w, sx)?,
+        };
+        let mut oh = match height {
+            Some(h) => h,
+            None => scale(h, sy)?,
+        };
+        if ow == 0 || oh == 0 {
+            return Err("Resize dimensions must be positive".into());
+        }
+        if aspect {
+            let ratio = w as f32 / h as f32;
+            if ow as f32 / oh as f32 > ratio {
+                ow = (oh as f32 * ratio).round().max(1.0) as usize;
+            } else {
+                oh = (ow as f32 / ratio).round().max(1.0) as usize;
+            }
+        }
+        contract::image_shape(oh, ow, c, input.rank(), chw)
+    })())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
@@ -78,7 +69,7 @@ const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -91,6 +82,14 @@ enum ResizeFilter {
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
+    core_types::contract::run(payload, get_output_shape, process_impl)
+}
+
+fn process_impl(payload: Payload) -> Payload {
+    let payload = match core_types::contract::image_input(payload, true) {
+        Ok(payload) => payload,
+        Err(error) => return Payload::Error(error),
+    };
     let (inner_payload, args_opt) = payload.take_payload_and_args();
     let mut target_w: Option<usize> = None;
     let mut target_h: Option<usize> = None;
