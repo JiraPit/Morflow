@@ -19,6 +19,25 @@ use crate::scheduler::{extract_dependencies, extract_writes};
 use crate::types::{default_payload, ptype_of};
 use crate::validator::validate_pipeline;
 
+/// If a tensor `each` loop's body changes the tensor rank, return the
+/// (loop_variable_rank, body_rank) mismatch. Returns None when the ranks
+/// match, when either rank is not statically known, or for non-tensor kinds
+/// (audio/image restack constraints are runtime layout properties).
+fn each_rank_mismatch(loop_ptype: &PType, final_ty: &PType) -> Option<(usize, usize)> {
+    if matches!(loop_ptype, PType::Tensor(_) | PType::Scalar)
+        && matches!(final_ty, PType::Tensor(_) | PType::Scalar)
+    {
+        match (loop_ptype.rank(), final_ty.rank()) {
+            (Some(loop_rank), Some(final_rank)) if loop_rank != final_rank => {
+                Some((loop_rank, final_rank))
+            }
+            _ => None,
+        }
+    } else {
+        None
+    }
+}
+
 /// Finds byte offsets for an identifier in source text, ignoring comments
 fn find_token_span(source: &str, token: &str, occurrence: usize) -> std::ops::Range<usize> {
     let mut count = 0;
@@ -1037,6 +1056,49 @@ pub fn check_pipeline(
                                 ));
                                 return Err("Loop payload kind changed".into());
                             }
+
+                            // E009 (rank): a tensor loop restacks its iterations on
+                            // axis 0, so the body must yield the same rank as the
+                            // loop variable (rank-1 input → rank-0 slices, rank-N →
+                            // rank-(N-1)). Audio/image restack constraints are runtime
+                            // layout properties and are not checked here.
+                            if let Some((loop_rank, final_rank)) =
+                                each_rank_mismatch(&loop_ptype, final_ty)
+                            {
+                                let each_span =
+                                    find_token_span(&source, &each_loop.var_name.to_string(), 0);
+                                let report = Report::build(
+                                    ReportKind::Error,
+                                    (filename_str.as_str(), each_span.clone()),
+                                )
+                                .with_code("E009")
+                                .with_message(format!(
+                                    "'each' body changes the tensor rank: the loop variable is rank {}, but the body produces rank {}",
+                                    loop_rank, final_rank
+                                ))
+                                .with_label(
+                                    Label::new((filename_str.as_str(), each_span))
+                                        .with_message(format!(
+                                            "Body yields rank {}, expected rank {}",
+                                            final_rank, loop_rank
+                                        ))
+                                        .with_color(Color::Red),
+                                )
+                                .with_help(
+                                    "Each iteration must yield a tensor of the same rank as the loop variable so the results can be restacked on axis 0.",
+                                );
+
+                                let _ = report
+                                    .finish()
+                                    .print((filename_str.as_str(), Source::from(&source)));
+
+                                console.print("");
+                                console.print(&format!(
+                                    "[bold red]✗ Check failed:[/] 'each' body changes the tensor rank in [dim]{}[/].",
+                                    file_path.display()
+                                ));
+                                return Err("Loop tensor rank changed".into());
+                            }
                             curr_type = inner_type;
                         }
                     }
@@ -1600,6 +1662,44 @@ mod tests {
         // Unpinned ranks stay unranked for the loop variable.
         let any_loop = unranked_like(&PType::Audio(ShapeSpec::AnyRank));
         assert!(matches!(any_loop, PType::Audio(spec) if spec.is_any_rank()));
+    }
+
+    #[test]
+    fn test_each_rank_mismatch() {
+        // rank-2 loop variable vs rank-1 body -> mismatch.
+        assert_eq!(
+            each_rank_mismatch(
+                &PType::Tensor(ShapeSpec::from_rank(2)),
+                &PType::Tensor(ShapeSpec::from_rank(1))
+            ),
+            Some((2, 1))
+        );
+        // Same rank -> ok.
+        assert_eq!(
+            each_rank_mismatch(
+                &PType::Tensor(ShapeSpec::from_rank(1)),
+                &PType::Tensor(ShapeSpec::from_rank(1))
+            ),
+            None
+        );
+        // Scalar loop variable (rank-1 input) vs scalar body -> ok.
+        assert_eq!(each_rank_mismatch(&PType::Scalar, &PType::Scalar), None);
+        // Unpinned rank -> skip (None).
+        assert_eq!(
+            each_rank_mismatch(
+                &PType::Tensor(ShapeSpec::AnyRank),
+                &PType::Tensor(ShapeSpec::from_rank(1))
+            ),
+            None
+        );
+        // Audio/image are runtime-layout kinds, not checked here.
+        assert_eq!(
+            each_rank_mismatch(
+                &PType::Audio(ShapeSpec::from_rank(2)),
+                &PType::Audio(ShapeSpec::from_rank(1))
+            ),
+            None
+        );
     }
 
     #[test]
