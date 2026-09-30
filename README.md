@@ -64,16 +64,19 @@ cargo add morflow
 
 ```morf
 import base.latest
-import image_essentials.latest
+from base.latest import to_tensor
+from image_essentials.latest import resize, color_adjust, gaussian_blur, to_image
 
-accept $input
+accept Image $img_in
+accept IntArg $target_width = 512
+accept IntArg $target_height = 512
 
-$input
-    >> to_tensor(color="rgb", normalize=true)
-    >> resize(width=512, height=512, filter="bilinear")
-    >> color_adjust(contrast=1.15, saturation=1.05)
-    >> gaussian_blur(sigma=1.0)
-    >> to_image
+$img_in
+    >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
+    >> resize(width=$target_width, height=$target_height, filter="bilinear")
+    >> color_adjust(contrast=1.15, saturation=1.05, brightness=0.02)
+    >> gaussian_blur(sigma=1.2)
+    >> to_image(color="rgba", dtype="u8")
     >> emit
 ```
 
