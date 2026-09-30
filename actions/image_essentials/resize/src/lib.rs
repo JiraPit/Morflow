@@ -77,9 +77,6 @@ fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
 const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
-pub static MORFLOW_SHAPE_ABI: u32 = core_types::SHAPE_ABI_VERSION;
-
-#[no_mangle]
 pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
     shape_impl(input, args).into()
 }

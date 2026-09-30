@@ -6,7 +6,6 @@ use std::sync::{Arc, RwLock};
 
 use core_types::{
     ActionArgs, DataType, GetShapeFn, GetTypeFn, Payload, ProcessFn, Shape, ShapeResult,
-    SHAPE_ABI_VERSION,
 };
 use libloading::{Library, Symbol};
 
@@ -17,8 +16,8 @@ pub struct LoadedAction {
     pub input_type: DataType,
     pub output_type: DataType,
     process_fn: ProcessFn,
-    /// `get_output_shape` is optional so that actions built against an older
-    /// ABI still load; those simply have an unknown output shape.
+    /// `get_output_shape` is optional so that actions which cannot report a
+    /// shape still load; those simply have an unknown output shape.
     get_shape_fn: Option<GetShapeFn>,
     // Keeps library handle alive in memory so function pointers remain valid
     _library: Arc<Library>,
@@ -42,9 +41,9 @@ impl LoadedAction {
 
     /// Asks the action what it would produce for this call.
     ///
-    /// An action that does not export a shape fn matching the current ABI, or
-    /// that cannot describe its result, yields [`ShapeResult::Unknown`] rather
-    /// than an error, so callers can always fall back to a wildcard shape.
+    /// An action that does not export a shape fn, or that cannot describe its
+    /// result, yields [`ShapeResult::Unknown`] rather than an error, so
+    /// callers can always fall back to a wildcard shape.
     pub fn output_result(&self, input: &Shape, args: &ActionArgs) -> ShapeResult {
         match &self.get_shape_fn {
             Some(get_shape) => get_shape(input.clone(), args.clone()),
@@ -411,17 +410,9 @@ impl ActionRegistry {
             let input_type = (*get_in_sym)();
             let output_type = (*get_out_sym)();
             let process_fn = *process_sym;
-            // The exported shape fn: a `.so` that declares a matching ABI
-            // version has a `get_output_shape` returning `ShapeResult`, so it
-            // is safe to call; any other build (no marker, or a stale
-            // pre-`ShapeResult` binary) has an unknown output shape.
-            // A data symbol is fetched as a pointer-sized `&u32`.
-            let shape_abi: Option<u32> = lib.get::<&u32>(b"MORFLOW_SHAPE_ABI").ok().map(|s| **s);
-            let get_shape_fn: Option<GetShapeFn> = match shape_abi {
-                Some(v) if v == SHAPE_ABI_VERSION => lib.get(b"get_output_shape").ok().map(|s| *s),
-                _ => None,
-            };
-
+            // The exported shape fn. A missing symbol simply means the action cannot
+            // describe its output and reports an unknown shape.
+            let get_shape_fn: Option<GetShapeFn> = lib.get(b"get_output_shape").ok().map(|s| *s);
             Ok(LoadedAction {
                 name: action_name.to_string(),
                 path: path.to_path_buf(),

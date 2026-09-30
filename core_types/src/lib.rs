@@ -11,7 +11,7 @@ pub use audio::{Audio, AudioChannelLayout, AudioLayout};
 pub use image::{ColorSpace, Image, ImageLayout};
 pub use shape::{
     arg_text, reducer_axis_reason, scalar_number, scalar_text, tensor_scalar_text, ArgKind, Dim,
-    GetShapeFn, PType, Shape, ShapeResult, ShapeSpec, SHAPE_ABI_VERSION,
+    GetShapeFn, PType, Shape, ShapeResult, ShapeSpec,
 };
 pub use tensor::{compute_c_contiguous_strides, parse_shape_str, Tensor, TensorDType};
 

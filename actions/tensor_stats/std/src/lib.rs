@@ -59,9 +59,6 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
 const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
-pub static MORFLOW_SHAPE_ABI: u32 = core_types::SHAPE_ABI_VERSION;
-
-#[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, args_opt) = payload.take_payload_and_args();
 
