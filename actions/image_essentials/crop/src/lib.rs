@@ -1,6 +1,4 @@
-use core_types::{
-    ActionArgs, DataType, GetShapeResultFn, ImageLayout, Payload, Shape, ShapeResult,
-};
+use core_types::{ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor
@@ -73,10 +71,13 @@ fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeResultFn = get_output_shape_result;
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
-pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+pub static MORFLOW_SHAPE_ABI: u32 = core_types::SHAPE_ABI_VERSION;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
     shape_impl(input, args).into()
 }
 

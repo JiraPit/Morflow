@@ -1,4 +1,4 @@
-use core_types::{ActionArgs, DataType, GetShapeResultFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -12,7 +12,7 @@ pub extern "C" fn get_output_type() -> DataType {
 }
 
 #[no_mangle]
-pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
     let r = input.rank();
     let mut axis: isize = -1;
     let mut keepdim = false;
@@ -53,8 +53,11 @@ pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> Sha
     ShapeResult::Ok(Shape::new(out))
 }
 
-// Compile-time check that get_output_shape_result matches the core_types ABI.
-const _: GetShapeResultFn = get_output_shape_result;
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
+
+#[no_mangle]
+pub static MORFLOW_SHAPE_ABI: u32 = core_types::SHAPE_ABI_VERSION;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

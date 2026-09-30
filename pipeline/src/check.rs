@@ -737,7 +737,7 @@ pub fn check_pipeline(
                     }
 
                     // Shape inference: feed the source shape into the action's
-                    // get_output_shape_result ("0" = unknown/wildcard dim) and
+                    // get_output_shape ("0" = unknown/wildcard dim) and
                     // refine the output type with the reported verdict. An
                     // unpinned (AnyRank) source stays unpinned rather than
                     // collapsing into a fabricated rank.

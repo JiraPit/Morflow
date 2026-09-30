@@ -582,8 +582,15 @@ impl From<Shape> for ShapeResult {
     }
 }
 
-/// Signature of an action's `get_output_shape_result` export.
-pub type GetShapeResultFn = extern "C" fn(input: Shape, args: ActionArgs) -> ShapeResult;
+/// The ABI version an action's shape export must declare for the registry to
+/// trust its `get_output_shape` symbol. The signature of that export changed
+/// over time (it once returned a plain `Shape`), so without a marker a
+/// stale binary would be called with the wrong layout.
+pub const SHAPE_ABI_VERSION: u32 = 2;
+
+/// Signature of an action's `get_output_shape` export: the shape its
+/// arguments would produce, or why it rejects them.
+pub type GetShapeFn = extern "C" fn(input: Shape, args: ActionArgs) -> ShapeResult;
 
 /// The reason a reducer's `axis` argument misses `rank` dimensions, matching
 /// the runtime's axis handling so the checker can repeat the verdict.
