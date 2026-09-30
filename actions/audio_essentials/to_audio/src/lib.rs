@@ -1,8 +1,8 @@
 #![allow(clippy::needless_range_loop)]
 
 use core_types::{
-    ActionArgs, Audio, AudioChannelLayout, AudioLayout, DataType, GetShapeFn, Payload, Shape,
-    Tensor, TensorDType,
+    ActionArgs, Audio, AudioChannelLayout, AudioLayout, DataType, GetShapeResultFn, Payload, Shape,
+    ShapeResult, Tensor, TensorDType,
 };
 use rayon::prelude::*;
 
@@ -16,13 +16,17 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
     input
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

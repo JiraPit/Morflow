@@ -1,4 +1,4 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeResultFn, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -11,13 +11,17 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(_input: Shape, _args: ActionArgs) -> Shape {
+fn shape_impl(_input: Shape, _args: ActionArgs) -> Shape {
     Shape::new(Vec::new())
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

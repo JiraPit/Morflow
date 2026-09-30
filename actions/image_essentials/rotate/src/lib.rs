@@ -1,5 +1,6 @@
 use core_types::{
-    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, Tensor, TensorDType,
+    ActionArgs, DataType, GetShapeResultFn, ImageLayout, Payload, Shape, ShapeResult, Tensor,
+    TensorDType,
 };
 use rayon::prelude::*;
 
@@ -13,8 +14,7 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
     let dims_ = input.dims();
     let r = dims_.len();
     if r < 2 {
@@ -53,7 +53,12 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

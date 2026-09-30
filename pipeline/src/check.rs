@@ -4,7 +4,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use ariadne::{Color, Label, Report, ReportKind, Source};
-use core_types::{ActionArgs, DataType, Dim, PType, RString, RVec, Shape, ShapeSpec, Tuple2};
+use core_types::{
+    ActionArgs, DataType, Dim, PType, RString, RVec, Shape, ShapeResult, ShapeSpec, Tuple2,
+};
 use parser::ast::*;
 use rich_rust::prelude::*;
 use rich_rust::r#box::ROUNDED;
@@ -196,6 +198,16 @@ fn refine_output(kind: DataType, spec: ShapeSpec) -> PType {
     }
 }
 
+/// The `PType` an action produces for a pinned-rank source, from the verdict
+/// its shape function returned. An `Unknown` verdict or an unpinned source
+/// stay wildcard rather than collapsing into a fabricated rank.
+fn refine_result(kind: DataType, verdict: ShapeResult) -> PType {
+    match verdict {
+        ShapeResult::Ok(shape) => refine_output(kind, ShapeSpec::from(shape)),
+        _ => refine_output(kind, ShapeSpec::AnyRank),
+    }
+}
+
 /// Whether two types carry the same payload kind (`Tensor`, `Image`, `Audio`,
 /// `Scalar`, `RawBytes`, `Composite`). The unknown type matches anything.
 fn same_payload_kind(a: &PType, b: &PType) -> bool {
@@ -263,64 +275,49 @@ fn call_args(call: &ActionCall, params: &[PipelineParam]) -> ActionArgs {
     ActionArgs { positional, named }
 }
 
-/// Actions that shrink a tensor along a dimension chosen by an `axis` (or
-/// `dim`) argument. These are the only ones E010 binds against the input
-/// rank; shape-preserving actions such as `cumsum` take no such axis.
-const REDUCER_ACTIONS: &[&str] = &[
-    "sum", "mean", "max", "min", "var", "std", "norm", "argmax", "argmin",
-];
-
-/// The argument a reducing action reduces along, if one is given at all.
-fn call_axis_arg(call: &ActionCall) -> Option<&Value> {
-    call.named_args
-        .iter()
-        .find(|(key, _)| key == "axis" || key == "dim")
-        .map(|(_, value)| value)
-        .or_else(|| call.positional_args.first())
-}
-
-/// The E010 diagnostics for a reducer whose axis misses the input rank.
-struct ReducerAxisDiag {
-    title: String,
-    label: String,
-    help: String,
-}
-
-/// Resolves a reducer's axis against the input rank and reports an E010 hit.
-///
-/// `None` means the call is either not a reducer, reduces no axis (total
-/// reduction), has an axis that is not a literal integer (only runtime can
-/// judge), or the axis is in bounds.
-fn reducer_axis_error(
-    call: &ActionCall,
-    params: &[PipelineParam],
-    rank: usize,
-) -> Option<ReducerAxisDiag> {
-    if !REDUCER_ACTIONS.contains(&call.name.as_str()) {
-        return None;
-    }
-    let axis_value = call_axis_arg(call)?;
-    let raw = value_to_arg_str(axis_value, params).parse::<isize>().ok()?;
-    let resolved = if raw < 0 { raw + rank as isize } else { raw };
-    if (0..rank as isize).contains(&resolved) {
-        return None;
-    }
-    let valid = if rank == 0 {
-        "none (the value is rank 0 and has no axis to reduce)".to_string()
+/// Renders the E010 report for an action that rejected its own arguments
+/// (e.g. an out-of-range reducer axis) and returns the error string the
+/// check propagates. The action binary supplies the reason, so no action
+/// names are consulted here.
+#[allow(clippy::too_many_arguments)]
+fn invalid_args_report(
+    console: &Console,
+    reason: &RString,
+    produced: &str,
+    call_name: &str,
+    prev_desc: &str,
+    source: &str,
+    filename: &str,
+    file_path: &Path,
+) -> String {
+    let curr_span = find_token_span(source, call_name, 0);
+    let prev_span = if !prev_desc.is_empty() {
+        find_token_span(source, prev_desc, 0)
     } else {
-        format!("{} to {}", -(rank as isize), rank as isize - 1)
+        curr_span.clone()
     };
-    Some(ReducerAxisDiag {
-        title: format!(
-            "Reducer '{}' axis '{}' is out of bounds for a rank-{} input (valid axes: {})",
-            call.name, raw, rank, valid
-        ),
-        label: format!("Axis '{}' is invalid for rank-{} data", raw, rank),
-        help: format!(
-            "Use an axis in {}, or drop 'axis' for a total reduction.",
-            valid
-        ),
-    })
+    let report = Report::build(ReportKind::Error, (filename, curr_span.clone()))
+        .with_code("E010")
+        .with_message(reason.as_str())
+        .with_label(
+            Label::new((filename, prev_span))
+                .with_message(format!("Produces {}", produced))
+                .with_color(Color::Blue),
+        )
+        .with_label(
+            Label::new((filename, curr_span))
+                .with_message("Action rejected these arguments")
+                .with_color(Color::Red),
+        )
+        .with_help("Check the action's axis/dimension arguments against the input rank.");
+    let _ = report.finish().print((filename, Source::from(source)));
+    console.print("");
+    console.print(&format!(
+        "[bold red]✗ Check failed:[/] {} in [dim]{}[/].",
+        reason.as_str(),
+        file_path.display()
+    ));
+    "Invalid action argument error".into()
 }
 
 /// Executes the comprehensive static check & dry run on a .morf file
@@ -739,66 +736,41 @@ pub fn check_pipeline(
                         }
                     }
 
-                    // E010: a reducer's axis must resolve within the input
-                    // rank. The action's get_output_shape has no way to report
-                    // an invalid axis (a `Shape` is either concrete or scalar),
-                    // so fail the check instead of claiming a shape the runtime
-                    // will refuse at execution time.
-                    if let Some(src) = &curr_type {
-                        if let Some(rank) = src.rank() {
-                            if let Some(bad) = reducer_axis_error(call, &ast.params, rank) {
-                                let curr_span = find_token_span(&source, &call.name, 0);
-                                let prev_span = if !prev_step_desc.is_empty() {
-                                    find_token_span(&source, &prev_step_desc, 0)
-                                } else {
-                                    curr_span.clone()
-                                };
-                                let report = Report::build(
-                                    ReportKind::Error,
-                                    (filename_str.as_str(), curr_span.clone()),
-                                )
-                                .with_code("E010")
-                                .with_message(bad.title.clone())
-                                .with_label(
-                                    Label::new((filename_str.as_str(), prev_span))
-                                        .with_message(format!("Produces {}", src))
-                                        .with_color(Color::Blue),
-                                )
-                                .with_label(
-                                    Label::new((filename_str.as_str(), curr_span))
-                                        .with_message(bad.label)
-                                        .with_color(Color::Red),
-                                )
-                                .with_help(bad.help);
-
-                                let _ = report
-                                    .finish()
-                                    .print((filename_str.as_str(), Source::from(&source)));
-
-                                console.print("");
-                                console.print(&format!(
-                                    "[bold red]✗ Check failed:[/] {} in [dim]{}[/].",
-                                    bad.title,
-                                    file_path.display()
-                                ));
-                                return Err("Reducer axis error".into());
-                            }
-                        }
-                    }
-
                     // Shape inference: feed the source shape into the action's
-                    // get_output_shape ("0" = unknown/wildcard dim) and refine
-                    // the output type with the reported rank/shape. An unpinned
-                    // (AnyRank) source stays unpinned rather than collapsing.
-                    let out_ptype = match curr_type {
+                    // get_output_shape_result ("0" = unknown/wildcard dim) and
+                    // refine the output type with the reported verdict. An
+                    // unpinned (AnyRank) source stays unpinned rather than
+                    // collapsing into a fabricated rank.
+                    let shape_verdict = match curr_type {
                         Some(ref src) if has_pinned_rank(src) => {
                             let src_shape = shape_of_ptype(src);
-                            let out_spec =
-                                loaded.output_shape(&src_shape, &call_args(call, &ast.params));
-                            refine_output(action_out, out_spec)
+                            loaded.output_result(&src_shape, &call_args(call, &ast.params))
                         }
-                        _ => PType::from_data_type(action_out),
+                        _ => ShapeResult::Unknown,
                     };
+
+                    // E010: the action itself rejected the call (e.g. an
+                    // out-of-range reducer axis), so fail the check instead of
+                    // claiming a shape the runtime will refuse at execution.
+                    if let ShapeResult::Invalid(reason) = &shape_verdict {
+                        let src_desc = curr_type
+                            .as_ref()
+                            .map(|t| t.to_string())
+                            .unwrap_or_default();
+                        return Err(invalid_args_report(
+                            &console,
+                            reason,
+                            &src_desc,
+                            &call.name,
+                            &prev_step_desc,
+                            &source,
+                            filename_str.as_str(),
+                            file_path,
+                        )
+                        .into());
+                    }
+
+                    let out_ptype = refine_result(action_out, shape_verdict);
                     curr_type = Some(out_ptype);
                     steps_summary.push(call.name.clone());
                     prev_step_desc = call.name.clone();
@@ -971,17 +943,35 @@ pub fn check_pipeline(
                                                 }
                                             }
 
-                                            let inner_out = match inner_type {
+                                            let inner_verdict = match inner_type {
                                                 Some(ref src) if has_pinned_rank(src) => {
                                                     let inner_shape = shape_of_ptype(src);
-                                                    let out_spec = loaded.output_shape(
+                                                    loaded.output_result(
                                                         &inner_shape,
                                                         &call_args(call, &ast.params),
-                                                    );
-                                                    refine_output(action_out, out_spec)
+                                                    )
                                                 }
-                                                _ => PType::from_data_type(action_out),
+                                                _ => ShapeResult::Unknown,
                                             };
+                                            if let ShapeResult::Invalid(reason) = &inner_verdict {
+                                                let inner_desc = inner_type
+                                                    .as_ref()
+                                                    .map(|t| t.to_string())
+                                                    .unwrap_or_default();
+                                                return Err(invalid_args_report(
+                                                    &console,
+                                                    reason,
+                                                    &inner_desc,
+                                                    &call.name,
+                                                    &prev_inner_desc,
+                                                    &source,
+                                                    filename_str.as_str(),
+                                                    file_path,
+                                                )
+                                                .into());
+                                            }
+                                            let inner_out =
+                                                refine_result(action_out, inner_verdict);
                                             inner_type = Some(inner_out);
                                             prev_inner_desc = call.name.clone();
                                         }
@@ -1613,87 +1603,31 @@ mod tests {
     }
 
     #[test]
-    fn test_reducer_axis_bounds() {
-        let params = vec![PipelineParam {
-            name: "dim".to_string(),
-            param_type: ParamType::IntArg,
-            default_value: Some(Value::Int(3)),
-        }];
-        let call = |positional: Vec<Value>| ActionCall {
-            name: "sum".to_string(),
-            positional_args: positional,
-            named_args: vec![],
-        };
-
-        // In-bounds axes produce no E010, including negative forms, and an
-        // absent axis is a total reduction.
-        assert!(reducer_axis_error(&call(vec![Value::Int(1)]), &params, 2).is_none());
-        assert!(reducer_axis_error(&call(vec![Value::Int(0)]), &params, 2).is_none());
-        assert!(reducer_axis_error(&call(vec![Value::Int(-1)]), &params, 2).is_none());
-        assert!(reducer_axis_error(&call(vec![]), &params, 2).is_none());
-
-        // Out-of-range literal axes are caught, positive and negative.
-        let diag = reducer_axis_error(&call(vec![Value::Int(5)]), &params, 2).unwrap();
-        assert!(
-            diag.title.contains("axis '5' is out of bounds"),
-            "{}",
-            diag.title
+    fn test_refine_result_maps_shape_verdict() {
+        // A `Ok` verdict pins the reported rank and dims.
+        let pinned = refine_result(DataType::Tensor, ShapeResult::Ok(Shape::new(vec![2, 3])));
+        assert!(matches!(pinned, PType::Tensor(spec) if !spec.is_any_rank()));
+        // `Unknown` (e.g. no shape fn exported) keeps the source wildcard.
+        let unknown = refine_result(DataType::Tensor, ShapeResult::Unknown);
+        assert!(matches!(unknown, PType::Tensor(spec) if spec.is_any_rank()));
+        // A scalar verdict collapses the payload to a scalar.
+        let scalar = refine_result(
+            DataType::Tensor | DataType::Scalar,
+            ShapeResult::Ok(Shape::scalar()),
         );
-        assert!(diag.title.contains("rank-2"), "{}", diag.title);
-        assert!(diag.help.contains("-2 to 1"), "{}", diag.help);
-        let diag = reducer_axis_error(&call(vec![Value::Int(-5)]), &params, 2).unwrap();
-        assert!(
-            diag.title.contains("axis '-5' is out of bounds"),
-            "{}",
-            diag.title
-        );
+        assert!(matches!(scalar, PType::Scalar));
+    }
 
-        // A named `dim` parameter is recognized and its IntArg default resolves.
-        let dim_ref = Value::Var(VarRef {
-            name: "dim".to_string(),
-            field: None,
-            slices: vec![],
-        });
-        let named = ActionCall {
-            name: "mean".to_string(),
-            positional_args: vec![],
-            named_args: vec![("dim".to_string(), dim_ref.clone())],
-        };
-        let diag = reducer_axis_error(&named, &params, 2).unwrap();
-        assert!(
-            diag.title.contains("axis '3' is out of bounds"),
-            "{}",
-            diag.title
-        );
-
-        // A rank-0 input has no reducible axis.
-        let diag = reducer_axis_error(&call(vec![Value::Int(0)]), &params, 0).unwrap();
-        assert!(diag.title.contains("rank-0"), "{}", diag.title);
-
-        // Non-reducers and non-literal or var-only axis values stay silent.
-        let relu = ActionCall {
-            name: "relu".to_string(),
-            positional_args: vec![],
-            named_args: vec![],
-        };
-        assert!(reducer_axis_error(&relu, &params, 2).is_none());
-        let string_axis = ActionCall {
-            name: "sum".to_string(),
-            positional_args: vec![],
-            named_args: vec![("axis".to_string(), Value::String("x".to_string()))],
-        };
-        assert!(reducer_axis_error(&string_axis, &params, 2).is_none());
-        // `$dim` without a default is not statically decidable.
-        let no_default = PipelineParam {
-            name: "dim".to_string(),
-            param_type: ParamType::IntArg,
-            default_value: None,
-        };
-        let unbound = ActionCall {
-            name: "sum".to_string(),
-            positional_args: vec![],
-            named_args: vec![("axis".to_string(), dim_ref.clone())],
-        };
-        assert!(reducer_axis_error(&unbound, &[no_default], 2).is_none());
+    #[test]
+    fn test_reducer_axis_reason() {
+        use core_types::reducer_axis_reason;
+        let msg = reducer_axis_reason(5, 2);
+        assert!(msg.contains("axis '5' is out of bounds"), "{}", msg);
+        assert!(msg.contains("rank-2"), "{}", msg);
+        assert!(msg.contains("valid axes: -2 to 1"), "{}", msg);
+        let neg = reducer_axis_reason(-5, 2);
+        assert!(neg.contains("axis '-5' is out of bounds"), "{}", neg);
+        let rank0 = reducer_axis_reason(0, 0);
+        assert!(rank0.contains("no axis to reduce"), "{}", rank0);
     }
 }

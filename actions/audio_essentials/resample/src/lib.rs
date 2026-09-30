@@ -1,4 +1,7 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, DataType, GetShapeResultFn, Payload, RString, Shape, ShapeResult, Tensor,
+    TensorDType,
+};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -12,13 +15,17 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
     input
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 /// Computes windowed sinc interpolation for high-quality audio resampling.
 fn sinc(x: f32) -> f32 {

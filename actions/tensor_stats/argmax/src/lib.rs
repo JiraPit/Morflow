@@ -1,4 +1,4 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeResultFn, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -12,7 +12,7 @@ pub extern "C" fn get_output_type() -> DataType {
 }
 
 #[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
     let r = input.rank();
     let mut axis: isize = -1;
     let mut keepdim = false;
@@ -29,18 +29,15 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
         keepdim = kd_str == "true" || kd_str == "1";
     }
 
-    let mut out: Vec<usize> = Vec::new();
     if r == 0 {
-        return Shape::new(out);
+        return ShapeResult::Ok(Shape::new(Vec::new()));
     }
-    let ax = if axis < 0 {
-        ((axis + r as isize).max(0)) as usize
-    } else {
-        axis as usize
-    };
-    if ax >= r {
-        return input;
+    let resolved = if axis < 0 { axis + r as isize } else { axis };
+    if !(0..r as isize).contains(&resolved) {
+        return ShapeResult::Invalid(core_types::reducer_axis_reason(axis, r).into());
     }
+    let ax = resolved as usize;
+    let mut out: Vec<usize> = Vec::new();
     for (i, &d) in input.dims().iter().enumerate() {
         if i == ax {
             if keepdim {
@@ -53,11 +50,11 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
     if out.is_empty() {
         out.push(1);
     }
-    Shape::new(out)
+    ShapeResult::Ok(Shape::new(out))
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+// Compile-time check that get_output_shape_result matches the core_types ABI.
+const _: GetShapeResultFn = get_output_shape_result;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

@@ -1,5 +1,4 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
-
+use core_types::{ActionArgs, DataType, GetShapeResultFn, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -10,8 +9,7 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+fn shape_impl(input: Shape, args: ActionArgs) -> Shape {
     let r = input.rank();
     let dim = args
         .get_named("dim")
@@ -51,7 +49,12 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

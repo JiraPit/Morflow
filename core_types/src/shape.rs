@@ -564,8 +564,40 @@ impl fmt::Display for PType {
     }
 }
 
-/// Signature of an action's `get_output_shape` export.
-pub type GetShapeFn = extern "C" fn(input: Shape, args: ActionArgs) -> Shape;
+/// The verdict an action returns from its exported shape function.
+#[repr(C)]
+#[derive(StableAbi, Debug, Clone)]
+pub enum ShapeResult {
+    /// The call is valid and produces this concrete shape.
+    Ok(Shape),
+    /// The call is valid but the output shape is not statically known.
+    Unknown,
+    /// The arguments make the call invalid (e.g. an out-of-bounds axis).
+    Invalid(RString),
+}
+
+impl From<Shape> for ShapeResult {
+    fn from(shape: Shape) -> ShapeResult {
+        ShapeResult::Ok(shape)
+    }
+}
+
+/// Signature of an action's `get_output_shape_result` export.
+pub type GetShapeResultFn = extern "C" fn(input: Shape, args: ActionArgs) -> ShapeResult;
+
+/// The reason a reducer's `axis` argument misses `rank` dimensions, matching
+/// the runtime's axis handling so the checker can repeat the verdict.
+pub fn reducer_axis_reason(raw: isize, rank: usize) -> String {
+    let valid = if rank == 0 {
+        "none (a rank-0 value has no axis to reduce)".to_string()
+    } else {
+        format!("{} to {}", -(rank as isize), rank as isize - 1)
+    };
+    format!(
+        "axis '{}' is out of bounds for a rank-{} input (valid axes: {})",
+        raw, rank, valid
+    )
+}
 
 fn check_shape_spec(spec: &ShapeSpec, actual: &[usize], label: &str) -> Result<(), String> {
     match spec {

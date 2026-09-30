@@ -1,6 +1,9 @@
 #![allow(clippy::needless_range_loop)]
 
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, DataType, GetShapeResultFn, Payload, RString, Shape, ShapeResult, Tensor,
+    TensorDType,
+};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -14,13 +17,17 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(_input: Shape, _args: ActionArgs) -> Shape {
+fn shape_impl(_input: Shape, _args: ActionArgs) -> Shape {
     Shape::new(vec![0, 0])
 }
 
 // Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
+const _: GetShapeResultFn = get_output_shape_result;
+
+#[no_mangle]
+pub extern "C" fn get_output_shape_result(input: Shape, args: ActionArgs) -> ShapeResult {
+    shape_impl(input, args).into()
+}
 
 #[derive(Clone, Copy, Default)]
 struct Complex {
