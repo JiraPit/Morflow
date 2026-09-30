@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::env;
-use std::env::consts::{DLL_EXTENSION, DLL_PREFIX};
+use std::env::consts::DLL_EXTENSION;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -31,12 +31,6 @@ impl LoadedAction {
     #[inline]
     pub fn process(&self, payload: Payload) -> Payload {
         (self.process_fn)(payload)
-    }
-
-    /// Whether this action reports the shape it produces.
-    #[inline]
-    pub fn reports_output_shape(&self) -> bool {
-        self.get_shape_fn.is_some()
     }
 
     /// Asks the action what it would produce for this call.
@@ -113,66 +107,22 @@ impl ActionRegistry {
         self.search_paths.push(path.as_ref().to_path_buf());
     }
 
-    /// Normalizes pack name aliases (e.g. image_essential <-> image_essentials)
-    pub fn pack_aliases(pack: &str) -> Vec<String> {
-        let mut aliases = vec![pack.to_string()];
-        if pack == "image_essential" {
-            aliases.push("image_essentials".to_string());
-        } else if pack == "image_essentials" {
-            aliases.push("image_essential".to_string());
-        } else if pack == "audio_essential" {
-            aliases.push("audio_essentials".to_string());
-        } else if pack == "audio_essentials" {
-            aliases.push("audio_essential".to_string());
-        } else if pack == "tensor_essential" {
-            aliases.push("tensor_essentials".to_string());
-        } else if pack == "tensor_essentials" {
-            aliases.push("tensor_essential".to_string());
-        } else if pack == "math_essential" {
-            aliases.push("math_essentials".to_string());
-        } else if pack == "math_essentials" {
-            aliases.push("math_essential".to_string());
-        } else if pack == "nn_essential" {
-            aliases.push("nn_essentials".to_string());
-        } else if pack == "nn_essentials" {
-            aliases.push("nn_essential".to_string());
-        } else if pack == "linalg_essential" {
-            aliases.push("linalg_essentials".to_string());
-        } else if pack == "linalg_essentials" {
-            aliases.push("linalg_essential".to_string());
-        }
-        aliases
-    }
-
     /// Locates the shared library file for the given action in a specific ActionPack.
     pub fn find_action_in_pack(&self, pack: &str, action_name: &str) -> Option<PathBuf> {
-        let pack_candidates = Self::pack_aliases(pack);
-        let file_candidates = [
-            format!("{}_action.{}", action_name, DLL_EXTENSION),
-            format!("{}{}_action.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
-            format!("{}{}.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
-            format!("{}.{}", action_name, DLL_EXTENSION),
-        ];
+        let file_candidate = format!("{}_action.{}", action_name, DLL_EXTENSION);
 
         for base_dir in &self.search_paths {
-            for pack_cand in &pack_candidates {
-                let pack_dir = base_dir.join(pack_cand);
-                for candidate in &file_candidates {
-                    let full = pack_dir.join(candidate);
-                    if full.is_file() {
-                        return Some(full);
-                    }
-                }
+            let full = base_dir.join(pack).join(&file_candidate);
+            if full.is_file() {
+                return Some(full);
             }
         }
 
-        // Also check direct search paths as fallback
+        // Also check direct search paths
         for base_dir in &self.search_paths {
-            for candidate in &file_candidates {
-                let full = base_dir.join(candidate);
-                if full.is_file() {
-                    return Some(full);
-                }
+            let full = base_dir.join(&file_candidate);
+            if full.is_file() {
+                return Some(full);
             }
         }
 
@@ -187,49 +137,33 @@ impl ActionRegistry {
             }
         }
 
-        let file_candidates = [
-            format!("{}_action.{}", action_name, DLL_EXTENSION),
-            format!("{}{}_action.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
-            format!("{}{}.{}", DLL_PREFIX, action_name, DLL_EXTENSION),
-            format!("{}.{}", action_name, DLL_EXTENSION),
-        ];
+        let file_candidate = format!("{}_action.{}", action_name, DLL_EXTENSION);
 
         // 1. Search in known ActionPack subdirectories
         let known_packs = [
             "base",
             "image_essentials",
             "audio_essentials",
-            "image_essential",
-            "audio_essential",
             "tensor_essentials",
-            "tensor_essential",
             "math_essentials",
-            "math_essential",
             "tensor_stats",
             "nn_essentials",
-            "nn_essential",
             "linalg_essentials",
-            "linalg_essential",
         ];
         for base_dir in &self.search_paths {
             for pack in &known_packs {
-                let pack_dir = base_dir.join(pack);
-                for candidate in &file_candidates {
-                    let full = pack_dir.join(candidate);
-                    if full.is_file() {
-                        return Some(full);
-                    }
+                let full = base_dir.join(pack).join(&file_candidate);
+                if full.is_file() {
+                    return Some(full);
                 }
             }
         }
 
         // 2. Search directly in search_paths
         for base_dir in &self.search_paths {
-            for candidate in &file_candidates {
-                let full = base_dir.join(candidate);
-                if full.is_file() {
-                    return Some(full);
-                }
+            let full = base_dir.join(&file_candidate);
+            if full.is_file() {
+                return Some(full);
             }
         }
 
@@ -239,11 +173,9 @@ impl ActionRegistry {
                 for entry in entries.flatten() {
                     if entry.path().is_dir() {
                         let sub_dir = entry.path();
-                        for candidate in &file_candidates {
-                            let full = sub_dir.join(candidate);
-                            if full.is_file() {
-                                return Some(full);
-                            }
+                        let full = sub_dir.join(&file_candidate);
+                        if full.is_file() {
+                            return Some(full);
                         }
                     }
                 }
@@ -328,11 +260,7 @@ impl ActionRegistry {
                     let path = entry.path();
                     if path.is_file() {
                         if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                            let action_name = stem
-                                .strip_suffix("_action")
-                                .unwrap_or(stem)
-                                .strip_prefix(DLL_PREFIX)
-                                .unwrap_or(stem);
+                            let action_name = stem.strip_suffix("_action").unwrap_or(stem);
 
                             if !found_actions.contains(&action_name.to_string()) {
                                 found_actions.push(action_name.to_string());
@@ -346,11 +274,8 @@ impl ActionRegistry {
                                     if let Some(stem) =
                                         sub_path.file_stem().and_then(|s| s.to_str())
                                     {
-                                        let action_name = stem
-                                            .strip_suffix("_action")
-                                            .unwrap_or(stem)
-                                            .strip_prefix(DLL_PREFIX)
-                                            .unwrap_or(stem);
+                                        let action_name =
+                                            stem.strip_suffix("_action").unwrap_or(stem);
 
                                         if !found_actions.contains(&action_name.to_string()) {
                                             found_actions.push(action_name.to_string());
