@@ -144,7 +144,7 @@ Custom processing actions are written as lightweight Rust shared libraries:
 
 ```rust
 // actions/custom_kernel/src/lib.rs
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType { DataType::Tensor }
@@ -161,6 +161,12 @@ pub extern "C" fn process(payload: Payload) -> Payload {
         }
         other => other.clone(),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
+    // Pass-through: the output has the same shape as the input.
+    input.into()
 }
 ```
 Compile to `.so`/`.dll` and drop it into your actions directory—Morflow discovers and registers it dynamically at runtime with zero host recompilation.
