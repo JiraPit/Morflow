@@ -317,45 +317,51 @@ pub(crate) fn resolve_repo() -> String {
     env::var("MORFLOW_REPO").unwrap_or_else(|_| "JiraPit/Morflow".to_string())
 }
 
-fn fetch_latest_pack_version(pack: &str, repo: &str) -> String {
+fn fetch_latest_pack_version(pack: &str, repo: &str) -> Result<String, String> {
     let url = format!("https://api.github.com/repos/{}/releases", repo);
     let prefix_v = format!("action_packs/{}/v", pack);
     let prefix_no_v = format!("action_packs/{}/", pack);
 
-    if let Ok(response) = ureq::get(&url)
+    let response = ureq::get(&url)
         .set("User-Agent", "Morflow-CLI/0.1.2")
         .call()
-    {
-        if let Ok(body) = response.into_string() {
-            let mut search_idx = 0;
-            while let Some(pos) = body[search_idx..].find("\"tag_name\"") {
-                let absolute_pos = search_idx + pos;
-                let remainder = &body[absolute_pos..];
-                if let Some(colon_pos) = remainder.find(':') {
-                    let after_colon = &remainder[colon_pos + 1..];
-                    if let Some(first_quote) = after_colon.find('"') {
-                        let val_slice = &after_colon[first_quote + 1..];
-                        if let Some(second_quote) = val_slice.find('"') {
-                            let tag = &val_slice[..second_quote];
-                            if tag.starts_with(&prefix_v) {
-                                let ver = &tag[prefix_v.len()..];
-                                if !ver.is_empty() {
-                                    return ver.to_string();
-                                }
-                            } else if tag.starts_with(&prefix_no_v) {
-                                let ver = tag[prefix_no_v.len()..].trim_start_matches('v');
-                                if !ver.is_empty() {
-                                    return ver.to_string();
-                                }
-                            }
+        .map_err(|e| format!("failed to query releases for pack '{}': {}", pack, e))?;
+
+    let body = response
+        .into_string()
+        .map_err(|e| format!("failed to read releases response: {}", e))?;
+
+    let mut search_idx = 0;
+    while let Some(pos) = body[search_idx..].find("\"tag_name\"") {
+        let absolute_pos = search_idx + pos;
+        let remainder = &body[absolute_pos..];
+        if let Some(colon_pos) = remainder.find(':') {
+            let after_colon = &remainder[colon_pos + 1..];
+            if let Some(first_quote) = after_colon.find('"') {
+                let val_slice = &after_colon[first_quote + 1..];
+                if let Some(second_quote) = val_slice.find('"') {
+                    let tag = &val_slice[..second_quote];
+                    if tag.starts_with(&prefix_v) {
+                        let ver = &tag[prefix_v.len()..];
+                        if !ver.is_empty() {
+                            return Ok(ver.to_string());
+                        }
+                    } else if tag.starts_with(&prefix_no_v) {
+                        let ver = tag[prefix_no_v.len()..].trim_start_matches('v');
+                        if !ver.is_empty() {
+                            return Ok(ver.to_string());
                         }
                     }
                 }
-                search_idx = absolute_pos + 10;
             }
         }
+        search_idx = absolute_pos + 10;
     }
-    "0.1.0".to_string()
+
+    Err(format!(
+        "no released version found for pack '{}' in repo '{}'",
+        pack, repo
+    ))
 }
 
 pub fn run_cli<I, T>(args: I) -> i32
@@ -464,7 +470,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             for action_name in action_names {
                 let (target_pack, real_action_name) = resolver.resolve(&action_name);
                 let pack = target_pack.unwrap_or_else(|| "base".to_string());
-                let action_version = fetch_latest_pack_version(&pack, &repo);
+                let action_version = fetch_latest_pack_version(&pack, &repo)?;
 
                 let pack_dir = cache_dir.join(&pack);
                 fs::create_dir_all(&pack_dir)?;
@@ -638,9 +644,9 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             };
             let repo = resolve_repo();
             let version = if path_version != "latest" && !path_version.is_empty() {
-                path_version
+                path_version.to_string()
             } else {
-                fetch_latest_pack_version(&pack, &repo)
+                fetch_latest_pack_version(&pack, &repo)?
             };
 
             let render_spec = |content: &str| {
@@ -706,45 +712,11 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            // 4. Fallback: Fetch from Git Tag for this release version
-            let tag_url = format!(
-                "https://raw.githubusercontent.com/{}/action_packs/{}/v{}/actions/{}/{}/SPEC.md",
-                repo, pack, version, pack, action_name
-            );
-            if let Ok(response) = ureq::get(&tag_url)
-                .set("User-Agent", "Morflow-CLI/0.1.2")
-                .call()
-            {
-                let mut content = String::new();
-                if response.into_reader().read_to_string(&mut content).is_ok() {
-                    render_spec(&content);
-                    return Ok(());
-                }
-            }
-
-            // 5. Fallback: Fetch raw SPEC.md from GitHub main branch
-            let main_url = format!(
-                "https://raw.githubusercontent.com/{}/main/actions/{}/{}/SPEC.md",
-                repo, pack, action_name
-            );
-
-            match ureq::get(&main_url)
-                .set("User-Agent", "Morflow-CLI/0.1.2")
-                .call()
-            {
-                Ok(response) => {
-                    let mut content = String::new();
-                    response.into_reader().read_to_string(&mut content)?;
-                    render_spec(&content);
-                }
-                Err(_) => {
-                    return Err(format!(
-                        "SPEC.md not found for action '{}/v{}/{}' (checked local paths, release assets, and {}).",
-                        pack, version, action_name, main_url
-                    )
-                    .into());
-                }
-            }
+            return Err(format!(
+                "SPEC.md not found for action '{}/v{}/{}' (checked local paths and release assets).",
+                pack, version, action_name
+            )
+            .into());
         }
 
         Commands::Search { query, limit } => {
@@ -981,9 +953,9 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     action: action_name,
                 } => {
                     let version = if path_version != "latest" && !path_version.is_empty() {
-                        path_version
+                        path_version.to_string()
                     } else {
-                        fetch_latest_pack_version(&pack, &repo)
+                        fetch_latest_pack_version(&pack, &repo)?
                     };
 
                     let pack_dir = cache_dir.join(&pack);
@@ -1128,9 +1100,9 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     version: path_version,
                 } => {
                     let version = if path_version != "latest" && !path_version.is_empty() {
-                        path_version
+                        path_version.to_string()
                     } else {
-                        fetch_latest_pack_version(&pack, &repo)
+                        fetch_latest_pack_version(&pack, &repo)?
                     };
 
                     let actions = get_actions_for_pack(&pack);
