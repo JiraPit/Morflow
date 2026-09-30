@@ -12,7 +12,7 @@ test('Morflow - fromStr compilation and metadata', () => {
     accept Audio $audio_in
     accept IntArg $rate = 44100
     
-    $audio_in >> identity >> emit
+    $audio_in >> base/latest/identity >> emit
   `;
   const pipeline = morflow.fromStr(dsl);
   assert.equal(pipeline.params.length, 2);
@@ -23,7 +23,7 @@ test('Morflow - fromStr compilation and metadata', () => {
 test('Morflow - synchronous execution with Float32Array', () => {
   const dsl = `
     accept Tensor $tensor
-    $tensor >> identity >> emit
+    $tensor >> base/latest/identity >> emit
   `;
   const pipeline = morflow.fromStr(dsl);
   const input = new Float32Array([1.0, 2.5, -3.0, 4.25]);
@@ -45,7 +45,7 @@ test('Morflow - synchronous execution with Float32Array', () => {
 test('Morflow - asynchronous execution with Promise', async () => {
   const dsl = `
     accept Tensor $tensor
-    $tensor >> identity >> emit
+    $tensor >> base/latest/identity >> emit
   `;
   const pipeline = morflow.fromStr(dsl);
   const input = new Float32Array([10.0, 20.0, 30.0]);
@@ -62,7 +62,7 @@ test('Morflow - asynchronous execution with Promise', async () => {
 test('Morflow - multi-dimensional TensorInput', () => {
   const dsl = `
     accept Tensor $img
-    $img[1:3, :] >> identity >> emit
+    $img[1:3, :] >> base/latest/identity >> emit
   `;
   const pipeline = morflow.fromStr(dsl);
 
@@ -91,8 +91,8 @@ test('Morflow - multi-dimensional TensorInput', () => {
 test('Morflow - multiple named outputs (runSyncAll & runAll)', async () => {
   const dsl = `
     accept Tensor $audio
-    $audio[0:2] >> identity >> emit("low")
-    $audio[2:4] >> identity >> emit("high")
+    $audio[0:2] >> base/latest/identity >> emit("low")
+    $audio[2:4] >> base/latest/identity >> emit("high")
   `;
   const pipeline = morflow.fromStr(dsl);
   const input = new Float32Array([1.0, 2.0, 3.0, 4.0]);
@@ -121,7 +121,7 @@ test('Morflow - error handling on invalid pipeline syntax', () => {
 test('Morflow - audio to_audio and to_wav pipeline', async () => {
   const dsl = `
     import audio_essentials/latest
-    accept RawBytes $data
+    accept Bytes $data
     $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
   `;
   const pipeline = morflow.fromStr(dsl);
@@ -212,7 +212,7 @@ test('Morflow - payloadType image forces an image payload', () => {
 test('Morflow - payloadType rejects unknown values', () => {
   const pipeline = morflow.fromStr(`
     accept Tensor $data
-    $data >> identity >> emit
+    $data >> base/latest/identity >> emit
   `);
   const data = Buffer.alloc(8 * 8 * 4);
   assert.throws(() => {
@@ -223,7 +223,7 @@ test('Morflow - payloadType rejects unknown values', () => {
 test('Morflow - colorSpace rejects unknown values', () => {
   const pipeline = morflow.fromStr(`
     accept Tensor $data
-    $data >> identity >> emit
+    $data >> base/latest/identity >> emit
   `);
   const data = Buffer.alloc(8 * 8 * 3 * 4);
   assert.throws(() => {
@@ -265,7 +265,7 @@ test('Morflow - bare rank-3 array runs as a plain tensor', () => {
 
 test('Morflow - scalar param accepts a plain number', () => {
   const pipeline = morflow.fromStr(`
-    import math_essentials/latest
+    import nn_essentials/latest
     accept Scalar $value
     $value >> relu >> emit
   `);
@@ -277,7 +277,7 @@ test('Morflow - scalar param accepts a plain number', () => {
 test('Morflow - IntArg positional parameter with default', async () => {
   const pipeline = morflow.fromStr(`
     import audio_essentials/latest
-    accept RawBytes $data
+    accept Bytes $data
     accept IntArg $rate = 48000
     $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
   `);
@@ -308,4 +308,13 @@ test('Morflow - StrArg, BoolArg and Scalar positional parameters', () => {
     0.5
   );
   assert.ok(outputs);
+});
+
+test('Morflow - exact version and required imports', () => {
+  const pipeline = morflow.fromStr(`from base/0.2.0 import identity
+accept Tensor $data
+$data >> identity >> emit`);
+  assert.deepEqual(Array.from(pipeline.runSync(new Float32Array([1, 2])).toFloat32Array()), [1, 2]);
+  assert.throws(() => morflow.fromStr(`accept Tensor $data
+$data >> identity >> emit`), /not declared by the imports/);
 });

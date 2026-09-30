@@ -70,11 +70,11 @@ public class Pipeline implements AutoCloseable {
     /**
      * Executes the pipeline with a raw binary byte array (e.g. WAV, PNG, or raw PCM bytes).
      *
-     * @param rawBytes Raw byte array.
+     * @param bytes Raw byte array.
      * @return Single emitted output tensor.
      */
-    public MorflowTensor run(byte[] rawBytes) {
-        return run(MorflowTensor.fromBytes(rawBytes));
+    public MorflowTensor run(byte[] bytes) {
+        return run(MorflowTensor.fromBytes(bytes));
     }
 
     /**
@@ -171,11 +171,11 @@ public class Pipeline implements AutoCloseable {
     /**
      * Executes the pipeline with raw binary bytes and returns all named emitted streams.
      *
-     * @param rawBytes Raw byte array.
+     * @param bytes Raw byte array.
      * @return Map of stream name to output tensor.
      */
-    public Map<String, MorflowTensor> runAll(byte[] rawBytes) {
-        return runAll(MorflowTensor.fromBytes(rawBytes));
+    public Map<String, MorflowTensor> runAll(byte[] bytes) {
+        return runAll(MorflowTensor.fromBytes(bytes));
     }
 
     /**

@@ -7,7 +7,7 @@
 //! * [`ShapeSpec`] — what a user can write in a pipeline, i.e. a shape with
 //!   wildcards (`Tensor[*,*,3]`, `Tensor[rank=2]`).
 //! * [`PType`] — the full declared type of a pipeline value, combining a kind
-//!   (`RawBytes`, `Scalar`, `Tensor`, `Image`, `Audio`, `Composite`, or one of
+//!   (`Bytes`, `Scalar`, `Tensor`, `Image`, `Audio`, `Composite`, or one of
 //!   the argument kinds) with an optional shape specification.
 
 use crate::{ActionArgs, AudioLayout, DataType, ImageLayout, Payload, RString, RVec, StableAbi};
@@ -313,7 +313,7 @@ pub enum PType {
     #[default]
     Unknown,
     /// An opaque byte buffer, i.e. a `Payload::Data`.
-    RawBytes,
+    Bytes,
     /// An `IntArg`, `FloatArg`, `StrArg`, or `BoolArg` parameter. These never
     /// flow between actions; they are only readable as action arguments.
     Arg(ArgKind),
@@ -348,8 +348,8 @@ impl PType {
             PType::Composite
         } else if dt.contains(DataType::Scalar) {
             PType::Scalar
-        } else if dt.contains(DataType::RawBytes) {
-            PType::RawBytes
+        } else if dt.contains(DataType::Bytes) {
+            PType::Bytes
         } else {
             PType::Unknown
         }
@@ -391,7 +391,7 @@ impl PType {
     pub fn data_type(&self) -> DataType {
         match self {
             PType::Unknown => DataType::Any,
-            PType::RawBytes => DataType::RawBytes,
+            PType::Bytes => DataType::Bytes,
             // Arguments are never flowable, so they accept nothing.
             PType::Arg(_) => DataType(0),
             PType::Scalar => DataType::Scalar,
@@ -473,7 +473,7 @@ impl PType {
         let inner = payload.unwrap_payload();
         match self {
             PType::Unknown => Ok(()),
-            PType::RawBytes => match inner {
+            PType::Bytes => match inner {
                 Payload::Data { .. } => Ok(()),
                 other => Err(kind_mismatch(self, other)),
             },
@@ -553,7 +553,7 @@ impl fmt::Display for PType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PType::Unknown => write!(f, "Unknown"),
-            PType::RawBytes => write!(f, "RawBytes"),
+            PType::Bytes => write!(f, "Bytes"),
             PType::Arg(kind) => write!(f, "{}", kind),
             PType::Scalar => write!(f, "Scalar"),
             PType::Tensor(spec) => write!(f, "Tensor{}", spec),
@@ -803,7 +803,7 @@ mod tests {
     fn display_types() {
         assert_eq!(PType::Scalar.to_string(), "Scalar");
         assert_eq!(PType::Arg(ArgKind::Str).to_string(), "StrArg");
-        assert_eq!(PType::RawBytes.to_string(), "RawBytes");
+        assert_eq!(PType::Bytes.to_string(), "Bytes");
         assert_eq!(PType::Tensor(ShapeSpec::AnyRank).to_string(), "Tensor");
         assert_eq!(
             PType::Image(ShapeSpec::parse("[*,*,3]").unwrap()).to_string(),
@@ -844,7 +844,7 @@ mod tests {
             .each_loop_var()
             .unwrap_err()
             .contains("not known"));
-        assert!(PType::RawBytes.each_loop_var().is_err());
+        assert!(PType::Bytes.each_loop_var().is_err());
         assert!(PType::Composite.each_loop_var().is_err());
         assert!(PType::Image(ShapeSpec::from_rank(1))
             .each_loop_var()

@@ -6,7 +6,7 @@ import morflow
 def test_identity_pipeline_f32():
     pipeline = morflow.from_str("""
         accept Tensor $data
-        $data >> identity >> emit
+        $data >> base/latest/identity >> emit
     """)
     inp = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
     out = pipeline.run(inp)
@@ -18,7 +18,7 @@ def test_identity_pipeline_f32():
 def test_identity_pipeline_u8():
     pipeline = morflow.from_str("""
         accept Tensor $data
-        $data >> identity >> emit
+        $data >> base/latest/identity >> emit
     """)
     inp = np.array([10, 20, 30, 40], dtype=np.uint8)
     out = pipeline.run(inp)
@@ -30,8 +30,8 @@ def test_identity_pipeline_u8():
 def test_multi_emit_pipeline():
     pipeline = morflow.from_str("""
         accept Tensor $data
-        $data[0:2] >> identity >> emit("part_a")
-        $data[2:4] >> identity >> emit("part_b")
+        $data[0:2] >> base/latest/identity >> emit("part_a")
+        $data[2:4] >> base/latest/identity >> emit("part_b")
     """)
     inp = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
     outputs = pipeline.run(inp)
@@ -52,10 +52,10 @@ def test_file_not_found_handling():
         morflow.load("non_existent_file.morf")
 
 
-def test_raw_bytes_payload():
+def test_bytes_payload():
     pipeline = morflow.from_str("""
-        accept RawBytes $data
-        $data >> identity >> emit
+        accept Bytes $data
+        $data >> base/latest/identity >> emit
     """)
     inp = b"hello morflow"
     out = pipeline.run(inp)
@@ -65,7 +65,7 @@ def test_raw_bytes_payload():
 def test_audio_pipeline_raw_pcm_and_wav():
     pipeline = morflow.from_str("""
         import audio_essentials/latest
-        accept RawBytes $data
+        accept Bytes $data
         $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
     """)
     # 2 channels, 2 samples (1.0 and -0.5 scaled in 16-bit)
@@ -140,7 +140,7 @@ def test_image_wrapper_rejects_bad_color_space():
 def test_wrapper_rejects_non_ndarray():
     pipeline = morflow.from_str("""
         accept Tensor $data
-        $data >> identity >> emit
+        $data >> base/latest/identity >> emit
     """)
     with pytest.raises(TypeError, match="expects a contiguous NumPy array"):
         pipeline.run(morflow.Tensor([1.0, 2.0, 3.0]))
@@ -177,7 +177,7 @@ def test_bare_rank3_array_runs_as_a_plain_tensor():
 def test_scalar_param_accepts_plain_number():
     pipeline = morflow.from_str("""
         accept Scalar $value
-        $value >> identity >> emit
+        $value >> base/latest/identity >> emit
     """)
     out = pipeline.run(0.5)
     assert np.allclose(out, 0.5)
@@ -185,7 +185,7 @@ def test_scalar_param_accepts_plain_number():
 
 def test_scalar_param_survives_action_chain():
     pipeline = morflow.from_str("""
-        import math_essentials/latest
+        import nn_essentials/latest
         accept Scalar $value
         $value >> relu >> emit
     """)
@@ -196,7 +196,7 @@ def test_scalar_param_survives_action_chain():
 def test_intarg_param_with_default():
     pipeline = morflow.from_str("""
         import audio_essentials/latest
-        accept RawBytes $data
+        accept Bytes $data
         accept IntArg $rate = 48000
         $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
     """)
@@ -219,6 +219,13 @@ def test_arg_params_and_scalar_together():
     inp = np.zeros((2, 100), dtype=np.float32)
     out = pipeline.run(morflow.Audio(inp, sample_rate=44100), 2.0, False, 0.5)
     assert out[:4] == b"RIFF"
+
+
+def test_exact_version_and_required_imports():
+    pipeline = morflow.from_str("from base/0.2.0 import identity\naccept Tensor $data\n$data >> identity >> emit")
+    np.testing.assert_array_equal(pipeline.run(np.array([1.0, 2.0], dtype=np.float32)), [1.0, 2.0])
+    with pytest.raises(RuntimeError, match="not declared by the imports"):
+        morflow.from_str("accept Tensor $data\n$data >> identity >> emit")
 
 
 if __name__ == "__main__":

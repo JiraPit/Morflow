@@ -273,7 +273,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         return Ok(Payload::Tensor(result?));
     }
 
-    // 3. Raw Bytes / Bytearray
+    // 3. Bytes / Bytearray
     if let Ok(bytes) = obj.extract::<&[u8]>() {
         return Ok(Payload::Data {
             buffer: RVec::from(bytes.to_vec()),

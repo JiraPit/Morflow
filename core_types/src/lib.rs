@@ -21,7 +21,7 @@ pub struct DataType(pub u8);
 
 #[allow(non_upper_case_globals)]
 impl DataType {
-    pub const RawBytes: DataType = DataType(1 << 0);
+    pub const Bytes: DataType = DataType(1 << 0);
     pub const Tensor: DataType = DataType(1 << 1);
     pub const Composite: DataType = DataType(1 << 2);
     pub const Image: DataType = DataType(1 << 3);
@@ -87,8 +87,8 @@ impl std::fmt::Display for DataType {
             return write!(f, "Any");
         }
         let mut parts = Vec::new();
-        if self.contains(Self::RawBytes) {
-            parts.push("RawBytes");
+        if self.contains(Self::Bytes) {
+            parts.push("Bytes");
         }
         if self.contains(Self::Tensor) {
             parts.push("Tensor");
@@ -310,7 +310,7 @@ impl Payload {
             }
             Payload::WithArgs { .. } => unreachable!("unwrap_payload removes WithArgs"),
             Payload::Data { .. } => Err(RString::from(
-                "Cannot execute 'each' on a raw-bytes payload; decode it into Tensor, Image, or Audio first",
+                "Cannot execute 'each' on a Bytes payload; decode it into Tensor, Image, or Audio first",
             )),
             Payload::Composite(_) => Err(RString::from(
                 "Cannot execute 'each' on a composite payload",

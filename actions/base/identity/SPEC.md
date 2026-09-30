@@ -3,8 +3,8 @@
 Zero-overhead pass-through action for pipeline routing, benchmarking, and debugging.
 
 ## Interface
-- **Input Type**: `DataType::RawBytes` (`Payload::*`)
-- **Output Type**: `DataType::RawBytes` (`Payload::*`)
+- **Input Type**: `DataType::Bytes` (`Payload::*`)
+- **Output Type**: `DataType::Bytes` (`Payload::*`)
 - **Supported DTypes**: Any
 - **Supported Layouts**: Any
 

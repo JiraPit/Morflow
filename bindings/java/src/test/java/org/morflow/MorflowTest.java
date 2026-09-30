@@ -17,7 +17,7 @@ public class MorflowTest {
             accept Audio $audio_in
             accept IntArg $rate = 44100
             
-            $audio_in >> identity >> emit
+            $audio_in >> base/latest/identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             List<String> params = pipeline.getParams();
@@ -31,7 +31,7 @@ public class MorflowTest {
     public void testExecutionWithFloatArray() {
         String dsl = """
             accept Tensor $tensor
-            $tensor >> identity >> emit
+            $tensor >> base/latest/identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             float[] input = new float[]{1.0f, 2.5f, -3.0f, 4.25f};
@@ -51,7 +51,7 @@ public class MorflowTest {
     public void testExecutionWithDirectByteBuffer() {
         String dsl = """
             accept Tensor $tensor
-            $tensor >> identity >> emit
+            $tensor >> base/latest/identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             ByteBuffer buf = ByteBuffer.allocateDirect(12).order(ByteOrder.LITTLE_ENDIAN);
@@ -68,8 +68,8 @@ public class MorflowTest {
     public void testMultipleNamedOutputs() {
         String dsl = """
             accept Tensor $audio
-            $audio[0:2] >> identity >> emit("low")
-            $audio[2:4] >> identity >> emit("high")
+            $audio[0:2] >> base/latest/identity >> emit("low")
+            $audio[2:4] >> base/latest/identity >> emit("high")
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             float[] input = new float[]{1.0f, 2.0f, 3.0f, 4.0f};
@@ -86,7 +86,7 @@ public class MorflowTest {
     public void testAudioToAudioAndToWavPipeline() {
         String dsl = """
             import audio_essentials/latest
-            accept RawBytes $data
+            accept Bytes $data
             $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
@@ -190,7 +190,7 @@ public class MorflowTest {
     public void testUnknownPayloadTypeRejected() {
         String dsl = """
             accept Tensor $data
-            $data >> identity >> emit
+            $data >> base/latest/identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             ByteBuffer buf = ByteBuffer.allocateDirect(8).order(ByteOrder.LITTLE_ENDIAN);
@@ -218,7 +218,7 @@ public class MorflowTest {
 
     @Test
     public void testPipelineClose() {
-        Pipeline pipeline = Morflow.fromStr("accept Tensor $a \n $a >> identity >> emit");
+        Pipeline pipeline = Morflow.fromStr("accept Tensor $a \n $a >> base/latest/identity >> emit");
         pipeline.close();
         assertThrows(IllegalStateException.class, () -> {
             pipeline.run(new byte[]{1, 2, 3});
@@ -228,7 +228,7 @@ public class MorflowTest {
     @Test
     public void testScalarParamAcceptsPlainNumber() {
         String dsl = """
-            import math_essentials/latest
+            import nn_essentials/latest
             accept Scalar $value
             $value >> relu >> emit
         """;
@@ -243,7 +243,7 @@ public class MorflowTest {
     public void testArgParamsPositionalWithDefault() {
         String dsl = """
             import audio_essentials/latest
-            accept RawBytes $data
+            accept Bytes $data
             accept IntArg $rate = 48000
             $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
         """;
@@ -276,5 +276,13 @@ public class MorflowTest {
                     input.asAudio(48000, 2, null), 2.0f, Boolean.FALSE, 0.5);
             assertNotNull(outputs);
         }
+    }
+    @Test
+    public void testExactVersionAndRequiredImports() {
+        String source = "from base/0.2.0 import identity\naccept Tensor $data\n$data >> identity >> emit";
+        try (Pipeline pipeline = Morflow.fromStr(source)) {
+            assertArrayEquals(new float[]{1.0f, 2.0f}, pipeline.run(new float[]{1.0f, 2.0f}, new int[]{2}).toFloatArray());
+        }
+        assertThrows(MorflowException.class, () -> Morflow.fromStr("accept Tensor $data\n$data >> identity >> emit"));
     }
 }

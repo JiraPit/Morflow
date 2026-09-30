@@ -208,10 +208,9 @@ def main():
     for act in selected_actions:
         p = act["pack"]
         v = act["version"]
-        if p not in packs_dict:
-            packs_dict[p] = v
+        packs_dict[(p, v)] = True
 
-    packs_list = [{"name": k, "version": v} for k, v in packs_dict.items()]
+    packs_list = [{"name": p, "version": v} for p, v in packs_dict]
 
     matrix_json = json.dumps(selected_actions)
     packs_json = json.dumps(packs_list)

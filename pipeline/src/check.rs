@@ -90,7 +90,7 @@ fn find_token_span(source: &str, token: &str, occurrence: usize) -> std::ops::Ra
 /// and required/accepted input of next action (target_input_type).
 fn are_types_compatible(source_type: DataType, target_input_type: DataType) -> bool {
     // 1. Direct type intersection: does target accept this source type?
-    // e.g. target accepts (RawBytes | Tensor), source is RawBytes -> true
+    // e.g. target accepts (Bytes | Tensor), source is Bytes -> true
     // e.g. target accepts (Tensor | Image | Audio), source is Audio -> true
     // e.g. target accepts Audio, source is Audio -> true
     if target_input_type.intersects(source_type) {
@@ -228,7 +228,7 @@ fn refine_result(kind: DataType, verdict: ShapeResult) -> PType {
 }
 
 /// Whether two types carry the same payload kind (`Tensor`, `Image`, `Audio`,
-/// `Scalar`, `RawBytes`, `Composite`). The unknown type matches anything.
+/// `Scalar`, `Bytes`, `Composite`). The unknown type matches anything.
 fn same_payload_kind(a: &PType, b: &PType) -> bool {
     use PType::*;
     matches!(
@@ -239,7 +239,7 @@ fn same_payload_kind(a: &PType, b: &PType) -> bool {
             | (Tensor(_), Tensor(_))
             | (Image(_), Image(_))
             | (Audio(_), Audio(_))
-            | (RawBytes, RawBytes)
+            | (Bytes, Bytes)
             | (Composite, Composite)
     )
 }
@@ -470,7 +470,7 @@ pub fn check_pipeline(
     // ==========================================
     // Phase 3: Action Resolution & Dynamic Binary Loading
     // ==========================================
-    let resolver = ActionResolver::from_imports(&ast.imports);
+    let resolver = ActionResolver::from_imports(&ast.imports)?;
     let action_names = collect_action_names(&ast.statements);
 
     let mut search_paths = ActionRegistry::default_search_paths();
@@ -485,27 +485,22 @@ pub fn check_pipeline(
             continue;
         }
 
-        let (target_pack, real_act) = resolver.resolve(act_name);
-        let loaded_res = if let Some(pack) = &target_pack {
-            registry
-                .get_or_load_in_pack(pack, &real_act)
-                .or_else(|_| registry.get_or_load(&real_act))
-        } else {
-            registry.get_or_load(&real_act)
-        };
+        let loaded_res = resolver
+            .resolve(act_name, |p, v| registry.catalog(p, v))
+            .and_then(|identity| registry.get_or_load(&identity));
 
         match loaded_res {
             Ok(action) => {
                 loaded_actions.insert(act_name.clone(), action);
             }
-            Err(_) => {
+            Err(error) => {
                 let span = find_token_span(&source, act_name, 0);
                 let report =
                     Report::build(ReportKind::Error, (filename_str.as_str(), span.clone()))
                         .with_code("E003")
                         .with_message(format!(
-                            "Action '{}' is not installed or available locally",
-                            act_name
+                            "Cannot resolve or verify action '{}': {}",
+                            act_name, error
                         ))
                         .with_label(
                             Label::new((filename_str.as_str(), span))
@@ -659,7 +654,7 @@ pub fn check_pipeline(
                                         )
                                         .with_color(Color::Red),
                                 )
-                                .with_help("Use a Scalar, Tensor, Image, Audio, RawBytes, or Composite parameter for values that flow.");
+                                .with_help("Use a Scalar, Tensor, Image, Audio, Bytes, or Composite parameter for values that flow.");
 
                         let _ = report
                             .finish()
@@ -1485,11 +1480,11 @@ mod tests {
 
     #[test]
     fn test_datatype_bitmask_and_formatting() {
-        let combined = DataType::RawBytes | DataType::Tensor;
-        assert!(combined.contains(DataType::RawBytes));
+        let combined = DataType::Bytes | DataType::Tensor;
+        assert!(combined.contains(DataType::Bytes));
         assert!(combined.contains(DataType::Tensor));
         assert!(!combined.contains(DataType::Audio));
-        assert_eq!(format_data_type(combined), "RawBytes | Tensor");
+        assert_eq!(format_data_type(combined), "Bytes | Tensor");
         assert_eq!(format_data_type(DataType::Audio), "Audio");
         assert_eq!(format_data_type(DataType::Any), "Any");
     }
@@ -1497,7 +1492,7 @@ mod tests {
     #[test]
     fn test_are_types_compatible_audio_exclusivity() {
         let audio_action_input = DataType::Audio;
-        let bridge_action_input = DataType::RawBytes | DataType::Tensor;
+        let bridge_action_input = DataType::Bytes | DataType::Tensor;
         let generic_tensor_input = DataType::Tensor;
         let to_tensor_input = DataType::Tensor | DataType::Image | DataType::Audio;
 
@@ -1508,19 +1503,16 @@ mod tests {
             "Tensor must not be piped directly into Audio action"
         );
         assert!(
-            !are_types_compatible(DataType::RawBytes, audio_action_input),
-            "RawBytes must not be piped directly into Audio action"
+            !are_types_compatible(DataType::Bytes, audio_action_input),
+            "Bytes must not be piped directly into Audio action"
         );
         assert!(
             !are_types_compatible(DataType::Image, audio_action_input),
             "Image must not be piped directly into Audio action"
         );
 
-        // 2. to_audio strictly accepts RawBytes and Tensor (Audio / Image cannot bypass)
-        assert!(are_types_compatible(
-            DataType::RawBytes,
-            bridge_action_input
-        ));
+        // 2. to_audio strictly accepts Bytes and Tensor (Audio / Image cannot bypass)
+        assert!(are_types_compatible(DataType::Bytes, bridge_action_input));
         assert!(are_types_compatible(DataType::Tensor, bridge_action_input));
         assert!(!are_types_compatible(DataType::Audio, bridge_action_input));
         assert!(!are_types_compatible(DataType::Image, bridge_action_input));
@@ -1529,19 +1521,16 @@ mod tests {
         assert!(!are_types_compatible(DataType::Audio, generic_tensor_input));
         assert!(!are_types_compatible(DataType::Image, generic_tensor_input));
         assert!(are_types_compatible(DataType::Tensor, generic_tensor_input));
-        assert!(!are_types_compatible(
-            DataType::RawBytes,
-            generic_tensor_input
-        ));
+        assert!(!are_types_compatible(DataType::Bytes, generic_tensor_input));
 
         // 4. to_tensor explicitly accepts Tensor, Image, and Audio
         assert!(are_types_compatible(DataType::Audio, to_tensor_input));
         assert!(are_types_compatible(DataType::Image, to_tensor_input));
         assert!(are_types_compatible(DataType::Tensor, to_tensor_input));
-        assert!(!are_types_compatible(DataType::RawBytes, to_tensor_input));
+        assert!(!are_types_compatible(DataType::Bytes, to_tensor_input));
 
         // 5. Any accepts everything
-        assert!(are_types_compatible(DataType::RawBytes, DataType::Any));
+        assert!(are_types_compatible(DataType::Bytes, DataType::Any));
         assert!(are_types_compatible(DataType::Tensor, DataType::Any));
         assert!(are_types_compatible(DataType::Audio, DataType::Any));
         assert!(are_types_compatible(DataType::Image, DataType::Any));
@@ -1609,7 +1598,7 @@ mod tests {
             &PType::Image(ShapeSpec::AnyRank)
         ));
         assert!(!same_payload_kind(
-            &PType::RawBytes,
+            &PType::Bytes,
             &PType::Audio(ShapeSpec::AnyRank)
         ));
         assert!(same_payload_kind(&PType::Unknown, &PType::Composite));

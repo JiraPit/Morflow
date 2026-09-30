@@ -4,7 +4,7 @@ Encodes structured `Audio` or multidimensional sample `Tensor` directly into a c
 
 ## Interface
 - **Input Type**: `DataType::Audio` (`Payload::Audio`)
-- **Output Type**: `DataType::RawBytes` (`Payload::Data`)
+- **Output Type**: `DataType::Bytes` (`Payload::Data`)
 - **Supported DTypes**: `F32` (normalized `[-1.0, 1.0]`)
 - **Supported Layouts**: `Planar [Channels, Samples]` or `Interleaved [Samples, Channels]`
 

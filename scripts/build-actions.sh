@@ -53,10 +53,8 @@ build_action() {
     fi
 
     if [ -f "$src_file" ]; then
-        local dest_action_file="${action}_action.${EXT}"
-        cp "$src_file" "$TARGET_DIR/actions/$pack/$dest_action_file"
-        cp "$src_file" "$TARGET_DIR/actions/$dest_action_file"
-        echo "    ✓ Packaged to $TARGET_DIR/actions/$pack/$dest_action_file"
+        python3 scripts/package_action.py "actions/$pack/$action/Cargo.toml" "$src_file" --cache "$TARGET_DIR/actions"
+        echo "    ✓ Packaged versioned binary and checksum receipt"
         return 0
     else
         echo "    ✗ Error: Compiled library not found at $src_file"

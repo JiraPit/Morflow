@@ -6,6 +6,10 @@ on:
     paths:
       - 'actions/**'
       - 'core_types/**'
+      - 'scripts/package_action.py'
+      - 'scripts/detect_changed_actions.py'
+      - 'scripts/merge_release_assets.py'
+      - '.github/workflows/build-actions.yml'
   workflow_dispatch:
     inputs:
       action_pack:
@@ -20,6 +24,10 @@ on:
         description: 'Force build even if version was not bumped'
         type: boolean
         default: false
+
+concurrency:
+  group: action-pack-publishing
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -116,7 +124,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "pack-${{ matrix.action.pack }}-${{ matrix.action.name }}-${{ matrix.target.platform }}"
+          name: "pack-${{ matrix.action.pack }}-${{ matrix.action.version }}-${{ matrix.action.name }}-${{ matrix.target.platform }}"
           path: dist/*
           retention-days: 1
 
@@ -135,7 +143,7 @@ jobs:
       - name: Download Pack Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: "pack-${{ matrix.pack.name }}-*"
+          pattern: "pack-${{ matrix.pack.name }}-${{ matrix.pack.version }}-*"
           path: release_assets/
           merge-multiple: true
 
@@ -143,16 +151,29 @@ jobs:
         run: |
           for action_dir in actions/${{ matrix.pack.name }}/*; do
             if [ -d "$action_dir" ] && [ -f "$action_dir/SPEC.md" ]; then
+              version=$(python3 -c 'import sys,tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["package"]["version"])' "$action_dir/Cargo.toml")
+              [ "$version" = "${{ matrix.pack.version }}" ] || continue
               act_name=$(basename "$action_dir")
               cp "$action_dir/SPEC.md" "release_assets/${act_name}_SPEC.md"
               echo "Included release SPEC: release_assets/${act_name}_SPEC.md"
             fi
           done
 
+      - name: Include Previously Published Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG_NAME="action_packs/${{ matrix.pack.name }}/v${{ matrix.pack.version }}"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            mkdir -p previous_assets
+            gh release download "$TAG_NAME" --dir previous_assets
+            python3 scripts/merge_release_assets.py previous_assets release_assets
+          fi
+
       - name: Generate Checksums
         run: |
           cd release_assets
-          sha256sum * > checksums.txt
+          find . -maxdepth 1 -type f ! -name checksums.txt -printf '%f\n' | sort | xargs sha256sum > checksums.txt
           echo "Generated checksums:"
           cat checksums.txt
 

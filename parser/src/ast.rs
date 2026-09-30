@@ -69,7 +69,7 @@ pub enum ParamShape {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ParamType {
     /// An opaque byte buffer, e.g. a WAV file's contents.
-    RawBytes,
+    Bytes,
     /// An integer argument. Arguments are readable by actions but never flow
     /// through a chain.
     IntArg,
@@ -97,7 +97,7 @@ impl ParamType {
     /// The type's keyword, as written in a declaration.
     pub fn keyword(&self) -> &'static str {
         match self {
-            ParamType::RawBytes => "RawBytes",
+            ParamType::Bytes => "Bytes",
             ParamType::IntArg => "IntArg",
             ParamType::FloatArg => "FloatArg",
             ParamType::StrArg => "StrArg",

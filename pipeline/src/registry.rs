@@ -1,6 +1,8 @@
+use crate::artifact::{
+    read_verified, snapshot, ActionIdentity, ArtifactReceipt, CacheGuard, ReleaseCatalog,
+};
 use std::collections::HashMap;
 use std::env;
-use std::env::consts::DLL_EXTENSION;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -12,6 +14,8 @@ use libloading::{Library, Symbol};
 /// A compiled, dynamically loaded action kept warm in memory.
 pub struct LoadedAction {
     pub name: String,
+    pub identity: ActionIdentity,
+    pub receipt: ArtifactReceipt,
     pub path: PathBuf,
     pub input_type: DataType,
     pub output_type: DataType,
@@ -46,37 +50,31 @@ impl LoadedAction {
     }
 }
 
-/// Thread-safe in-memory cache and resolver for Morflow actions.
-/// Eliminates dynamic library open (`dlopen`) and symbol lookup (`dlsym`) overhead during pipeline execution.
+/// Registry keys include pack, requested version, action, and platform.
+/// A registry retains loaded handles; create a new pipeline to refresh latest.
 pub struct ActionRegistry {
     search_paths: Vec<PathBuf>,
-    cache: RwLock<HashMap<String, Arc<LoadedAction>>>,
+    cache: RwLock<HashMap<ActionIdentity, Arc<LoadedAction>>>,
 }
-
-unsafe impl Send for ActionRegistry {}
-unsafe impl Sync for ActionRegistry {}
-
 impl Default for ActionRegistry {
     fn default() -> Self {
         Self::new(Self::default_search_paths())
     }
 }
-
 impl ActionRegistry {
-    /// Creates a new action registry with specified search directories.
     pub fn new(search_paths: Vec<PathBuf>) -> Self {
         Self {
             search_paths,
             cache: RwLock::new(HashMap::new()),
         }
     }
-
-    /// Standard search paths including environment variables, binary directory, and target folders.
     pub fn default_search_paths() -> Vec<PathBuf> {
         let mut paths = Vec::new();
 
         if let Ok(env_path) = env::var("MORFLOW_ACTIONS_PATH") {
-            paths.push(PathBuf::from(env_path));
+            if !env_path.trim().is_empty() {
+                paths.push(PathBuf::from(env_path));
+            }
         }
 
         if let Some(home) = dirs::home_dir() {
@@ -102,208 +100,66 @@ impl ActionRegistry {
         paths
     }
 
-    /// Adds an additional search directory to the registry.
     pub fn add_search_path<P: AsRef<Path>>(&mut self, path: P) {
-        self.search_paths.push(path.as_ref().to_path_buf());
+        self.search_paths.push(path.as_ref().into());
     }
-
-    /// Locates the shared library file for the given action in a specific ActionPack.
-    pub fn find_action_in_pack(&self, pack: &str, action_name: &str) -> Option<PathBuf> {
-        let file_candidate = format!("{}_action.{}", action_name, DLL_EXTENSION);
-
-        for base_dir in &self.search_paths {
-            let full = base_dir.join(pack).join(&file_candidate);
-            if full.is_file() {
-                return Some(full);
+    pub fn catalog(&self, pack: &str, version: &str) -> Result<Vec<String>, String> {
+        for root in &self.search_paths {
+            if ReleaseCatalog::path(root, pack, version).is_file() {
+                return Ok(ReleaseCatalog::read(root, pack, version)?
+                    .actions(crate::cli::get_host_platform().0));
             }
         }
-
-        // Also check direct search paths
-        for base_dir in &self.search_paths {
-            let full = base_dir.join(&file_candidate);
-            if full.is_file() {
-                return Some(full);
-            }
-        }
-
-        None
+        Err(format!(
+            "No prepared catalog for {pack}/{version}; run morflow prep or install"
+        ))
     }
-
-    /// Locates the shared library file for the given action name on disk.
-    pub fn find_action_path(&self, action_name: &str) -> Option<PathBuf> {
-        if let Some((pack, act)) = action_name.split_once('.') {
-            if let Some(path) = self.find_action_in_pack(pack, act) {
-                return Some(path);
+    pub fn get_or_load(&self, identity: &ActionIdentity) -> Result<Arc<LoadedAction>, String> {
+        let canonical = ActionIdentity::for_platform(
+            &identity.pack,
+            &identity.version,
+            &identity.action,
+            &identity.platform,
+        )?;
+        if canonical != *identity {
+            return Err("Noncanonical action identity".into());
+        }
+        if identity.platform != crate::cli::get_host_platform().0 {
+            return Err(format!(
+                "Cannot load {identity} on {}",
+                crate::cli::get_host_platform().0
+            ));
+        }
+        // Serialize first loads so handles cannot race against refreshes.
+        let mut cache = self.cache.write().map_err(|e| e.to_string())?;
+        if let Some(action) = cache.get(identity) {
+            return Ok(Arc::clone(action));
+        }
+        for root in &self.search_paths {
+            if identity.path(root).exists()
+                || crate::artifact::receipt_path(&identity.path(root)).exists()
+            {
+                let _maintenance = CacheGuard::shared(root, "maintenance")?;
+                let _guard = CacheGuard::acquire(root, &identity.to_string())?;
+                let (receipt, bytes) = read_verified(root, identity)?;
+                let path = snapshot(root, identity, &bytes, &receipt.sha256)?;
+                let action = Arc::new(self.load_from_path(identity, receipt, &path)?);
+                cache.insert(identity.clone(), Arc::clone(&action));
+                return Ok(action);
             }
         }
-
-        let file_candidate = format!("{}_action.{}", action_name, DLL_EXTENSION);
-
-        // 1. Search in known ActionPack subdirectories
-        let known_packs = [
-            "base",
-            "image_essentials",
-            "audio_essentials",
-            "tensor_essentials",
-            "math_essentials",
-            "tensor_stats",
-            "nn_essentials",
-            "linalg_essentials",
-        ];
-        for base_dir in &self.search_paths {
-            for pack in &known_packs {
-                let full = base_dir.join(pack).join(&file_candidate);
-                if full.is_file() {
-                    return Some(full);
-                }
-            }
-        }
-
-        // 2. Search directly in search_paths
-        for base_dir in &self.search_paths {
-            let full = base_dir.join(&file_candidate);
-            if full.is_file() {
-                return Some(full);
-            }
-        }
-
-        // 3. Search all subdirectories of search_paths (for custom ActionPacks)
-        for base_dir in &self.search_paths {
-            if let Ok(entries) = std::fs::read_dir(base_dir) {
-                for entry in entries.flatten() {
-                    if entry.path().is_dir() {
-                        let sub_dir = entry.path();
-                        let full = sub_dir.join(&file_candidate);
-                        if full.is_file() {
-                            return Some(full);
-                        }
-                    }
-                }
-            }
-        }
-
-        None
+        Err(format!(
+            "Verified binary for {identity} is missing; run morflow prep or install"
+        ))
     }
-
-    /// Loads or returns a cached action from a specific ActionPack.
-    pub fn get_or_load_in_pack(
-        &self,
-        pack: &str,
-        action_name: &str,
-    ) -> Result<Arc<LoadedAction>, String> {
-        let key = format!("{}.{}", pack, action_name);
-        {
-            let guard = self.cache.read().unwrap();
-            if let Some(action) = guard.get(&key) {
-                return Ok(Arc::clone(action));
-            }
-            if let Some(action) = guard.get(action_name) {
-                return Ok(Arc::clone(action));
-            }
-        }
-
-        let path = self.find_action_in_pack(pack, action_name).ok_or_else(|| {
-            format!(
-                "Action '{}' in pack '{}' not found in search paths: {:?}",
-                action_name, pack, self.search_paths
-            )
-        })?;
-
-        let loaded = self.load_from_path(action_name, &path)?;
-        let arc_action = Arc::new(loaded);
-
-        let mut write_guard = self.cache.write().unwrap();
-        write_guard.insert(key, Arc::clone(&arc_action));
-        write_guard.insert(action_name.to_string(), Arc::clone(&arc_action));
-
-        Ok(arc_action)
-    }
-
-    /// Returns a cached action or loads it from disk, caching the symbols for future calls.
-    pub fn get_or_load(&self, action_name: &str) -> Result<Arc<LoadedAction>, String> {
-        {
-            let guard = self.cache.read().unwrap();
-            if let Some(action) = guard.get(action_name) {
-                return Ok(Arc::clone(action));
-            }
-        }
-
-        let path = self.find_action_path(action_name).ok_or_else(|| {
-            format!(
-                "Action '{}' not found in search paths: {:?}",
-                action_name, self.search_paths
-            )
-        })?;
-
-        let loaded = self.load_from_path(action_name, &path)?;
-        let arc_action = Arc::new(loaded);
-
-        let mut write_guard = self.cache.write().unwrap();
-        write_guard.insert(action_name.to_string(), Arc::clone(&arc_action));
-
-        Ok(arc_action)
-    }
-
-    /// Alias for get_or_load for thread-safe cloned access.
-    pub fn get_or_load_cloned(&self, action_name: &str) -> Result<Arc<LoadedAction>, String> {
-        self.get_or_load(action_name)
-    }
-
-    /// Explicitly preloads all actions found in the search directories.
-    pub fn preload_all(&self) -> Result<usize, String> {
-        let mut count = 0;
-        let mut found_actions = Vec::new();
-
-        let mut scan_dir = |dir: &Path| {
-            if let Ok(entries) = std::fs::read_dir(dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                            let action_name = stem.strip_suffix("_action").unwrap_or(stem);
-
-                            if !found_actions.contains(&action_name.to_string()) {
-                                found_actions.push(action_name.to_string());
-                            }
-                        }
-                    } else if path.is_dir() {
-                        if let Ok(sub_entries) = std::fs::read_dir(&path) {
-                            for sub_entry in sub_entries.flatten() {
-                                let sub_path = sub_entry.path();
-                                if sub_path.is_file() {
-                                    if let Some(stem) =
-                                        sub_path.file_stem().and_then(|s| s.to_str())
-                                    {
-                                        let action_name =
-                                            stem.strip_suffix("_action").unwrap_or(stem);
-
-                                        if !found_actions.contains(&action_name.to_string()) {
-                                            found_actions.push(action_name.to_string());
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-
-        for dir in &self.search_paths {
-            scan_dir(dir);
-        }
-
-        for action_name in found_actions {
-            if self.get_or_load(&action_name).is_ok() {
-                count += 1;
-            }
-        }
-
-        Ok(count)
-    }
-
     /// Low-level loader that inspects and caches symbols from a `.so` / `.dll` file.
-    fn load_from_path(&self, action_name: &str, path: &Path) -> Result<LoadedAction, String> {
+    fn load_from_path(
+        &self,
+        identity: &ActionIdentity,
+        receipt: ArtifactReceipt,
+        path: &Path,
+    ) -> Result<LoadedAction, String> {
+        let action_name = &identity.action;
         unsafe {
             let lib = Library::new(path).map_err(|e| {
                 format!(
@@ -340,6 +196,8 @@ impl ActionRegistry {
             let get_shape_fn: Option<GetShapeFn> = lib.get(b"get_output_shape").ok().map(|s| *s);
             Ok(LoadedAction {
                 name: action_name.to_string(),
+                identity: identity.clone(),
+                receipt,
                 path: path.to_path_buf(),
                 input_type,
                 output_type,

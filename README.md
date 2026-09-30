@@ -88,6 +88,28 @@ Pre-downloads all actions required by your `.morf` file ahead of time, ensuring 
 morflow prep pipeline.morf
 ```
 
+### Action versions and cache
+
+Imports select the action version used by both preparation and execution:
+
+```morf
+from image_essentials/0.2.0 import resize
+from audio_essentials/latest import gain
+```
+
+Exact versions are stored in filenames such as `resize_action-0.2.0-linux-x86_64.so`. A `latest` import uses a separate file such as `gain_action-latest-linux-x86_64.so`. Each `morflow prep` or `morflow install` resolves the newest stable release again, compares published SHA-256 checksums with the cached bytes, and refreshes `latest` when needed. Exact versions remain installed alongside it.
+
+Each binary has a checksum receipt recording its concrete release and provenance. Loading a pipeline verifies the receipt and binary locally; execution uses the loaded actions until the pipeline is reloaded. File and string loading APIs use the same cache, without pipeline lock files or runtime downloads.
+
+Actions resolve through imports or an explicit `pack/version/action` call. Use aliases to select multiple versions of a pack:
+
+```morf
+import image_essentials/0.1.0 as old_image
+import image_essentials/0.2.0 as new_image
+```
+
+Qualified calls such as `old_image.resize(...)` and `new_image.resize(...)` select their respective versions. `morflow list` displays installed versions and the concrete release behind each `latest` entry. Set `MORFLOW_ACTIONS_PATH` to use a prepared custom cache.
+
 ### 4. Run in your application
 
 **Python**:
@@ -172,7 +194,16 @@ pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResu
     input.into()
 }
 ```
-Compile to `.so`/`.dll`/`.dylib` and drop it into your actions directory—Morflow discovers and registers it dynamically at runtime with zero host recompilation.
+Compile the action as a `.so`/`.dll`/`.dylib`, then package it with its Cargo version and checksum receipt:
+
+```bash
+python3 scripts/package_action.py actions/custom_pack/custom_kernel/Cargo.toml \
+    target/release/libcustom_kernel.so --cache ./actions_cache
+```
+
+Import it with `from custom_pack/0.1.0 import custom_kernel` and point `MORFLOW_ACTIONS_PATH` at the cache. `scripts/build-actions.sh` packages repository actions in the same format. Existing unversioned cache files are excluded from version-aware resolution; run `morflow prep` to prepare published actions.
+
+For local test fixtures, build with `cargo build --workspace` and run `python3 scripts/prepare_test_actions.py`. This explicitly creates development `latest` aliases under `target/debug/actions`; published `latest` aliases are refreshed by `morflow prep` or `morflow install`.
 
 ---
 

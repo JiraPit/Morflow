@@ -2,7 +2,7 @@
 
 import audio_essentials/latest
 
-accept RawBytes $input_audio
+accept Bytes $input_audio
 accept IntArg $sample_rate = 44100
 
 # Direct chained DSP processing with inline multi-channel loop

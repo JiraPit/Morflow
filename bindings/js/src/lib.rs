@@ -309,7 +309,7 @@ fn extract_input_payload(
 
 /// A heterogeneous host value bound to a pipeline parameter in declaration
 /// order: a tensor/audio/image object, a typed array, a byte buffer, a plain
-/// number (Scalar or `*Arg`), a string (`StrArg`/`RawBytes`), or a boolean
+/// number (Scalar or `*Arg`), a string (`StrArg`/`Bytes`), or a boolean
 /// (`BoolArg`).
 type HostArg = Either6<TensorInput, Float32Array, Buffer, f64, String, bool>;
 

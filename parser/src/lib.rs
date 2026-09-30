@@ -186,14 +186,14 @@ mod tests {
         let pipeline = res.unwrap();
         assert_eq!(pipeline.statements.len(), 1);
         assert_eq!(pipeline.params.len(), 2);
-        assert_eq!(pipeline.params[0].param_type, ParamType::RawBytes);
+        assert_eq!(pipeline.params[0].param_type, ParamType::Bytes);
         assert_eq!(pipeline.params[1].param_type, ParamType::IntArg);
     }
 
     #[test]
     fn test_pipeline_with_parameters() {
         let src = r#"
-            accept RawBytes $input_audio
+            accept Bytes $input_audio
             accept IntArg $sample_rate = 44100
 
             $input_audio
@@ -205,7 +205,7 @@ mod tests {
         let pipeline = res.unwrap();
         assert_eq!(pipeline.params.len(), 2);
         assert_eq!(pipeline.params[0].name, "input_audio");
-        assert_eq!(pipeline.params[0].param_type, ParamType::RawBytes);
+        assert_eq!(pipeline.params[0].param_type, ParamType::Bytes);
         assert_eq!(pipeline.params[0].default_value, None);
         assert_eq!(pipeline.params[1].name, "sample_rate");
         assert_eq!(pipeline.params[1].param_type, ParamType::IntArg);
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn test_every_param_type_parses() {
         let src = r#"
-            accept RawBytes $bytes
+            accept Bytes $bytes
             accept IntArg $int
             accept FloatArg $float
             accept StrArg $str
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(
             types,
             vec![
-                ParamType::RawBytes,
+                ParamType::Bytes,
                 ParamType::IntArg,
                 ParamType::FloatArg,
                 ParamType::StrArg,

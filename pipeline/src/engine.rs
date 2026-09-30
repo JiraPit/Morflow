@@ -7,7 +7,7 @@ use core_types::Payload;
 use parser::ast::{FlowStep, Pipeline, PipelineParam, Statement};
 
 use crate::outputs::PipelineOutputs;
-use crate::registry::ActionRegistry;
+use crate::registry::{ActionRegistry, LoadedAction};
 use crate::scheduler::AutoParallelScheduler;
 use crate::types::{coerce_host_payload, default_payload, ptype_of};
 
@@ -72,7 +72,11 @@ impl Morflow {
         crate::validator::validate_pipeline(&ast)?;
 
         let registry = Arc::new(ActionRegistry::default());
-        let pipeline = MorflowPipeline { ast, registry };
+        let mut pipeline = MorflowPipeline {
+            ast,
+            registry,
+            actions: HashMap::new(),
+        };
         pipeline.preload_actions()?;
         Ok(pipeline)
     }
@@ -83,6 +87,7 @@ impl Morflow {
 pub struct MorflowPipeline {
     pub ast: Pipeline,
     pub registry: Arc<ActionRegistry>,
+    pub actions: HashMap<String, Arc<LoadedAction>>,
 }
 
 impl MorflowPipeline {
@@ -92,20 +97,18 @@ impl MorflowPipeline {
     }
 
     /// Preloads all actions declared across all steps in this pipeline into memory.
-    fn preload_actions(&self) -> Result<(), MorflowError> {
-        let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
-        let action_names = collect_action_names(&self.ast.statements);
-        for action in action_names {
-            let (target_pack, real_action_name) = resolver.resolve(&action);
-            if let Some(pack) = target_pack {
-                self.registry
-                    .get_or_load_in_pack(&pack, &real_action_name)
-                    .map_err(MorflowError::Action)?;
-            } else {
-                self.registry
-                    .get_or_load(&action)
-                    .map_err(MorflowError::Action)?;
-            }
+    fn preload_actions(&mut self) -> Result<(), MorflowError> {
+        let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports)
+            .map_err(MorflowError::Compile)?;
+        for name in collect_action_names(&self.ast.statements) {
+            let identity = resolver
+                .resolve(&name, |p, v| self.registry.catalog(p, v))
+                .map_err(MorflowError::Action)?;
+            let action = self
+                .registry
+                .get_or_load(&identity)
+                .map_err(MorflowError::Action)?;
+            self.actions.insert(name, action);
         }
         Ok(())
     }
@@ -147,8 +150,7 @@ impl MorflowPipeline {
         }
 
         // Execute via auto-parallel scheduler
-        let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports);
-        let scheduler = AutoParallelScheduler::new(Arc::clone(&self.registry), resolver);
+        let scheduler = AutoParallelScheduler::new(self.actions.clone());
         scheduler.execute(&self.ast.statements, env)
     }
 }
@@ -192,5 +194,120 @@ fn collect_actions_internal(statements: &[Statement], names: &mut Vec<String>) {
                 _ => {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::*;
+    use crate::artifact::*;
+    use std::fs;
+
+    fn publish(root: &Path, version: &str, concrete: &str, library: &str) {
+        let id = ActionIdentity::new("fixture", version, "transform").unwrap();
+        let deps = std::env::current_exe().unwrap();
+        let debug = deps.parent().unwrap().parent().unwrap();
+        let prefix = if cfg!(windows) { "" } else { "lib" };
+        let bytes = fs::read(debug.join(format!(
+            "{prefix}{library}.{}",
+            std::env::consts::DLL_EXTENSION
+        )))
+        .expect("Build native action fixtures first with cargo build --workspace");
+        let receipt = ArtifactReceipt {
+            identity: id.clone(),
+            concrete_version: concrete.into(),
+            repository: "test/fixture".into(),
+            sha256: digest(&bytes),
+        };
+        let _guard = CacheGuard::acquire(root, &id.to_string()).unwrap();
+        atomic_write(&id.path(root), &bytes).unwrap();
+        atomic_write(
+            &receipt_path(&id.path(root)),
+            &serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
+    }
+    fn pipeline(root: &Path, source: &str) -> MorflowPipeline {
+        let mut pipeline = MorflowPipeline {
+            ast: parser::parse(source).unwrap(),
+            registry: Arc::new(ActionRegistry::new(vec![root.into()])),
+            actions: HashMap::new(),
+        };
+        pipeline.preload_actions().unwrap();
+        pipeline
+    }
+    fn output(p: &mut MorflowPipeline) -> f32 {
+        p.run(Payload::Tensor(core_types::Tensor::from_f32_slice(&[3.0])))
+            .unwrap()
+            .into_single()
+            .unwrap()
+            .as_tensor()
+            .unwrap()
+            .to_vec_f32()[0]
+    }
+    #[test]
+    fn reloading_latest_in_same_process_preserves_existing_pipeline() {
+        let root = tempfile::tempdir().unwrap();
+        publish(root.path(), "latest", "0.1.0", "identity");
+        let source =
+            "from fixture/latest import transform\naccept Tensor x\n$x >> transform >> emit";
+        let mut old = pipeline(root.path(), source);
+        assert_eq!(output(&mut old), 3.0);
+        publish(root.path(), "latest", "0.2.0", "neg");
+        let mut new = pipeline(root.path(), source);
+        assert_eq!(output(&mut old), 3.0);
+        assert_eq!(output(&mut new), -3.0);
+        assert_eq!(new.actions["transform"].receipt.concrete_version, "0.2.0");
+    }
+    #[test]
+    fn two_aliased_versions_do_not_collide() {
+        let root = tempfile::tempdir().unwrap();
+        publish(root.path(), "0.1.0", "0.1.0", "identity");
+        publish(root.path(), "0.2.0", "0.2.0", "neg");
+        let source = "import fixture/0.1.0 as old\nimport fixture/0.2.0 as new\naccept Tensor x\n$x >> old.transform >> emit(\"old\")\n$x >> new.transform >> emit(\"new\")";
+        let mut p = pipeline(root.path(), source);
+        let out = p
+            .run(Payload::Tensor(core_types::Tensor::from_f32_slice(&[3.0])))
+            .unwrap();
+        assert_eq!(out["old"].as_tensor().unwrap().to_vec_f32(), vec![3.0]);
+        assert_eq!(out["new"].as_tensor().unwrap().to_vec_f32(), vec![-3.0]);
+    }
+    #[test]
+    fn offline_checker_uses_the_same_exact_artifact_as_execution() {
+        let root = tempfile::tempdir().unwrap();
+        publish(root.path(), "0.1.0", "0.1.0", "identity");
+        publish(root.path(), "0.2.0", "0.2.0", "neg");
+        publish(root.path(), "latest", "0.1.0", "identity");
+        let source =
+            "from fixture/0.2.0 import transform\naccept Tensor x\n$x >> transform >> emit";
+        let path = root.path().join("pipeline.morf");
+        fs::write(&path, source).unwrap();
+        crate::check::check_pipeline(&path, Some(root.path())).unwrap();
+        assert_eq!(
+            output(&mut pipeline(
+                root.path(),
+                &fs::read_to_string(path).unwrap()
+            )),
+            -3.0
+        );
+    }
+
+    #[test]
+    fn loader_rejects_unversioned_missing_receipts_and_tampering() {
+        let root = tempfile::tempdir().unwrap();
+        let id = ActionIdentity::new("fixture", "0.2.0", "transform").unwrap();
+        fs::write(root.path().join("transform_action.so"), b"legacy").unwrap();
+        let registry = ActionRegistry::new(vec![root.path().into()]);
+        assert!(registry.get_or_load(&id).is_err());
+        atomic_write(&id.path(root.path()), b"unverified").unwrap();
+        assert!(registry.get_or_load(&id).is_err());
+        publish(root.path(), "0.2.0", "0.2.0", "identity");
+        fs::write(id.path(root.path()), b"tampered").unwrap();
+        assert!(registry.get_or_load(&id).is_err());
+        publish(root.path(), "0.2.0", "0.2.0", "identity");
+        assert!(registry
+            .get_or_load(&ActionIdentity::new("fixture", "0.1.0", "transform").unwrap())
+            .is_err());
+        assert!(registry.get_or_load(&id).is_ok());
     }
 }

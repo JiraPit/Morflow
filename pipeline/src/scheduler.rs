@@ -13,14 +13,12 @@ use rayon::prelude::*;
 
 use crate::engine::MorflowError;
 use crate::outputs::PipelineOutputs;
-use crate::registry::ActionRegistry;
-use crate::resolver::ActionResolver;
+use crate::registry::LoadedAction;
 
 /// A high-performance, DAG-driven execution scheduler that auto-parallelizes independent
 /// flows in a pipeline and dynamically expands `each` loop iterations across Rayon's work-stealing pool.
 pub struct AutoParallelScheduler {
-    registry: Arc<ActionRegistry>,
-    resolver: ActionResolver,
+    actions: HashMap<String, Arc<LoadedAction>>,
 }
 
 struct FlowTask {
@@ -71,8 +69,8 @@ impl<'a> EnvRef<'a> {
 }
 
 impl AutoParallelScheduler {
-    pub fn new(registry: Arc<ActionRegistry>, resolver: ActionResolver) -> Self {
-        Self { registry, resolver }
+    pub fn new(actions: HashMap<String, Arc<LoadedAction>>) -> Self {
+        Self { actions }
     }
 
     /// Executes the pipeline statements with automatic DAG dependency discovery and Rayon multi-core parallelism.
@@ -223,13 +221,9 @@ impl AutoParallelScheduler {
                     let (payload_in, args) =
                         { self.prepare_action_input(call, env, current.take())? };
 
-                    let (target_pack, real_action_name) = self.resolver.resolve(&call.name);
-                    let action = if let Some(pack) = target_pack {
-                        self.registry.get_or_load_in_pack(&pack, &real_action_name)
-                    } else {
-                        self.registry.get_or_load_cloned(&call.name)
-                    }
-                    .map_err(MorflowError::Action)?;
+                    let action = self.actions.get(&call.name).ok_or_else(|| {
+                        MorflowError::Action(format!("Action '{}' was not preloaded", call.name))
+                    })?;
 
                     let final_payload_in = if args.positional.is_empty() && args.named.is_empty() {
                         payload_in

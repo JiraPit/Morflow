@@ -8,7 +8,7 @@ use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::RawBytes | DataType::Tensor
+    DataType::Bytes | DataType::Tensor
 }
 
 #[no_mangle]
@@ -164,7 +164,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
         }
         _ => Payload::Error(core_types::RString::from(
-            "Action 'to_audio' requires Payload::Data (RawBytes) or Payload::Tensor",
+            "Action 'to_audio' requires Payload::Data (Bytes) or Payload::Tensor",
         )),
     }
 }

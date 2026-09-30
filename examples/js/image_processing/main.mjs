@@ -35,7 +35,7 @@ function decodePng(buffer) {
 
   const channels = colorType === 6 ? 4 : 3;
   const stride = width * channels;
-  const rawBytes = Buffer.alloc(width * height * channels);
+  const bytes = Buffer.alloc(width * height * channels);
 
   let srcOffset = 0;
   let dstOffset = 0;
@@ -46,9 +46,9 @@ function decodePng(buffer) {
 
     for (let x = 0; x < stride; x++) {
       const raw = decompressed[srcOffset++];
-      const a = x >= channels ? rawBytes[dstOffset - channels] : 0;
-      const b = y > 0 ? rawBytes[prevRowOffset + x] : 0;
-      const c = (y > 0 && x >= channels) ? rawBytes[prevRowOffset + x - channels] : 0;
+      const a = x >= channels ? bytes[dstOffset - channels] : 0;
+      const b = y > 0 ? bytes[prevRowOffset + x] : 0;
+      const c = (y > 0 && x >= channels) ? bytes[prevRowOffset + x - channels] : 0;
 
       let val = raw;
       if (filterType === 1) val = (raw + a) & 0xff; // Sub
@@ -62,18 +62,18 @@ function decodePng(buffer) {
         const pr = (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
         val = (raw + pr) & 0xff;
       }
-      rawBytes[dstOffset++] = val;
+      bytes[dstOffset++] = val;
     }
   }
 
   // Convert to RGB if RGBA
-  let rgbBytes = rawBytes;
+  let rgbBytes = bytes;
   if (channels === 4) {
     rgbBytes = Buffer.alloc(width * height * 3);
     for (let i = 0; i < width * height; i++) {
-      rgbBytes[i * 3] = rawBytes[i * 4];
-      rgbBytes[i * 3 + 1] = rawBytes[i * 4 + 1];
-      rgbBytes[i * 3 + 2] = rawBytes[i * 4 + 2];
+      rgbBytes[i * 3] = bytes[i * 4];
+      rgbBytes[i * 3 + 1] = bytes[i * 4 + 1];
+      rgbBytes[i * 3 + 2] = bytes[i * 4 + 2];
     }
   }
 

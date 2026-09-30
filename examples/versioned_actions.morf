@@ -1,0 +1,10 @@
+# An exact release and the prepared latest alias can coexist in one pipeline.
+# Run morflow prep examples/versioned_actions.morf to prepare published actions.
+# Reload the pipeline after refreshing latest to use the new prepared binary.
+import base/0.2.0 as pinned
+import base/latest as refreshed
+
+accept Bytes $input
+
+$input >> pinned.identity >> emit("pinned")
+$input >> refreshed.identity >> emit("refreshed")

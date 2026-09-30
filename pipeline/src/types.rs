@@ -12,7 +12,7 @@ use parser::ast::{ParamDim, ParamShape, ParamType, PipelineParam, Value};
 /// The runtime type of a declared parameter.
 pub fn ptype_of(param_type: &ParamType) -> PType {
     match param_type {
-        ParamType::RawBytes => PType::RawBytes,
+        ParamType::Bytes => PType::Bytes,
         ParamType::IntArg => PType::Arg(ArgKind::Int),
         ParamType::FloatArg => PType::Arg(ArgKind::Float),
         ParamType::StrArg => PType::Arg(ArgKind::Str),
@@ -46,7 +46,7 @@ fn dim_of(dim: &ParamDim) -> Dim {
 pub fn param_type_of(ptype: &PType) -> Option<ParamType> {
     match ptype {
         PType::Unknown => None,
-        PType::RawBytes => Some(ParamType::RawBytes),
+        PType::Bytes => Some(ParamType::Bytes),
         PType::Arg(kind) => Some(match kind {
             ArgKind::Int => ParamType::IntArg,
             ArgKind::Float => ParamType::FloatArg,
@@ -80,27 +80,27 @@ fn shape_of(spec: &ShapeSpec) -> ParamShape {
 ///
 /// A declared default always produces the value in its own representation: an
 /// argument for the four `*Arg` types, a rank-0 tensor for `Scalar`, and plain
-/// bytes for `RawBytes`.
+/// bytes for `Bytes`.
 pub fn default_payload(param: &PipelineParam) -> Option<Payload> {
     let declared = ptype_of(&param.param_type);
     let value = param.default_value.as_ref()?;
     match (&declared, value) {
         (_, Value::Int(v)) => match declared {
-            PType::Arg(_) | PType::RawBytes => Some(Payload::arg(v.to_string())),
+            PType::Arg(_) | PType::Bytes => Some(Payload::arg(v.to_string())),
             PType::Scalar => Some(Payload::Scalar(scalar_tensor(*v as f64, TensorDType::I32))),
             _ => None,
         },
         (_, Value::Float(v)) => match declared {
-            PType::Arg(_) | PType::RawBytes => Some(Payload::arg(v.to_string())),
+            PType::Arg(_) | PType::Bytes => Some(Payload::arg(v.to_string())),
             PType::Scalar => Some(Payload::Scalar(scalar_tensor(*v, TensorDType::F32))),
             _ => None,
         },
         (_, Value::String(v)) => match declared {
-            PType::Arg(_) | PType::RawBytes => Some(Payload::arg(v.clone())),
+            PType::Arg(_) | PType::Bytes => Some(Payload::arg(v.clone())),
             _ => None,
         },
         (_, Value::Bool(v)) => match declared {
-            PType::Arg(_) | PType::RawBytes => Some(Payload::arg(v.to_string())),
+            PType::Arg(_) | PType::Bytes => Some(Payload::arg(v.to_string())),
             _ => None,
         },
         _ => None,
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn declared_types_map_to_runtime_types() {
-        assert_eq!(ptype_of(&ParamType::RawBytes), PType::RawBytes);
+        assert_eq!(ptype_of(&ParamType::Bytes), PType::Bytes);
         assert_eq!(ptype_of(&ParamType::IntArg), PType::Arg(ArgKind::Int));
         assert_eq!(ptype_of(&ParamType::FloatArg), PType::Arg(ArgKind::Float));
         assert_eq!(ptype_of(&ParamType::StrArg), PType::Arg(ArgKind::Str));
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn runtime_types_map_back_to_declarations() {
         for declared in [
-            ParamType::RawBytes,
+            ParamType::Bytes,
             ParamType::IntArg,
             ParamType::FloatArg,
             ParamType::StrArg,
@@ -244,11 +244,7 @@ mod tests {
             ),
         }
 
-        let raw_default = param(
-            "mode",
-            ParamType::RawBytes,
-            Some(Value::String("fast".into())),
-        );
+        let raw_default = param("mode", ParamType::Bytes, Some(Value::String("fast".into())));
         match default_payload(&raw_default) {
             Some(Payload::Arg(bytes)) => assert_eq!(bytes.as_slice(), b"fast"),
             other => panic!(
@@ -296,7 +292,7 @@ mod tests {
         let mut pipeline = Morflow::from_str(
             r#"
             accept Image $image
-            $image >> identity >> emit
+            $image >> base/latest/identity >> emit
         "#,
         )
         .expect("Failed to parse pipeline");
@@ -323,7 +319,7 @@ mod tests {
         let mut pipeline = Morflow::from_str(
             r#"
             accept Tensor[rank=2] $matrix
-            $matrix >> identity >> emit
+            $matrix >> base/latest/identity >> emit
         "#,
         )
         .expect("Failed to parse pipeline");
@@ -341,7 +337,7 @@ mod tests {
         let mut pipeline = Morflow::from_str(
             r#"
             accept Tensor $value
-            $value >> identity >> emit
+            $value >> base/latest/identity >> emit
         "#,
         )
         .expect("Failed to parse pipeline");
@@ -370,7 +366,7 @@ mod tests {
         let mut pipeline = Morflow::from_str(
             r#"
             accept Scalar $value
-            $value >> identity >> emit
+            $value >> base/latest/identity >> emit
         "#,
         )
         .expect("Failed to parse pipeline");
@@ -399,9 +395,9 @@ mod tests {
             accept IntArg $threshold = 2
 
             $signal >> if ($signal.peak > $threshold) {
-                identity
+                base/latest/identity
             } else {
-                identity
+                base/latest/identity
             } >> emit
         "#;
         let mut pipeline = Morflow::from_str(src).expect("Failed to parse pipeline");

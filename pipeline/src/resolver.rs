@@ -1,93 +1,180 @@
+use crate::artifact::{component, normalize_version, ActionIdentity};
 use parser::ast::ImportStmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-/// Resolves action names in a flow (e.g. `ca`, `resize`, `base.identity`, `audio.gain`)
-/// into their canonical ActionPack and action name based on pipeline import statements.
-#[derive(Debug, Clone, Default)]
-pub struct ActionResolver {
-    /// Maps symbol names in flow (e.g. "ca", "resize") -> (package, action_name) (e.g. ("image_essentials", "color_adjust"))
-    pub imported_symbols: HashMap<String, (String, String)>,
-    /// List of whole-imported packages in order (e.g. [("base", None), ("image_essentials", Some("img"))])
-    pub imported_packages: Vec<(String, Option<String>)>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PackImport {
+    pub pack: String,
+    pub version: String,
+    pub alias: Option<String>,
 }
 
+/// Import-scoped action resolution. Catalog lookup is supplied by the caller:
+/// preparation uses release manifests; execution uses their offline cache.
+#[derive(Debug, Clone, Default)]
+pub struct ActionResolver {
+    pub imported_symbols: HashMap<String, ActionIdentity>,
+    pub imported_packages: Vec<PackImport>,
+}
 impl ActionResolver {
-    /// Constructs an `ActionResolver` from the list of imports declared in a pipeline AST.
-    pub fn from_imports(imports: &[ImportStmt]) -> Self {
+    pub fn from_imports(imports: &[ImportStmt]) -> Result<Self, String> {
         let mut resolver = Self::default();
-        for imp in imports {
-            match imp {
-                ImportStmt::Package(pkg) => {
-                    resolver
-                        .imported_packages
-                        .push((pkg.package.clone(), pkg.alias.clone()));
+        let mut aliases = HashSet::new();
+        for import in imports {
+            match import {
+                ImportStmt::Package(p) => {
+                    component(&p.package)?;
+                    let version = normalize_version(&p.version)?;
+                    let namespace = p.alias.as_ref().unwrap_or(&p.package);
+                    if namespace == "emit"
+                        || namespace == "resurface"
+                        || !aliases.insert(namespace.clone())
+                    {
+                        return Err(format!("Conflicting import namespace '{namespace}'; use distinct aliases for multiple versions"));
+                    }
+                    resolver.imported_packages.push(PackImport {
+                        pack: p.package.clone(),
+                        version,
+                        alias: p.alias.clone(),
+                    });
                 }
-                ImportStmt::Items(items) => {
-                    for item in &items.items {
-                        let symbol = item.alias.as_ref().unwrap_or(&item.name).clone();
-                        resolver
-                            .imported_symbols
-                            .insert(symbol, (items.package.clone(), item.name.clone()));
+                ImportStmt::Items(p) => {
+                    for item in &p.items {
+                        let name = item.alias.as_ref().unwrap_or(&item.name);
+                        if name == "emit" || name == "resurface" || !aliases.insert(name.clone()) {
+                            return Err(format!("Conflicting import alias '{name}'"));
+                        }
+                        resolver.imported_symbols.insert(
+                            name.clone(),
+                            ActionIdentity::new(&p.package, &p.version, &item.name)?,
+                        );
                     }
                 }
             }
         }
-        resolver
+        Ok(resolver)
     }
-
-    /// Resolves a called action name in a flow (e.g. "ca", "resize", "base.identity", or "audio.gain")
-    /// to (Option<pack_name>, target_action_name).
-    pub fn resolve(&self, call_name: &str) -> (Option<String>, String) {
-        // 1. Check if the call matches an explicitly imported symbol or alias (`from pack import item [as alias]`)
-        if let Some((pack, real_action)) = self.imported_symbols.get(call_name) {
-            return (Some(pack.clone()), real_action.clone());
+    pub fn resolve<F>(&self, call: &str, mut catalog: F) -> Result<ActionIdentity, String>
+    where
+        F: FnMut(&str, &str) -> Result<Vec<String>, String>,
+    {
+        if let Some(id) = self.imported_symbols.get(call) {
+            return Ok(id.clone());
         }
-
-        // 2. Check if the call is a qualified path like `image_essentials/resize`, `base/latest/identity`, `audio/gain`, `audio.gain`
-        let clean = call_name.replace("::", "/");
-        let parts: Vec<&str> = if clean.contains('/') {
-            clean
-                .split('/')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .collect()
-        } else if clean.contains('.') {
-            clean
-                .split('.')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .collect()
+        // The parser normalizes qualified paths to '/'; version dots stay in
+        // a single slash-delimited segment. Accept dotted namespace.action too.
+        let normalized = call.replace("::", "/");
+        let parts: Vec<_> = if normalized.contains('/') {
+            normalized.split('/').collect()
         } else {
-            Vec::new()
+            normalized.split('.').collect()
         };
-
-        if !parts.is_empty() {
-            let prefix = parts[0];
-            let action = parts[parts.len() - 1];
-            // Check if prefix matches a package alias or package name
-            for (pkg, alias_opt) in &self.imported_packages {
-                if let Some(alias) = alias_opt {
-                    if alias == prefix {
-                        return (Some(pkg.clone()), action.to_string());
-                    }
-                }
-                if pkg == prefix {
-                    return (Some(pkg.clone()), action.to_string());
+        if parts.len() == 3 {
+            return ActionIdentity::new(parts[0], parts[1], parts[2]);
+        }
+        if parts.len() == 2 {
+            let candidates: Vec<_> = self
+                .imported_packages
+                .iter()
+                .filter(|p| p.alias.as_deref().unwrap_or(&p.pack) == parts[0])
+                .collect();
+            if candidates.len() == 1 {
+                let p = candidates[0];
+                return ActionIdentity::new(&p.pack, &p.version, parts[1]);
+            }
+            return Err(format!(
+                "'{call}' requires an imported namespace or explicit pack/version/action path"
+            ));
+        }
+        if parts.len() != 1 {
+            return Err(format!(
+                "Invalid action path '{call}'; use pack/version/action"
+            ));
+        }
+        let mut matches = Vec::new();
+        for p in &self.imported_packages {
+            if catalog(&p.pack, &p.version)?
+                .iter()
+                .any(|name| name == call)
+            {
+                let id = ActionIdentity::new(&p.pack, &p.version, call)?;
+                if !matches.contains(&id) {
+                    matches.push(id);
                 }
             }
-            // If prefix wasn't in imported packages list, treat prefix directly as pack name
-            return (Some(prefix.to_string()), action.to_string());
         }
-
-        // 3. If there are whole-package imports (`import pack.latest`), check if only one pack is imported
-        if self.imported_packages.len() == 1 {
-            return (
-                Some(self.imported_packages[0].0.clone()),
-                call_name.to_string(),
-            );
+        match matches.len() {
+            1 => Ok(matches.remove(0)),
+            0 => Err(format!("Action '{call}' is not declared by the imports; import it or use pack/version/action")),
+            _ => Err(format!("Ambiguous action '{call}'; qualify it with an import alias")),
         }
+    }
+}
 
-        // 4. Return None for pack, meaning the registry will search imported packages and known packs
-        (None, call_name.to_string())
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn resolver(src: &str) -> ActionResolver {
+        ActionResolver::from_imports(&parser::parse(src).unwrap().imports).unwrap()
+    }
+    #[test]
+    fn versions_aliases_and_explicit_paths_survive_resolution() {
+        let r = resolver("import base/0.1.0 as old\nimport base/0.2.0 as new\nfrom image_essentials/latest import resize as scale\n");
+        assert_eq!(
+            r.resolve("old/identity", |_, _| unreachable!())
+                .unwrap()
+                .version,
+            "0.1.0"
+        );
+        assert_eq!(
+            r.resolve("new.identity", |_, _| unreachable!())
+                .unwrap()
+                .version,
+            "0.2.0"
+        );
+        assert_eq!(
+            r.resolve("scale", |_, _| unreachable!()).unwrap().version,
+            "latest"
+        );
+        assert_eq!(
+            r.resolve("base/0.3.0/identity", |_, _| unreachable!())
+                .unwrap()
+                .version,
+            "0.3.0"
+        );
+        assert!(r
+            .resolve("identity", |_, _| Ok(vec!["identity".into()]))
+            .unwrap_err()
+            .contains("Ambiguous"));
+    }
+    #[test]
+    fn rejects_missing_imports_and_conflicting_aliases() {
+        assert!(ActionResolver::default()
+            .resolve("identity", |_, _| unreachable!())
+            .is_err());
+        assert!(ActionResolver::default()
+            .resolve("base/identity", |_, _| unreachable!())
+            .is_err());
+        let ast = parser::parse("import base/0.1.0 as x\nfrom base/0.2.0 import identity as x\n")
+            .unwrap();
+        assert!(ActionResolver::from_imports(&ast.imports).is_err());
+        let ast = parser::parse("import base/latest as emit\n").unwrap();
+        assert!(ActionResolver::from_imports(&ast.imports).is_err());
+        assert!(ActionIdentity::new("../base", "latest", "identity").is_err());
+    }
+    #[test]
+    fn whole_imports_use_version_specific_catalogs() {
+        let r = resolver("import base/0.1.0\nimport custom/0.2.0\n");
+        let id = r
+            .resolve("special", |pack, version| {
+                assert_eq!(version, if pack == "base" { "0.1.0" } else { "0.2.0" });
+                Ok(if pack == "custom" {
+                    vec!["special".into()]
+                } else {
+                    vec!["identity".into()]
+                })
+            })
+            .unwrap();
+        assert_eq!(id.pack, "custom");
     }
 }

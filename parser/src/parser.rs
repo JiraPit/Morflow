@@ -187,7 +187,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     });
 
     let path_segment =
-        filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+        filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.' || *c == '+')
             .repeated()
             .at_least(1)
             .collect::<String>()
@@ -391,7 +391,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
         );
 
     let param_type = choice((
-        text::keyword("RawBytes").to(ParamType::RawBytes),
+        text::keyword("Bytes").to(ParamType::Bytes),
         text::keyword("IntArg").to(ParamType::IntArg),
         text::keyword("FloatArg").to(ParamType::FloatArg),
         text::keyword("StrArg").to(ParamType::StrArg),
@@ -416,7 +416,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             |_, span: std::ops::Range<usize>| -> Result<ParamType, Simple<char>> {
                 Err(Simple::custom(
                     span,
-                    "every 'accept' needs a type, for example 'accept RawBytes $input_audio' or 'accept Tensor[rank=2] $frames' (types: RawBytes, IntArg, FloatArg, StrArg, BoolArg, Scalar, Tensor, Image, Audio, Composite)",
+                    "every 'accept' needs a type, for example 'accept Bytes $input_audio' or 'accept Tensor[rank=2] $frames' (types: Bytes, IntArg, FloatArg, StrArg, BoolArg, Scalar, Tensor, Image, Audio, Composite)",
                 ))
             },
         );

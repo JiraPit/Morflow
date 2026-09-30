@@ -1,13 +1,16 @@
+pub mod artifact;
 pub mod check;
 pub mod cli;
 pub mod engine;
 pub mod outputs;
 pub mod registry;
+pub mod release;
 pub mod resolver;
 pub mod scheduler;
 pub mod types;
 pub mod validator;
 
+pub use artifact::{ActionIdentity, ArtifactReceipt, ReleaseCatalog};
 pub use core_types;
 pub use core_types::{Audio, ColorSpace, DataType, Image, Payload, RVec, Tensor};
 pub use engine::{Morflow, MorflowError, MorflowPipeline};
@@ -29,9 +32,9 @@ mod tests {
     #[test]
     fn test_morflow_pipeline_execution_with_emit() {
         let morf_src = r#"
-            accept RawBytes input_data
+            accept Bytes input_data
 
-            $input_data >> identity >> emit
+            $input_data >> base/latest/identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -56,8 +59,8 @@ mod tests {
         let morf_src = r#"
             accept Tensor audio
 
-            $audio[0:4] >> identity >> emit("low_band")
-            $audio[4:8] >> identity >> emit("high_band")
+            $audio[0:4] >> base/latest/identity >> emit("low_band")
+            $audio[4:8] >> base/latest/identity >> emit("high_band")
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -90,7 +93,7 @@ mod tests {
         let morf_src = r#"
             accept Tensor tensor_in
 
-            $tensor_in[1:3] >> identity >> emit
+            $tensor_in[1:3] >> base/latest/identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -116,7 +119,7 @@ mod tests {
             accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
-                $ch >> identity
+                $ch >> base/latest/identity
             } >> emit
         "#;
 
@@ -144,9 +147,9 @@ mod tests {
             accept Tensor audio
 
             $audio >> if ($audio.peak > 5.0) {
-                identity
+                base/latest/identity
             } else {
-                identity
+                base/latest/identity
             } >> emit
         "#;
 
@@ -168,11 +171,11 @@ mod tests {
     #[test]
     fn test_morflow_multi_statement_with_taps() {
         let morf_src = r#"
-            accept RawBytes source
+            accept Bytes source
 
-            $source >> identity >> $saved1
-            $saved1 >> identity >> $saved2
-            $saved2 >> identity >> emit
+            $source >> base/latest/identity >> $saved1
+            $saved1 >> base/latest/identity >> $saved2
+            $saved2 >> base/latest/identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -204,11 +207,11 @@ mod tests {
             accept Tensor audio
 
             # Two independent branches computed from $audio
-            $audio[0:4] >> identity >> $low_freq
-            $audio[4:8] >> identity >> $high_freq
+            $audio[0:4] >> base/latest/identity >> $low_freq
+            $audio[4:8] >> base/latest/identity >> $high_freq
 
             # Final recombination
-            $low_freq >> identity >> emit
+            $low_freq >> base/latest/identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -232,11 +235,11 @@ mod tests {
             accept Tensor tensor_in
 
             # 1. Define an external variable outside the loop
-            $tensor_in[0:2] >> identity >> $external_filter
+            $tensor_in[0:2] >> base/latest/identity >> $external_filter
 
             # 2. Inside each ($ch), use both $ch and $external_filter
             $tensor_in >> each ($ch) {
-                $ch >> identity(filter=$external_filter)
+                $ch >> base/latest/identity(filter=$external_filter)
             } >> emit
         "#;
 
@@ -261,8 +264,8 @@ mod tests {
         let invalid_morf = r#"
             accept Tensor audio
 
-            $audio[0:4] >> identity >> emit
-            $audio[4:8] >> identity >> emit
+            $audio[0:4] >> base/latest/identity >> emit
+            $audio[4:8] >> base/latest/identity >> emit
         "#;
 
         let res = Morflow::from_str(invalid_morf);
@@ -283,8 +286,8 @@ mod tests {
         let invalid_morf = r#"
             accept Tensor audio
 
-            $audio[0:4] >> identity >> emit("track")
-            $audio[4:8] >> identity >> emit("track")
+            $audio[0:4] >> base/latest/identity >> emit("track")
+            $audio[4:8] >> base/latest/identity >> emit("track")
         "#;
 
         let res = Morflow::from_str(invalid_morf);
@@ -305,7 +308,7 @@ mod tests {
         let morf_src = r#"
             accept Tensor audio
 
-            $audio >> emit("intermediate") >> identity >> emit("final")
+            $audio >> emit("intermediate") >> base/latest/identity >> emit("final")
         "#;
 
         let res = Morflow::from_str(morf_src);
@@ -345,7 +348,7 @@ mod tests {
             accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
-                $ch >> identity >> emit("channel_out")
+                $ch >> base/latest/identity >> emit("channel_out")
             } >> emit
         "#;
 
@@ -368,7 +371,7 @@ mod tests {
             accept Tensor audio
 
             $audio >> if ($audio.peak > 1.0) {
-                identity >> emit("branch_out")
+                base/latest/identity >> emit("branch_out")
             } >> emit
         "#;
 
@@ -391,10 +394,10 @@ mod tests {
             accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
-                $ch >> identity
+                $ch >> base/latest/identity
             } >> $processed_tensor
 
-            $processed_tensor >> identity >> emit
+            $processed_tensor >> base/latest/identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
@@ -416,7 +419,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_top_level_variable_reassignment() {
         let invalid_morf = r#"
-            accept RawBytes source
+            accept Bytes source
 
             $source >> action_a >> $duplicate_var
             $source >> action_b >> $duplicate_var
@@ -470,7 +473,7 @@ mod tests {
     fn test_error_on_legacy_pipeline_wrapper() {
         let legacy_pipeline_morf = r#"
             pipeline "FirstPipeline" ($a) {
-                $a >> identity >> emit
+                $a >> base/latest/identity >> emit
             }
         "#;
 
@@ -488,9 +491,9 @@ mod tests {
 
             $tensor_in >> each ($ch) {
                 $ch >> if ($ch.peak > 2.0) {
-                    identity
+                    base/latest/identity
                 } else {
-                    identity
+                    base/latest/identity
                 }
             } >> emit
         "#;
@@ -517,9 +520,9 @@ mod tests {
     #[test]
     fn test_pipeline_no_emit_error() {
         let morf_src = r#"
-            accept RawBytes source
+            accept Bytes source
 
-            $source >> identity >> $tapped
+            $source >> base/latest/identity >> $tapped
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
@@ -535,6 +538,7 @@ mod tests {
     #[test]
     fn test_dsp_pipeline_end_to_end() {
         let morf_src = r#"
+            import audio_essentials/latest
             accept Audio audio_in
 
             $audio_in >> gain(db=+6.0) >> biquad_filter(type="lowpass", freq=5000.0) >> limiter(ceiling_db=-1.0) >> normalize(target_peak=0.9) >> emit
@@ -564,6 +568,7 @@ mod tests {
     #[test]
     fn test_multichannel_spatial_dsp_pipeline() {
         let morf_src = r#"
+            import audio_essentials/latest
             accept Audio stereo_in
 
             $stereo_in >> stereo_widen(width=1.5) >> delay(time_ms=10.0, feedback=0.2, mix=0.3) >> compressor(threshold_db=-10.0, ratio=3.0) >> emit
@@ -591,6 +596,7 @@ mod tests {
     #[test]
     fn test_spectral_stft_and_resample_pipeline() {
         let morf_src = r#"
+            import audio_essentials/latest
             accept Audio audio_in
 
             $audio_in >> resample(from_rate=48000.0, to_rate=44100.0) >> stft(n_fft=256, hop_size=128) >> emit
@@ -622,9 +628,9 @@ mod tests {
             accept Image img_in
 
             $img_in >> if ($img_in.width > 30) {
-                identity
+                base/latest/identity
             } else {
-                identity
+                base/latest/identity
             } >> emit
         "#;
 
@@ -652,6 +658,7 @@ mod tests {
     #[test]
     fn test_audio_payload_pipeline_execution() {
         let morf_src = r#"
+            import audio_essentials/latest
             accept Audio audio_in
 
             $audio_in >> if ($audio_in.sample_rate >= 44100) {
@@ -687,6 +694,8 @@ mod tests {
     #[test]
     fn test_image_pipeline_end_to_end() {
         let morf_src = r#"
+            from base/latest import to_tensor
+            import image_essentials/latest
             accept Image img_in
 
             $img_in >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
@@ -722,6 +731,7 @@ mod tests {
     #[test]
     fn test_mid_stream_emit_pass_through() {
         let morf_src = r#"
+            import audio_essentials/latest
             accept Audio audio_in
 
             $audio_in
@@ -787,7 +797,7 @@ mod tests {
 
             accept Audio audio_in
 
-            $audio_in >> identity >> amp(linear=3.0) >> emit
+            $audio_in >> base/latest/identity >> amp(linear=3.0) >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
@@ -806,6 +816,8 @@ mod tests {
     #[test]
     fn test_action_pack_qualified_invocation() {
         let morf_src = r#"
+            import audio_essentials/latest
+            import base/latest
             accept Audio audio_in
 
             $audio_in >> audio_essentials.gain(linear=4.0) >> base.identity >> emit
@@ -829,7 +841,7 @@ mod tests {
         let morf_src = r#"
             import audio_essentials/latest
 
-            accept RawBytes audio_in
+            accept Bytes audio_in
 
             $audio_in >> to_audio(channels=1, sample_rate=48000, dtype="f32") >> gain(linear=2.0) >> to_wav >> emit
         "#;
@@ -1011,7 +1023,7 @@ mod tests {
             accept Image $image
 
             $image >> each ($channel) {
-                $channel >> identity
+                $channel >> base/latest/identity
             } >> emit
         "#;
 
@@ -1078,7 +1090,7 @@ mod tests {
             accept Image image
 
             $image >> each ($channel) {
-                $channel >> identity
+                $channel >> base/latest/identity
             } >> emit
         "#;
 
@@ -1117,7 +1129,7 @@ mod tests {
             accept Audio audio
 
             $audio >> each ($sample) {
-                $sample >> identity
+                $sample >> base/latest/identity
             } >> emit
         "#;
 
@@ -1185,13 +1197,13 @@ mod tests {
     }
 
     #[test]
-    fn test_each_on_raw_bytes_payload_errors_at_runtime() {
+    fn test_each_on_bytes_payload_errors_at_runtime() {
         let morf_src = r#"
             import base/latest
-            accept RawBytes raw
+            accept Bytes raw
 
             $raw >> each ($b) {
-                $b >> identity
+                $b >> base/latest/identity
             } >> emit
         "#;
 
@@ -1203,8 +1215,8 @@ mod tests {
             .run(payload)
             .expect_err("each on a Data payload should fail");
         assert!(
-            err.to_string().contains("raw-bytes"),
-            "expected a raw-bytes diagnostic, got: {}",
+            err.to_string().contains("Bytes"),
+            "expected a Bytes diagnostic, got: {}",
             err
         );
     }
@@ -1216,7 +1228,7 @@ mod tests {
             accept Scalar tensor_in
 
             $tensor_in >> each ($x) {
-                $x >> identity
+                $x >> base/latest/identity
             } >> emit
         "#;
 
