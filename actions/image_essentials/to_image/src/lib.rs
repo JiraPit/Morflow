@@ -1,4 +1,7 @@
-use core_types::{ColorSpace, DataType, Image, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, ColorSpace, DataType, GetShapeFn, Image, ImageLayout, Payload, Shape, Tensor,
+    TensorDType,
+};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -10,6 +13,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Image
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {

@@ -1,4 +1,6 @@
-use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, Tensor, TensorDType,
+};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -10,6 +12,48 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let dims_ = input.dims();
+    let r = dims_.len();
+    if r < 2 {
+        return input;
+    }
+    let mut angle_deg = 0.0f32;
+    if let Some(a_str) = args
+        .get_named("angle")
+        .or_else(|| args.get_named("degrees"))
+        .or_else(|| args.get_named("angle_deg"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(a) = a_str.parse::<f32>() {
+            angle_deg = a;
+        }
+    }
+    let norm = ((angle_deg % 360.0) + 360.0) % 360.0;
+    let mut out = Vec::with_capacity(r);
+    let swap = (norm - 90.0).abs() < 1e-3 || (norm - 270.0).abs() < 1e-3;
+    if r == 2 {
+        if swap {
+            out.push(dims_[1]);
+            out.push(dims_[0]);
+        } else {
+            out.push(dims_[0]);
+            out.push(dims_[1]);
+        }
+    } else if swap {
+        out.push(dims_[1]);
+        out.push(dims_[0]);
+        out.push(dims_[2]);
+    } else {
+        out.extend_from_slice(dims_);
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -56,7 +100,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_rotate(&tensor, layout, angle_deg, expand_canvas, fill_value);
             Payload::Tensor(res)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'rotate\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'rotate\' requires Payload::Tensor",
+        )),
     }
 }
 

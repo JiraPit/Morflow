@@ -46,9 +46,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
-            return Payload::Error(RString::from(
-                "Action 'to_wav' requires Payload::Audio",
-            ));
+            return Payload::Error(RString::from("Action 'to_wav' requires Payload::Audio"));
         }
     };
 

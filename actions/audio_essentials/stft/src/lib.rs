@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use core_types::{DataType, Payload, RString, Tensor, TensorDType};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -13,6 +13,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(_input: Shape, _args: ActionArgs) -> Shape {
+    Shape::new(vec![0, 0])
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[derive(Clone, Copy, Default)]
 struct Complex {
@@ -128,9 +136,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
-            return Payload::Error(RString::from(
-                "Action 'stft' requires Payload::Audio",
-            ));
+            return Payload::Error(RString::from("Action 'stft' requires Payload::Audio"));
         }
     };
 

@@ -1,14 +1,48 @@
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let dims_str = args
+        .get_named("dims")
+        .or_else(|| args.positional.first().map(|s| s.as_str()));
+    let Some(d_str) = dims_str else {
+        return input;
+    };
+    let dims = match parse_dims_str(d_str) {
+        Ok(d) => d,
+        Err(_) => return input,
+    };
+    if dims.len() != r {
+        return input;
+    }
+    let mut seen = vec![false; r];
+    for &d in &dims {
+        if d >= r || seen[d] {
+            return input;
+        }
+        seen[d] = true;
+    }
+    let dims_ = input.dims();
+    let mut out = Vec::new();
+    for &d in &dims {
+        out.push(dims_[d]);
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 fn parse_dims_str(s: &str) -> Result<Vec<usize>, String> {
     let clean = s
@@ -51,11 +85,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     };
 
     match inner_payload {
-        Payload::Tensor(tensor) => match tensor.permute(&dims) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match tensor.permute(&dims) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e),
         },
-        _ => Payload::Error(core_types::RString::from("Action \'permute\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'permute\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -85,6 +121,28 @@ mod tests {
             assert_eq!(out.shape.as_slice(), &[2, 2, 2]);
         } else {
             panic!("Expected Tensor output");
+        }
+    }
+    #[test]
+    fn test_permute_accepts_a_scalar_value() {
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("dims"), RString::from("[]")));
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::scalar_f32(2.0)),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named,
+            },
+        };
+        let res = process(payload);
+        match res {
+            Payload::Scalar(out) => {
+                assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);
+            }
+            other => panic!(
+                "scalar path produced the wrong payload: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

@@ -5,6 +5,7 @@ pub mod outputs;
 pub mod registry;
 pub mod resolver;
 pub mod scheduler;
+pub mod types;
 pub mod validator;
 
 pub use core_types;
@@ -14,6 +15,7 @@ pub use outputs::PipelineOutputs;
 pub use registry::{ActionRegistry, LoadedAction};
 pub use resolver::ActionResolver;
 pub use scheduler::AutoParallelScheduler;
+pub use types::{coerce_host_payload, default_payload, ptype_of, shape_spec_of};
 
 #[cfg(test)]
 mod tests {
@@ -27,7 +29,7 @@ mod tests {
     #[test]
     fn test_morflow_pipeline_execution_with_emit() {
         let morf_src = r#"
-            accept $input_data
+            accept RawBytes input_data
 
             $input_data >> identity >> emit
         "#;
@@ -52,7 +54,7 @@ mod tests {
     #[test]
     fn test_morflow_multiple_emit_outputs() {
         let morf_src = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio[0:4] >> identity >> emit("low_band")
             $audio[4:8] >> identity >> emit("high_band")
@@ -86,7 +88,7 @@ mod tests {
     #[test]
     fn test_morflow_tensor_slice_pipeline() {
         let morf_src = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in[1:3] >> identity >> emit
         "#;
@@ -111,7 +113,7 @@ mod tests {
     #[test]
     fn test_morflow_auto_parallel_each_loop() {
         let morf_src = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
                 $ch >> identity
@@ -139,7 +141,7 @@ mod tests {
     #[test]
     fn test_morflow_branching_with_tensor_metric() {
         let morf_src = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio >> if ($audio.peak > 5.0) {
                 identity
@@ -166,7 +168,7 @@ mod tests {
     #[test]
     fn test_morflow_multi_statement_with_taps() {
         let morf_src = r#"
-            accept $source
+            accept RawBytes source
 
             $source >> identity >> $saved1
             $saved1 >> identity >> $saved2
@@ -199,7 +201,7 @@ mod tests {
     #[test]
     fn test_morflow_independent_flows_parallelism() {
         let morf_src = r#"
-            accept $audio
+            accept Tensor audio
 
             # Two independent branches computed from $audio
             $audio[0:4] >> identity >> $low_freq
@@ -227,7 +229,7 @@ mod tests {
     #[test]
     fn test_morflow_each_with_external_variable() {
         let morf_src = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             # 1. Define an external variable outside the loop
             $tensor_in[0:2] >> identity >> $external_filter
@@ -257,7 +259,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_multiple_unnamed_emits() {
         let invalid_morf = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio[0:4] >> identity >> emit
             $audio[4:8] >> identity >> emit
@@ -279,7 +281,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_duplicate_emit_names() {
         let invalid_morf = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio[0:4] >> identity >> emit("track")
             $audio[4:8] >> identity >> emit("track")
@@ -301,7 +303,7 @@ mod tests {
     #[test]
     fn test_mid_stream_emit_allowed() {
         let morf_src = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio >> emit("intermediate") >> identity >> emit("final")
         "#;
@@ -317,7 +319,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_emit_inside_loop() {
         let invalid_morf = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
                 $ch >> emit
@@ -340,7 +342,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_named_emit_inside_each_loop() {
         let invalid_morf = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
                 $ch >> identity >> emit("channel_out")
@@ -363,7 +365,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_emit_inside_if_branch() {
         let invalid_morf = r#"
-            accept $audio
+            accept Tensor audio
 
             $audio >> if ($audio.peak > 1.0) {
                 identity >> emit("branch_out")
@@ -386,7 +388,7 @@ mod tests {
     #[test]
     fn test_each_loop_tapped_and_emitted_in_subsequent_flow() {
         let morf_src = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
                 $ch >> identity
@@ -414,7 +416,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_top_level_variable_reassignment() {
         let invalid_morf = r#"
-            accept $source
+            accept RawBytes source
 
             $source >> action_a >> $duplicate_var
             $source >> action_b >> $duplicate_var
@@ -439,7 +441,7 @@ mod tests {
     #[test]
     fn test_compile_error_on_inner_loop_writing_to_external_variable() {
         let invalid_morf = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in[0:2] >> calibrate_noise >> $outer_var
 
@@ -482,7 +484,7 @@ mod tests {
     #[test]
     fn test_nested_each_loop_with_branching() {
         let morf_src = r#"
-            accept $tensor_in
+            accept Tensor tensor_in
 
             $tensor_in >> each ($ch) {
                 $ch >> if ($ch.peak > 2.0) {
@@ -515,7 +517,7 @@ mod tests {
     #[test]
     fn test_pipeline_no_emit_error() {
         let morf_src = r#"
-            accept $source
+            accept RawBytes source
 
             $source >> identity >> $tapped
         "#;
@@ -533,7 +535,7 @@ mod tests {
     #[test]
     fn test_dsp_pipeline_end_to_end() {
         let morf_src = r#"
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> gain(db=+6.0) >> biquad_filter(type="lowpass", freq=5000.0) >> limiter(ceiling_db=-1.0) >> normalize(target_peak=0.9) >> emit
         "#;
@@ -562,7 +564,7 @@ mod tests {
     #[test]
     fn test_multichannel_spatial_dsp_pipeline() {
         let morf_src = r#"
-            accept $stereo_in
+            accept Audio stereo_in
 
             $stereo_in >> stereo_widen(width=1.5) >> delay(time_ms=10.0, feedback=0.2, mix=0.3) >> compressor(threshold_db=-10.0, ratio=3.0) >> emit
         "#;
@@ -589,7 +591,7 @@ mod tests {
     #[test]
     fn test_spectral_stft_and_resample_pipeline() {
         let morf_src = r#"
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> resample(from_rate=48000.0, to_rate=44100.0) >> stft(n_fft=256, hop_size=128) >> emit
         "#;
@@ -617,7 +619,7 @@ mod tests {
     #[test]
     fn test_image_payload_pipeline_execution() {
         let morf_src = r#"
-            accept $img_in
+            accept Image img_in
 
             $img_in >> if ($img_in.width > 30) {
                 identity
@@ -650,7 +652,7 @@ mod tests {
     #[test]
     fn test_audio_payload_pipeline_execution() {
         let morf_src = r#"
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> if ($audio_in.sample_rate >= 44100) {
                 gain(linear=2.0)
@@ -685,7 +687,7 @@ mod tests {
     #[test]
     fn test_image_pipeline_end_to_end() {
         let morf_src = r#"
-            accept $img_in
+            accept Image img_in
 
             $img_in >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
                     >> resize(width=32, height=24, filter="bilinear")
@@ -720,7 +722,7 @@ mod tests {
     #[test]
     fn test_mid_stream_emit_pass_through() {
         let morf_src = r#"
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in
                 >> gain(linear=2.0)
@@ -759,7 +761,7 @@ mod tests {
         let morf_src = r#"
             import audio_essentials.latest
 
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> gain(linear=2.5) >> emit
         "#;
@@ -783,7 +785,7 @@ mod tests {
             import base.latest
             from audio_essentials.latest import gain as amp
 
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> identity >> amp(linear=3.0) >> emit
         "#;
@@ -804,7 +806,7 @@ mod tests {
     #[test]
     fn test_action_pack_qualified_invocation() {
         let morf_src = r#"
-            accept $audio_in
+            accept Audio audio_in
 
             $audio_in >> audio_essentials.gain(linear=4.0) >> base.identity >> emit
         "#;
@@ -827,7 +829,7 @@ mod tests {
         let morf_src = r#"
             import audio_essentials/latest
 
-            accept $audio_in
+            accept RawBytes audio_in
 
             $audio_in >> to_audio(channels=1, sample_rate=48000, dtype="f32") >> gain(linear=2.0) >> to_wav >> emit
         "#;
@@ -869,7 +871,7 @@ mod tests {
             import tensor_stats/latest
             import nn_essentials/latest
 
-            accept $x
+            accept Tensor x
 
             $x >> reshape(shape="2,2") >> relu >> mul(scalar=2.0) >> sum(axis=1) >> emit
         "#;
@@ -896,7 +898,7 @@ mod tests {
             import nn_essentials/latest
             import linalg_essentials/latest
 
-            accept $x
+            accept Tensor x
 
             $x >> softmax(axis=-1) >> trace >> emit
         "#;
@@ -907,13 +909,326 @@ mod tests {
             .run(Payload::Tensor(tensor))
             .expect("Execution failed");
         let result = outputs.into_single().expect("Expected single output");
-        if let Payload::Tensor(t) = result {
-            // [0, 0] softmax -> [0.5, 0.5]
-            // [0, 0] softmax -> [0.5, 0.5]
-            // trace -> 0.5 + 0.5 = 1.0
-            assert_eq!(t.as_f32_slice().unwrap(), &[1.0]);
-        } else {
-            panic!("Expected Tensor output");
+        match result {
+            Payload::Scalar(t) | Payload::Tensor(t) => {
+                // [0, 0] softmax -> [0.5, 0.5]
+                // [0, 0] softmax -> [0.5, 0.5]
+                // trace -> 0.5 + 0.5 = 1.0
+                assert_eq!(t.as_f32_slice().unwrap(), &[1.0]);
+            }
+            other => panic!("Expected Scalar/Tensor output, got {:?}", other),
         }
+    }
+    // ---------------------------------------------------------------------
+    // Type-preserving 'each': each iteration keeps the payload variant, and
+    // the loop result is restacked back into that same variant.
+    // ---------------------------------------------------------------------
+
+    fn stereo_planar_audio(num_samples: usize) -> Payload {
+        let samples: Vec<f32> = (0..(2 * num_samples)).map(|x| x as f32).collect();
+        let tensor = Tensor::from_f32_shape(&samples, vec![2, num_samples]).unwrap();
+        Payload::Audio(
+            Audio::new(
+                tensor,
+                48000,
+                AudioChannelLayout::Stereo,
+                AudioLayout::Planar,
+            )
+            .unwrap(),
+        )
+    }
+
+    #[test]
+    fn test_each_over_planar_stereo_audio_preserves_audio_payload() {
+        let morf_src = r#"
+            from audio_essentials/latest import gain
+            accept Audio audio
+
+            $audio >> each ($channel) {
+                $channel >> gain(linear=1.0)
+            } >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(stereo_planar_audio(64))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        match result {
+            Payload::Audio(a) => {
+                assert_eq!(a.tensor.shape.as_slice(), &[2, 64]);
+                assert_eq!(a.channels(), 2);
+                assert_eq!(a.sample_rate, 48000);
+                assert_eq!(a.layout, AudioLayout::Planar);
+            }
+            other => panic!(
+                "Expected Audio payload, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_over_audio_binds_audio_to_loop_variable() {
+        // The body uses an audio-native action, which only succeeds if the loop
+        // variable is a real Audio payload rather than a bare Tensor.
+        let morf_src = r#"
+            from audio_essentials/latest import gain
+            accept Audio audio
+
+            $audio >> each ($channel) {
+                $channel >> gain(linear=2.0)
+            } >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(stereo_planar_audio(32))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        match result {
+            Payload::Audio(a) => {
+                assert_eq!(a.tensor.shape.as_slice(), &[2, 32]);
+                let samples = a.tensor.as_f32_slice().unwrap();
+                assert!(
+                    (samples[1] - 2.0).abs() < 1e-6,
+                    "gain should have doubled sample 1"
+                );
+            }
+            other => panic!(
+                "Expected Audio payload, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_over_chw_image_iterates_channels() {
+        let morf_src = r#"
+            from base/latest import identity
+            accept Image $image
+
+            $image >> each ($channel) {
+                $channel >> identity
+            } >> emit
+        "#;
+
+        // CHW [C, H, W] = [3, 4, 5] iterates the 3 channels.
+        let data: Vec<u8> = (0..60).collect();
+        let tensor =
+            Tensor::from_rvec_u8(RVec::from(data), vec![3, 4, 5], TensorDType::U8).unwrap();
+        let image = Image::new(tensor, ColorSpace::Rgb, ImageLayout::Chw).unwrap();
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(Payload::Image(image))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        // A grayscale channel is still an image, so the restack yields an Image.
+        match result {
+            Payload::Image(img) => {
+                assert_eq!(img.tensor.shape.as_slice(), &[3, 4, 5]);
+                assert_eq!(img.color_space, ColorSpace::Rgb);
+                assert_eq!(img.layout, ImageLayout::Chw);
+            }
+            other => panic!(
+                "Expected Image, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_rejects_a_body_that_changes_the_payload_type() {
+        // The body converts an Image into a Tensor, so the loop no longer
+        // produces the type it was iterating and the restack must refuse it.
+        let morf_src = r#"
+            from base/latest import to_tensor
+            accept Image $image
+
+            $image >> each ($channel) {
+                $channel >> to_tensor
+            } >> emit
+        "#;
+
+        let data: Vec<u8> = (0..60).collect();
+        let tensor =
+            Tensor::from_rvec_u8(RVec::from(data), vec![3, 4, 5], TensorDType::U8).unwrap();
+        let image = Image::new(tensor, ColorSpace::Rgb, ImageLayout::Chw).unwrap();
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let err = pipeline
+            .run(Payload::Image(image))
+            .expect_err("a type-changing body should be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("every iteration must return Image"),
+            "unexpected diagnostic: {}",
+            msg
+        );
+    }
+
+    #[test]
+    fn test_each_over_hwc_image_iterates_channels_not_rows() {
+        let morf_src = r#"
+            from base/latest import identity
+            accept Image image
+
+            $image >> each ($channel) {
+                $channel >> identity
+            } >> emit
+        "#;
+
+        // HWC [H, W, C] = [40, 50, 3] iterates 3 channels, not 40 rows.
+        let data: Vec<u8> = (0..6000).map(|x| (x % 256) as u8).collect();
+        let tensor =
+            Tensor::from_rvec_u8(RVec::from(data), vec![40, 50, 3], TensorDType::U8).unwrap();
+        let image = Image::new(tensor, ColorSpace::Rgb, ImageLayout::Hwc).unwrap();
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(Payload::Image(image))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        match result {
+            Payload::Image(img) => {
+                assert_eq!(img.tensor.shape.as_slice(), &[40, 50, 3]);
+                assert_eq!(img.color_space, ColorSpace::Rgb);
+                assert_eq!(img.layout, ImageLayout::Hwc);
+            }
+            other => panic!(
+                "Expected Image, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_over_mono_audio_iterates_samples_and_restacks_to_audio() {
+        // Mono is rank-1 [N], so axis 0 is the sample axis. Per-sample slices
+        // are rank-0, which Audio cannot hold, so the loop variable is a Tensor
+        // and the restacked result is Audio again.
+        let morf_src = r#"
+            import base/latest
+            accept Audio audio
+
+            $audio >> each ($sample) {
+                $sample >> identity
+            } >> emit
+        "#;
+
+        let samples: Vec<f32> = (0..16).map(|x| x as f32).collect();
+        let tensor = Tensor::from_f32_shape(&samples, vec![16]).unwrap();
+        let mono =
+            Audio::new(tensor, 44100, AudioChannelLayout::Mono, AudioLayout::Planar).unwrap();
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(Payload::Audio(mono))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        match result {
+            Payload::Audio(a) => {
+                assert_eq!(a.tensor.shape.as_slice(), &[16]);
+                assert_eq!(a.sample_rate, 44100);
+            }
+            other => panic!(
+                "Expected Audio, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_over_interleaved_audio_iterates_channel_axis() {
+        // Interleaved [N, C] = [8, 2] iterates axis 1, giving 2 iterations.
+        let morf_src = r#"
+            from audio_essentials/latest import gain
+            accept Audio audio
+
+            $audio >> each ($channel) {
+                $channel >> gain(linear=1.0)
+            } >> emit
+        "#;
+
+        let samples: Vec<f32> = (0..16).map(|x| x as f32).collect();
+        let tensor = Tensor::from_f32_shape(&samples, vec![8, 2]).unwrap();
+        let audio = Audio::new(
+            tensor,
+            48000,
+            AudioChannelLayout::Stereo,
+            AudioLayout::Interleaved,
+        )
+        .unwrap();
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let outputs = pipeline
+            .run(Payload::Audio(audio))
+            .expect("Pipeline execution failed");
+        let result = outputs.into_single().unwrap();
+
+        match result {
+            Payload::Audio(a) => {
+                assert_eq!(a.layout, AudioLayout::Interleaved);
+                assert_eq!(a.sample_rate, 48000);
+            }
+            other => panic!(
+                "Expected Audio, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_each_on_raw_bytes_payload_errors_at_runtime() {
+        let morf_src = r#"
+            import base/latest
+            accept RawBytes raw
+
+            $raw >> each ($b) {
+                $b >> identity
+            } >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let payload = Payload::Data {
+            buffer: RVec::from(vec![1u8, 2, 3, 4]),
+        };
+        let err = pipeline
+            .run(payload)
+            .expect_err("each on a Data payload should fail");
+        assert!(
+            err.to_string().contains("raw-bytes"),
+            "expected a raw-bytes diagnostic, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_each_on_scalar_tensor_errors() {
+        let morf_src = r#"
+            import base/latest
+            accept Scalar tensor_in
+
+            $tensor_in >> each ($x) {
+                $x >> identity
+            } >> emit
+        "#;
+
+        let mut pipeline = Morflow::from_str(morf_src).expect("Failed to parse pipeline");
+        let tensor = Tensor::from_f32_shape(&[1.0], vec![]).unwrap();
+        let err = pipeline
+            .run(Payload::Tensor(tensor))
+            .expect_err("each on a rank-0 tensor should fail");
+        assert!(
+            err.to_string().contains("scalar"),
+            "expected a scalar diagnostic, got: {}",
+            err
+        );
     }
 }

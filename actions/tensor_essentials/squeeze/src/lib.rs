@@ -1,14 +1,57 @@
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let dim = args
+        .get_named("dim")
+        .or_else(|| args.get_named("axis"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+        .and_then(|s| s.parse::<isize>().ok());
+    let dims_ = input.dims();
+    let mut out = Vec::new();
+    if let Some(d) = dim {
+        let d_idx = if d < 0 { d + r as isize } else { d };
+        if d_idx < 0 || d_idx as usize >= r {
+            return input;
+        }
+        let d = d_idx as usize;
+        for (i, &dim) in dims_.iter().enumerate() {
+            if i != d {
+                out.push(dim);
+            }
+        }
+        if dims_[d] != 1 {
+            return input;
+        }
+        if out.is_empty() {
+            out.push(1);
+        }
+    } else {
+        for &dim in dims_.iter() {
+            if dim != 1 {
+                out.push(dim);
+            }
+        }
+        if out.is_empty() {
+            out.push(1);
+        }
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -28,11 +71,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match tensor.squeeze(axis) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match tensor.squeeze(axis) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e),
         },
-        _ => Payload::Error(core_types::RString::from("Action \'squeeze\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'squeeze\' requires a tensor or scalar value",
+        )),
     }
 }
 

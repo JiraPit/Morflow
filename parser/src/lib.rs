@@ -1,7 +1,7 @@
 pub mod ast;
 pub mod parser;
 
-use chumsky::error::Simple;
+use chumsky::error::{Simple, SimpleReason};
 use chumsky::Parser;
 
 pub use ast::*;
@@ -9,6 +9,41 @@ pub use ast::*;
 /// Parses a `.morf` pipeline specification into an AST `Pipeline`.
 pub fn parse(source: &str) -> Result<Pipeline, Vec<Simple<char>>> {
     parser::parser().parse(source)
+}
+
+/// Renders a parse error as a message.
+///
+/// `Simple`'s own `Display` ignores custom messages, which is where the
+/// grammar puts its advice about things like a missing parameter type.
+pub fn format_error(err: &Simple<char>) -> String {
+    match err.reason() {
+        SimpleReason::Custom(msg) => msg.clone(),
+        SimpleReason::Unclosed { delimiter, .. } => {
+            format!("unclosed delimiter '{}'", delimiter)
+        }
+        SimpleReason::Unexpected => {
+            let found = match err.found() {
+                Some(c) => format!("character '{}'", c),
+                None => "end of input".to_string(),
+            };
+            let expected: Vec<String> = err
+                .expected()
+                .map(|c| match c {
+                    Some(ch) => format!("'{}'", ch),
+                    None => "end of input".to_string(),
+                })
+                .collect();
+            match expected.len() {
+                0 => format!("unexpected {}", found),
+                1 => format!("unexpected {}, expected {}", found, expected[0]),
+                _ => format!(
+                    "unexpected {}, expected one of {}",
+                    found,
+                    expected.join(", ")
+                ),
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -151,13 +186,15 @@ mod tests {
         let pipeline = res.unwrap();
         assert_eq!(pipeline.statements.len(), 1);
         assert_eq!(pipeline.params.len(), 2);
+        assert_eq!(pipeline.params[0].param_type, ParamType::RawBytes);
+        assert_eq!(pipeline.params[1].param_type, ParamType::IntArg);
     }
 
     #[test]
     fn test_pipeline_with_parameters() {
         let src = r#"
-            accept $input_audio
-            accept $sample_rate = 44100
+            accept RawBytes $input_audio
+            accept IntArg $sample_rate = 44100
 
             $input_audio
                 >> resample(rate=$sample_rate)
@@ -168,10 +205,162 @@ mod tests {
         let pipeline = res.unwrap();
         assert_eq!(pipeline.params.len(), 2);
         assert_eq!(pipeline.params[0].name, "input_audio");
+        assert_eq!(pipeline.params[0].param_type, ParamType::RawBytes);
         assert_eq!(pipeline.params[0].default_value, None);
         assert_eq!(pipeline.params[1].name, "sample_rate");
+        assert_eq!(pipeline.params[1].param_type, ParamType::IntArg);
         assert_eq!(pipeline.params[1].default_value, Some(Value::Int(44100)));
         assert_eq!(pipeline.statements.len(), 1);
+    }
+
+    #[test]
+    fn test_every_param_type_parses() {
+        let src = r#"
+            accept RawBytes $bytes
+            accept IntArg $int
+            accept FloatArg $float
+            accept StrArg $str
+            accept BoolArg $bool
+            accept Scalar $scalar
+            accept Composite $composite
+            accept Tensor $tensor
+            accept Image $image
+            accept Audio $audio
+
+            $bytes >> identity >> emit
+        "#;
+        let pipeline = parse(src).unwrap_or_else(|e| panic!("Failed to parse: {:?}", e));
+        let types: Vec<ParamType> = pipeline
+            .params
+            .iter()
+            .map(|p| p.param_type.clone())
+            .collect();
+        assert_eq!(
+            types,
+            vec![
+                ParamType::RawBytes,
+                ParamType::IntArg,
+                ParamType::FloatArg,
+                ParamType::StrArg,
+                ParamType::BoolArg,
+                ParamType::Scalar,
+                ParamType::Composite,
+                ParamType::Tensor(ParamShape::AnyRank),
+                ParamType::Image(ParamShape::AnyRank),
+                ParamType::Audio(ParamShape::AnyRank),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_shape_suffixes_parse() {
+        let src = r#"
+            accept Tensor[rank=2] $ranked
+            accept Tensor[*,*,3] $channels_last
+            accept Tensor[2, 3] $fixed
+            accept Image[rank=3] $image
+            accept Audio[rank=2] $audio
+            accept Audio[] $unpinned
+
+            $ranked >> identity >> emit
+        "#;
+        let pipeline = parse(src).unwrap_or_else(|e| panic!("Failed to parse: {:?}", e));
+        assert_eq!(
+            pipeline.params[0].param_type,
+            ParamType::Tensor(ParamShape::Ranked {
+                dims: vec![ParamDim::Any, ParamDim::Any]
+            })
+        );
+        assert_eq!(
+            pipeline.params[1].param_type,
+            ParamType::Tensor(ParamShape::Ranked {
+                dims: vec![ParamDim::Any, ParamDim::Any, ParamDim::Fixed(3)]
+            })
+        );
+        assert_eq!(
+            pipeline.params[2].param_type,
+            ParamType::Tensor(ParamShape::Ranked {
+                dims: vec![ParamDim::Fixed(2), ParamDim::Fixed(3)]
+            })
+        );
+        assert_eq!(
+            pipeline.params[3].param_type,
+            ParamType::Image(ParamShape::Ranked {
+                dims: vec![ParamDim::Any, ParamDim::Any, ParamDim::Any]
+            })
+        );
+        assert_eq!(
+            pipeline.params[4].param_type,
+            ParamType::Audio(ParamShape::Ranked {
+                dims: vec![ParamDim::Any, ParamDim::Any]
+            })
+        );
+        // Empty brackets say nothing, so they leave the rank unpinned.
+        assert_eq!(
+            pipeline.params[5].param_type,
+            ParamType::Audio(ParamShape::AnyRank)
+        );
+    }
+
+    #[test]
+    fn test_param_type_display_normalises() {
+        let all_any = ParamType::Tensor(ParamShape::Ranked {
+            dims: vec![ParamDim::Any, ParamDim::Any],
+        });
+        assert_eq!(all_any.to_string(), "Tensor[rank=2]");
+        assert_eq!(
+            ParamType::Image(ParamShape::Ranked {
+                dims: vec![ParamDim::Any, ParamDim::Any, ParamDim::Fixed(3)]
+            })
+            .to_string(),
+            "Image[*, *, 3]"
+        );
+        assert_eq!(ParamType::Scalar.to_string(), "Scalar");
+        assert_eq!(ParamType::StrArg.to_string(), "StrArg");
+    }
+
+    #[test]
+    fn test_accept_without_a_type_is_rejected() {
+        let src = "accept $input_audio\n\n$input_audio >> identity >> emit";
+        let errs = parse(src).unwrap_err();
+        let messages: Vec<String> = errs.iter().map(format_error).collect();
+        assert!(
+            messages
+                .iter()
+                .any(|m| m.contains("every 'accept' needs a type")),
+            "unexpected errors: {:?}",
+            messages
+        );
+    }
+
+    #[test]
+    fn test_rank_zero_is_rejected() {
+        for keyword in ["Tensor", "Image", "Audio"] {
+            let src = format!("accept {}[rank=0] $value", keyword);
+            let errs = parse(&src).unwrap_err();
+            let messages: Vec<String> = errs.iter().map(format_error).collect();
+            assert!(
+                messages.iter().any(|m| m.contains("the type 'Scalar'")),
+                "unexpected errors for {}: {:?}",
+                keyword,
+                messages
+            );
+        }
+    }
+
+    #[test]
+    fn test_rank_sugar_cannot_be_mixed_with_dims() {
+        let src = "accept Tensor[rank=2,*] $value";
+        assert!(
+            parse(src).is_err(),
+            "rank=2 cannot be combined with a dimension list"
+        );
+    }
+
+    #[test]
+    fn test_unknown_param_type_is_rejected() {
+        assert!(parse("accept Video $clip").is_err());
+        assert!(parse("accept Int $count").is_err());
     }
 
     #[test]
@@ -198,7 +387,7 @@ mod tests {
             from image_essentials/0.1.0 import resize, color_adjust as ca, gaussian_blur
             import base/0.1.0/identity as ident
 
-            accept $img_in
+            accept Image $img_in
 
             $img_in
                 >> base/identity

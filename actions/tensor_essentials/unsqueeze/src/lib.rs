@@ -1,14 +1,39 @@
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let Some(s_dim) = args
+        .get_named("dim")
+        .or_else(|| args.get_named("axis"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    else {
+        return input;
+    };
+    let Ok(dim) = s_dim.parse::<isize>() else {
+        return input;
+    };
+    let d_idx = if dim < 0 { dim + (r + 1) as isize } else { dim };
+    if d_idx < 0 || d_idx as usize > r {
+        return input;
+    }
+    let mut out = input.dims().to_vec();
+    out.insert(d_idx as usize, 1);
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -28,11 +53,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match tensor.unsqueeze(axis) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match tensor.unsqueeze(axis) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e),
         },
-        _ => Payload::Error(core_types::RString::from("Action \'unsqueeze\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'unsqueeze\' requires a tensor or scalar value",
+        )),
     }
 }
 

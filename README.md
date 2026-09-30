@@ -56,7 +56,7 @@ cargo add morflow
 <dependency>
     <groupId>org.morflow</groupId>
     <artifactId>morflow</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -94,7 +94,9 @@ import numpy as np
 
 # Load pipeline and execute with zero memory overhead
 pipeline = morflow.load("pipeline.morf")
-output_array = pipeline.run(input_numpy_array)
+# Payload type is always explicit. A bare array is a plain tensor; wrap it to
+# send it as an image.
+output_array = pipeline.run(morflow.Image(input_numpy_array, color="rgb"))
 ```
 
 **JavaScript / TypeScript (Node.js)**:
@@ -103,7 +105,14 @@ import morflow from 'morflow';
 
 // Load pipeline and execute asynchronously without blocking the event loop
 const pipeline = morflow.load('pipeline.morf');
-const outputTensor = await pipeline.run(inputTypedArray);
+// Payload type is always explicit. Without payloadType this is a plain tensor.
+const outputTensor = await pipeline.run({
+  data: inputTypedArray,
+  shape: [height, width, 3],
+  dtype: 'u8',
+  payloadType: 'image',
+  colorSpace: 'rgb'
+});
 ```
 
 **Java**:
@@ -112,7 +121,7 @@ import org.morflow.*;
 
 // Load pipeline and execute with direct ByteBuffer zero-copy support
 try (Pipeline pipeline = Morflow.load("pipeline.morf")) {
-    MorflowTensor output = pipeline.run(inputTensor);
+    MorflowTensor output = pipeline.run(inputTensor.asImage("rgb"));
 }
 ```
 

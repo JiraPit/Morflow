@@ -157,7 +157,9 @@ async function main() {
   const tensorInput = {
     data: img.data,
     shape: [img.height, img.width, 3],
-    dtype: 'u8'
+    dtype: 'u8',
+    payloadType: 'image',
+    colorSpace: 'rgb'
   };
 
   // 3. Execute Morflow image pipeline asynchronously

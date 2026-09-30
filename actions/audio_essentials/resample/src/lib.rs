@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, RString, Tensor, TensorDType};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -11,6 +11,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 /// Computes windowed sinc interpolation for high-quality audio resampling.
 fn sinc(x: f32) -> f32 {
@@ -77,9 +85,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     let audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
-            return Payload::Error(RString::from(
-                "Action 'resample' requires Payload::Audio",
-            ));
+            return Payload::Error(RString::from("Action 'resample' requires Payload::Audio"));
         }
     };
 
@@ -136,9 +142,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             combined.extend_from_slice(&ch_data);
         }
 
-        let out_tensor =
-            Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
-                .unwrap_or_else(|_| audio.tensor.clone());
+        let out_tensor = Tensor::from_f32_vec(combined, vec![num_channels, out_channel_len])
+            .unwrap_or_else(|_| audio.tensor.clone());
         let out_audio = core_types::Audio {
             tensor: out_tensor,
             sample_rate: to_rate as u32,
@@ -149,8 +154,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     } else {
         let resampled = resample_channel_sinc(samples, from_rate, to_rate, 8);
         let out_len = resampled.len();
-        let out_tensor = Tensor::from_f32_vec(resampled, vec![out_len])
-            .unwrap_or_else(|_| audio.tensor.clone());
+        let out_tensor =
+            Tensor::from_f32_vec(resampled, vec![out_len]).unwrap_or_else(|_| audio.tensor.clone());
         let out_audio = core_types::Audio {
             tensor: out_tensor,
             sample_rate: to_rate as u32,

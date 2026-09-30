@@ -31,7 +31,9 @@ public class Main {
             }
         }
 
-        MorflowTensor inputTensor = MorflowTensor.fromByteArray(rgbBytes, new int[]{inHeight, inWidth, 3});
+        MorflowTensor inputTensor = MorflowTensor
+                .fromByteArray(rgbBytes, new int[]{inHeight, inWidth, 3})
+                .asImage("rgb");
 
         // 2. Execute Morflow pipeline
         MorflowTensor outputTensor = pipeline.run(inputTensor);

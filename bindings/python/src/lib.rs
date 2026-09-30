@@ -23,101 +23,264 @@ fn map_error(err: MorflowError) -> PyErr {
     }
 }
 
-/// Convert a Python object (NumPy array, bytes, str, int, float) to a Morflow Payload.
-fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
-    // 1. Try NumPy Float32
+/// Sample rate assumed by `morflow.Audio` when the caller does not provide one.
+const DEFAULT_SAMPLE_RATE: u32 = 44100;
+
+/// Recognized image channel counts mapped to a color space.
+fn infer_color_space(channels: usize) -> Option<ColorSpace> {
+    match channels {
+        1 => Some(ColorSpace::Grayscale),
+        3 => Some(ColorSpace::Rgb),
+        4 => Some(ColorSpace::Rgba),
+        _ => None,
+    }
+}
+
+fn parse_color_space(spec: &str) -> PyResult<ColorSpace> {
+    match spec.to_ascii_lowercase().as_str() {
+        "gray" | "grey" | "grayscale" => Ok(ColorSpace::Grayscale),
+        "rgb" => Ok(ColorSpace::Rgb),
+        "rgba" => Ok(ColorSpace::Rgba),
+        "bgr" => Ok(ColorSpace::Bgr),
+        "bgra" => Ok(ColorSpace::Bgra),
+        other => Err(PyValueError::new_err(format!(
+            "Unknown color space '{}' (expected one of: grayscale, rgb, rgba, bgr, bgra)",
+            other
+        ))),
+    }
+}
+
+fn parse_image_layout(spec: &str) -> PyResult<ImageLayout> {
+    match spec.to_ascii_lowercase().as_str() {
+        "hwc" | "interleaved" => Ok(ImageLayout::Hwc),
+        "chw" | "planar" => Ok(ImageLayout::Chw),
+        other => Err(PyValueError::new_err(format!(
+            "Unknown image layout '{}' (expected 'hwc' or 'chw')",
+            other
+        ))),
+    }
+}
+
+fn parse_audio_layout(spec: &str) -> PyResult<AudioLayout> {
+    match spec.to_ascii_lowercase().as_str() {
+        "planar" => Ok(AudioLayout::Planar),
+        "interleaved" => Ok(AudioLayout::Interleaved),
+        other => Err(PyValueError::new_err(format!(
+            "Unknown audio layout '{}' (expected 'planar' or 'interleaved')",
+            other
+        ))),
+    }
+}
+
+/// Extracts a supported NumPy array into a plain tensor. Returns `None` when
+/// `obj` is not a recognized array.
+fn ndarray_to_tensor(obj: &Bound<'_, PyAny>) -> Option<PyResult<Tensor>> {
+    // Float32
     if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<f32>>() {
         let shape: Vec<usize> = readonly.shape().to_vec();
-        let slice = readonly
-            .as_slice()
-            .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-        let tensor = Tensor::from_f32_shape(slice, shape)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-        // If shape is 3D [H, W, C], interpret as Image for convenience
-        if tensor.rank() == 3 {
-            let channels = tensor.shape[2];
-            let cs = match channels {
-                1 => ColorSpace::Grayscale,
-                3 => ColorSpace::Rgb,
-                4 => ColorSpace::Rgba,
-                _ => ColorSpace::Rgb,
-            };
-            if let Ok(img) = Image::new(tensor.clone(), cs, ImageLayout::Hwc) {
-                return Ok(Payload::Image(img));
-            }
-        }
-        // If shape is 2D [channels, samples], interpret as Audio
-        if tensor.rank() == 2 && tensor.shape[0] <= 8 {
-            let ch = tensor.shape[0];
-            let layout = AudioChannelLayout::from_channel_count(ch);
-            if let Ok(aud) = Audio::new(tensor.clone(), 44100, layout, AudioLayout::Planar) {
-                return Ok(Payload::Audio(aud));
-            }
-        }
-
-        return Ok(Payload::Tensor(tensor));
+        return Some((|| {
+            let slice = readonly
+                .as_slice()
+                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
+            Tensor::from_f32_shape(slice, shape).map_err(|e| PyValueError::new_err(e.to_string()))
+        })());
     }
 
-    // 2. Try NumPy UInt8
+    // UInt8
     if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<u8>>() {
         let shape: Vec<usize> = readonly.shape().to_vec();
-        let slice = readonly
-            .as_slice()
-            .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-        let tensor = Tensor::from_rvec_u8(RVec::from(slice.to_vec()), shape, TensorDType::U8)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-
-        if tensor.rank() == 3 {
-            let channels = tensor.shape[2];
-            let cs = match channels {
-                1 => ColorSpace::Grayscale,
-                3 => ColorSpace::Rgb,
-                4 => ColorSpace::Rgba,
-                _ => ColorSpace::Rgb,
-            };
-            if let Ok(img) = Image::new(tensor.clone(), cs, ImageLayout::Hwc) {
-                return Ok(Payload::Image(img));
-            }
-        }
-
-        return Ok(Payload::Tensor(tensor));
+        return Some((|| {
+            let slice = readonly
+                .as_slice()
+                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
+            Tensor::from_rvec_u8(RVec::from(slice.to_vec()), shape, TensorDType::U8)
+                .map_err(|e| PyValueError::new_err(e.to_string()))
+        })());
     }
 
-    // 3. Try NumPy Float64 (convert to f32 tensor)
+    // Float64, downcast to Float32
     if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<f64>>() {
         let shape: Vec<usize> = readonly.shape().to_vec();
-        let slice = readonly
-            .as_slice()
-            .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-        let f32_vec: Vec<f32> = slice.iter().map(|&x| x as f32).collect();
-        let tensor = Tensor::from_f32_shape(&f32_vec, shape)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        return Ok(Payload::Tensor(tensor));
+        return Some((|| {
+            let slice = readonly
+                .as_slice()
+                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
+            let f32_vec: Vec<f32> = slice.iter().map(|&x| x as f32).collect();
+            Tensor::from_f32_shape(&f32_vec, shape)
+                .map_err(|e| PyValueError::new_err(e.to_string()))
+        })());
     }
 
-    // 4. Try NumPy Int32
+    // Int32
     if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<i32>>() {
         let shape: Vec<usize> = readonly.shape().to_vec();
-        let slice = readonly
-            .as_slice()
-            .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-        let byte_slice: &[u8] = unsafe {
-            std::slice::from_raw_parts(slice.as_ptr() as *const u8, std::mem::size_of_val(slice))
-        };
-        let tensor = Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), shape, TensorDType::I32)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        return Ok(Payload::Tensor(tensor));
+        return Some((|| {
+            let slice = readonly
+                .as_slice()
+                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
+            let byte_slice: &[u8] = unsafe {
+                std::slice::from_raw_parts(
+                    slice.as_ptr() as *const u8,
+                    std::mem::size_of_val(slice),
+                )
+            };
+            Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), shape, TensorDType::I32)
+                .map_err(|e| PyValueError::new_err(e.to_string()))
+        })());
     }
 
-    // 5. Try Raw Bytes / Bytearray
+    None
+}
+
+/// Extracts the tensor from a supported NumPy array, or reports a clear error
+/// for the explicit payload wrapper constructors.
+fn require_ndarray_tensor(obj: &Bound<'_, PyAny>, wrapper: &str) -> PyResult<Tensor> {
+    match ndarray_to_tensor(obj) {
+        Some(Ok(tensor)) => Ok(tensor),
+        Some(Err(e)) => Err(e),
+        None => Err(PyTypeError::new_err(format!(
+            "morflow.{}() expects a contiguous NumPy array, got {}",
+            wrapper,
+            obj.get_type().name()?
+        ))),
+    }
+}
+
+/// Forces a NumPy array to be passed as a plain `Payload::Tensor`.
+#[pyclass(name = "Tensor")]
+pub struct PyTensor {
+    data: Py<PyAny>,
+}
+
+#[pymethods]
+impl PyTensor {
+    #[new]
+    fn new(data: Py<PyAny>) -> Self {
+        Self { data }
+    }
+}
+
+/// Forces a NumPy array to be passed as a `Payload::Image`.
+#[pyclass(name = "Image")]
+pub struct PyImage {
+    data: Py<PyAny>,
+    color: Option<String>,
+    layout: Option<String>,
+}
+
+#[pymethods]
+impl PyImage {
+    #[new]
+    #[pyo3(signature = (data, color=None, layout=None))]
+    fn new(data: Py<PyAny>, color: Option<String>, layout: Option<String>) -> Self {
+        Self {
+            data,
+            color,
+            layout,
+        }
+    }
+}
+
+/// Forces a NumPy array to be passed as a `Payload::Audio`.
+#[pyclass(name = "Audio")]
+pub struct PyAudio {
+    data: Py<PyAny>,
+    sample_rate: u32,
+    channels: Option<u32>,
+    layout: Option<String>,
+}
+
+#[pymethods]
+impl PyAudio {
+    #[new]
+    #[pyo3(signature = (data, sample_rate=DEFAULT_SAMPLE_RATE, channels=None, layout=None))]
+    fn new(
+        data: Py<PyAny>,
+        sample_rate: u32,
+        channels: Option<u32>,
+        layout: Option<String>,
+    ) -> Self {
+        Self {
+            data,
+            sample_rate,
+            channels,
+            layout,
+        }
+    }
+}
+
+/// Convert a Python object (NumPy array, explicit payload wrapper, bytes, str,
+/// int, float) to a Morflow Payload.
+fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
+    // 1. Explicit payload wrappers, which take precedence over auto-detection.
+    if let Ok(forced) = obj.downcast::<PyTensor>() {
+        let forced = forced.borrow();
+        return Ok(Payload::Tensor(require_ndarray_tensor(
+            forced.data.bind(obj.py()),
+            "Tensor",
+        )?));
+    }
+
+    if let Ok(forced) = obj.downcast::<PyImage>() {
+        let forced = forced.borrow();
+        let tensor = require_ndarray_tensor(forced.data.bind(obj.py()), "Image")?;
+        let color_space = match forced.color.as_deref() {
+            Some(spec) => parse_color_space(spec)?,
+            None => tensor
+                .shape
+                .get(2)
+                .copied()
+                .and_then(infer_color_space)
+                .ok_or_else(|| {
+                    PyValueError::new_err(format!(
+                        "morflow.Image() could not infer a color space from shape {:?}; \
+                         pass color=\"grayscale\", \"rgb\", \"rgba\", \"bgr\", or \"bgra\"",
+                        tensor.shape.as_slice()
+                    ))
+                })?,
+        };
+        let layout = match forced.layout.as_deref() {
+            Some(spec) => parse_image_layout(spec)?,
+            None => ImageLayout::Hwc,
+        };
+        let img = Image::new(tensor, color_space, layout)
+            .map_err(|e| PyValueError::new_err(format!("Invalid image payload: {}", e)))?;
+        return Ok(Payload::Image(img));
+    }
+
+    if let Ok(forced) = obj.downcast::<PyAudio>() {
+        let forced = forced.borrow();
+        let tensor = require_ndarray_tensor(forced.data.bind(obj.py()), "Audio")?;
+        let layout = match forced.layout.as_deref() {
+            Some(spec) => parse_audio_layout(spec)?,
+            None => AudioLayout::Planar,
+        };
+        let channel_layout = match forced.channels {
+            Some(ch) => AudioChannelLayout::from_channel_count(ch as usize),
+            None => {
+                AudioChannelLayout::from_channel_count(tensor.shape.first().copied().unwrap_or(1))
+            }
+        };
+        let aud = Audio::new(tensor, forced.sample_rate, channel_layout, layout)
+            .map_err(|e| PyValueError::new_err(format!("Invalid audio payload: {}", e)))?;
+        return Ok(Payload::Audio(aud));
+    }
+
+    // 2. Bare NumPy arrays are always a plain Tensor. There is no type
+    //    inference: wrap the array in morflow.Image or morflow.Audio to send it
+    //    as something other than a Tensor.
+    if let Some(result) = ndarray_to_tensor(obj) {
+        return Ok(Payload::Tensor(result?));
+    }
+
+    // 3. Raw Bytes / Bytearray
     if let Ok(bytes) = obj.extract::<&[u8]>() {
         return Ok(Payload::Data {
             buffer: RVec::from(bytes.to_vec()),
         });
     }
 
-    // 6. Try String
+    // 4. String
     if let Ok(py_str) = obj.downcast::<PyString>() {
         let s = py_str.to_str()?;
         return Ok(Payload::Data {
@@ -125,7 +288,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         });
     }
 
-    // 7. Try Integer
+    // 5. Integer
     if let Ok(py_int) = obj.downcast::<PyInt>() {
         let i: i64 = py_int.extract()?;
         return Ok(Payload::Data {
@@ -133,7 +296,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         });
     }
 
-    // 8. Try Float
+    // 6. Float
     if let Ok(py_float) = obj.downcast::<PyFloat>() {
         let f: f64 = py_float.extract()?;
         return Ok(Payload::Data {
@@ -165,6 +328,11 @@ fn payload_to_py<'py>(py: Python<'py>, payload: &Payload) -> PyResult<Bound<'py,
                 list.append(payload_to_py(py, item)?)?;
             }
             Ok(list.into_any())
+        }
+        Payload::Scalar(tensor) => tensor_to_py(py, tensor),
+        Payload::Arg(bytes) => {
+            let py_str = PyString::new(py, &String::from_utf8_lossy(bytes.as_slice()));
+            Ok(py_str.into_any())
         }
     }
 }
@@ -310,5 +478,8 @@ fn _morflow(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(from_str, m)?)?;
     m.add_function(wrap_pyfunction!(run_cli, m)?)?;
     m.add_class::<PyPipeline>()?;
+    m.add_class::<PyTensor>()?;
+    m.add_class::<PyImage>()?;
+    m.add_class::<PyAudio>()?;
     Ok(())
 }

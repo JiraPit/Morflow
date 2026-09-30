@@ -14,8 +14,8 @@ public class MorflowTest {
     public void testFromStrAndParams() {
         String dsl = """
             import base/latest
-            accept $audio_in
-            accept $rate = 44100
+            accept Audio $audio_in
+            accept IntArg $rate = 44100
             
             $audio_in >> identity >> emit
         """;
@@ -30,7 +30,7 @@ public class MorflowTest {
     @Test
     public void testExecutionWithFloatArray() {
         String dsl = """
-            accept $tensor
+            accept Tensor $tensor
             $tensor >> identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
@@ -50,7 +50,7 @@ public class MorflowTest {
     @Test
     public void testExecutionWithDirectByteBuffer() {
         String dsl = """
-            accept $tensor
+            accept Tensor $tensor
             $tensor >> identity >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
@@ -67,7 +67,7 @@ public class MorflowTest {
     @Test
     public void testMultipleNamedOutputs() {
         String dsl = """
-            accept $audio
+            accept Tensor $audio
             $audio[0:2] >> identity >> emit("low")
             $audio[2:4] >> identity >> emit("high")
         """;
@@ -86,7 +86,7 @@ public class MorflowTest {
     public void testAudioToAudioAndToWavPipeline() {
         String dsl = """
             import audio_essentials/latest
-            accept $data
+            accept RawBytes $data
             $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
@@ -110,9 +110,102 @@ public class MorflowTest {
     }
 
     @Test
+    public void testBareArrayIsAPlainTensor() {
+        // There is no type inference: a bare rank-2 [4, N] float32 array is a
+        // plain tensor and reaches tensor actions without any wrapping.
+        String dsl = """
+            import tensor_essentials/latest
+            accept Tensor $data
+            $data >> reshape(shape="2, 1000") >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            float[] input = new float[2000];
+            for (int i = 0; i < input.length; i++) input[i] = i;
+            MorflowTensor output = pipeline.run(input, new int[]{4, 500});
+
+            assertArrayEquals(new int[]{2, 1000}, output.getShape());
+            assertArrayEquals(input, output.toFloatArray(), 0.0f);
+        }
+    }
+
+    @Test
+    public void testRank3ArrayIsNotInferredAsAnImage() {
+        // A rank-3 array is no longer auto-promoted to an image. Image actions
+        // declare DataType::Tensor input, so a bare array still runs without
+        // any wrapping.
+        String dsl = """
+            from image_essentials/latest import to_image
+            accept Tensor $image
+            $image >> to_image >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            byte[] rgb = new byte[8 * 8 * 3];
+            MorflowTensor bare = MorflowTensor.fromByteArray(rgb, new int[]{8, 8, 3});
+            assertNull(bare.getPayloadType());
+
+            MorflowTensor fromBare = pipeline.run(bare);
+            assertArrayEquals(new int[]{8, 8, 3}, fromBare.getShape());
+            assertEquals("u8", fromBare.getDtype());
+        }
+    }
+
+    @Test
+    public void testExplicitImagePayload() {
+        // An asImage payload requires a pipeline that declares Image.
+        String dsl = """
+            from base/latest import to_tensor
+            from image_essentials/latest import to_image
+            accept Image $image
+            $image >> to_tensor >> to_image >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            byte[] rgb = new byte[8 * 8 * 1];
+            MorflowTensor fromImage = pipeline.run(
+                    MorflowTensor.fromByteArray(rgb, new int[]{8, 8, 1}).asImage("grayscale"));
+            assertArrayEquals(new int[]{8, 8}, fromImage.getShape());
+        }
+    }
+
+    @Test
+    public void testExplicitAudioPayload() {
+        String dsl = """
+            import audio_essentials/latest
+            accept Audio $audio
+            $audio >> to_wav >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            float[] samples = new float[2000];
+            MorflowTensor input = MorflowTensor.fromFloatArray(samples, new int[]{2, 1000});
+
+            assertThrows(MorflowException.class, () -> pipeline.run(input));
+
+            MorflowTensor output = pipeline.run(input.asAudio(48000, 2, null));
+            byte[] wavBytes = output.toByteArray();
+            assertEquals("RIFF", new String(wavBytes, 0, 4));
+            assertEquals("WAVE", new String(wavBytes, 8, 4));
+        }
+    }
+
+    @Test
+    public void testUnknownPayloadTypeRejected() {
+        String dsl = """
+            accept Tensor $data
+            $data >> identity >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            ByteBuffer buf = ByteBuffer.allocateDirect(8).order(ByteOrder.LITTLE_ENDIAN);
+            MorflowException err = assertThrows(MorflowException.class, () -> {
+                pipeline.run(buf, new int[]{2}, "f32", "hologram", null, null, 0, 0);
+            });
+            assertTrue(err.getMessage().contains("Unknown payloadType"),
+                    "expected an unknown-payloadType error, got: " + err.getMessage());
+        }
+    }
+
+    @Test
     public void testSyntaxErrorThrowsMorflowException() {
         assertThrows(MorflowException.class, () -> {
-            Morflow.fromStr("invalid >>> broken syntax");
+            Morflow.fromStr("accept Tensor $invalid >>> broken");
         });
     }
 
@@ -125,10 +218,63 @@ public class MorflowTest {
 
     @Test
     public void testPipelineClose() {
-        Pipeline pipeline = Morflow.fromStr("accept $a \n $a >> identity >> emit");
+        Pipeline pipeline = Morflow.fromStr("accept Tensor $a \n $a >> identity >> emit");
         pipeline.close();
         assertThrows(IllegalStateException.class, () -> {
             pipeline.run(new byte[]{1, 2, 3});
         });
+    }
+
+    @Test
+    public void testScalarParamAcceptsPlainNumber() {
+        String dsl = """
+            import math_essentials/latest
+            accept Scalar $value
+            $value >> relu >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowTensor output = pipeline.runArgs(-3.0);
+            assertEquals(0, output.getShape().length);
+            assertArrayEquals(new float[]{0.0f}, output.toFloatArray(), 1e-5f);
+        }
+    }
+
+    @Test
+    public void testArgParamsPositionalWithDefault() {
+        String dsl = """
+            import audio_essentials/latest
+            accept RawBytes $data
+            accept IntArg $rate = 48000
+            $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            byte[] pcm = new byte[8];
+
+            byte[] viaDefault = pipeline.runArgs(pcm).toByteArray();
+            assertEquals("RIFF", new String(viaDefault, 0, 4));
+
+            byte[] viaArg = pipeline.runArgs(pcm, 22050).toByteArray();
+            assertEquals("RIFF", new String(viaArg, 0, 4));
+        }
+    }
+
+    @Test
+    public void testMixedArgParams() {
+        String dsl = """
+            import audio_essentials/latest
+            accept Audio $audio
+            accept FloatArg $linear = 1.0
+            accept BoolArg $routed = true
+            accept Scalar $mix = 0.0
+            $audio >> to_wav >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            float[] samples = new float[128];
+            MorflowTensor input = MorflowTensor.fromFloatArray(samples, new int[]{2, 64});
+
+            Map<String, MorflowTensor> outputs = pipeline.runAllArgs(
+                    input.asAudio(48000, 2, null), 2.0f, Boolean.FALSE, 0.5);
+            assertNotNull(outputs);
+        }
     }
 }

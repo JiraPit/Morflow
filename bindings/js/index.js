@@ -141,6 +141,68 @@ class MorflowPipelineWrapper {
     }
     return result;
   }
+
+  /**
+   * Executes the pipeline synchronously with positional parameters bound in
+   * declaration order. Each value is a tensor/audio/image object, a typed
+   * array, a Buffer, a plain number (Scalar or *Arg), a string (StrArg), or a
+   * boolean (BoolArg).
+   * @param {...(Float32Array | Uint8Array | Buffer | number | string | boolean | { data: Buffer | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
+   * @returns {any}
+   */
+  runSyncArgs(...args) {
+    const res = this._native.runSyncArgs(args);
+    if (res && res.shape && res.data) {
+      return wrapTensor(res);
+    }
+    return res;
+  }
+
+  /**
+   * Executes the pipeline synchronously with positional parameters, returning
+   * a dictionary of all named streams.
+   * @param {...(Float32Array | Uint8Array | Buffer | number | string | boolean | { data: Buffer | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
+   * @returns {Record<string, any>}
+   */
+  runSyncAllArgs(...args) {
+    const outputs = this._native.runSyncAllArgs(args);
+    const result = {};
+    for (const key of Object.keys(outputs)) {
+      const val = outputs[key];
+      result[key] = val && val.shape && val.data ? wrapTensor(val) : val;
+    }
+    return result;
+  }
+
+  /**
+   * Executes the pipeline asynchronously with positional parameters, returning
+   * a Promise.
+   * @param {...(Float32Array | Uint8Array | Buffer | number | string | boolean | { data: Buffer | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
+   * @returns {Promise<any>}
+   */
+  async runArgs(...args) {
+    const res = await this._native.runArgs(args);
+    if (res && res.shape && res.data) {
+      return wrapTensor(res);
+    }
+    return res;
+  }
+
+  /**
+   * Executes the pipeline asynchronously with positional parameters, returning
+   * a Promise with all named streams.
+   * @param {...(Float32Array | Uint8Array | Buffer | number | string | boolean | { data: Buffer | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
+   * @returns {Promise<Record<string, any>>}
+   */
+  async runAllArgs(...args) {
+    const outputs = await this._native.runAllArgs(args);
+    const result = {};
+    for (const key of Object.keys(outputs)) {
+      const val = outputs[key];
+      result[key] = val && val.shape && val.data ? wrapTensor(val) : val;
+    }
+    return result;
+  }
 }
 
 /**

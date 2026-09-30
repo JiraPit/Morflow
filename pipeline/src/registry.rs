@@ -4,7 +4,9 @@ use std::env::consts::{DLL_EXTENSION, DLL_PREFIX};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-use core_types::{DataType, GetTypeFn, Payload, ProcessFn};
+use core_types::{
+    ActionArgs, DataType, GetShapeFn, GetTypeFn, Payload, ProcessFn, Shape, ShapeSpec,
+};
 use libloading::{Library, Symbol};
 
 /// A compiled, dynamically loaded action kept warm in memory.
@@ -14,6 +16,9 @@ pub struct LoadedAction {
     pub input_type: DataType,
     pub output_type: DataType,
     process_fn: ProcessFn,
+    /// `get_output_shape` is optional so that actions built against an older
+    /// ABI still load; those simply have an unknown output shape.
+    get_shape_fn: Option<GetShapeFn>,
     // Keeps library handle alive in memory so function pointers remain valid
     _library: Arc<Library>,
 }
@@ -26,6 +31,24 @@ impl LoadedAction {
     #[inline]
     pub fn process(&self, payload: Payload) -> Payload {
         (self.process_fn)(payload)
+    }
+
+    /// Whether this action reports the shape it produces.
+    #[inline]
+    pub fn reports_output_shape(&self) -> bool {
+        self.get_shape_fn.is_some()
+    }
+
+    /// Asks the action what shape it would produce for this call.
+    ///
+    /// An action that does not export `get_output_shape`, or that cannot
+    /// describe its result, yields [`ShapeSpec::AnyRank`] rather than an error,
+    /// so callers can always fall back to a wildcard shape.
+    pub fn output_shape(&self, input: &Shape, args: &ActionArgs) -> ShapeSpec {
+        let Some(get_shape) = self.get_shape_fn else {
+            return ShapeSpec::AnyRank;
+        };
+        ShapeSpec::from(get_shape(input.clone(), args.clone()))
     }
 }
 
@@ -387,6 +410,9 @@ impl ActionRegistry {
             let input_type = (*get_in_sym)();
             let output_type = (*get_out_sym)();
             let process_fn = *process_sym;
+            // Present in every action built against the current ABI; a `.so`
+            // without it still loads and reports an unknown output shape.
+            let get_shape_fn: Option<GetShapeFn> = lib.get(b"get_output_shape").ok().map(|s| *s);
 
             Ok(LoadedAction {
                 name: action_name.to_string(),
@@ -394,6 +420,7 @@ impl ActionRegistry {
                 input_type,
                 output_type,
                 process_fn,
+                get_shape_fn,
                 _library: Arc::new(lib),
             })
         }

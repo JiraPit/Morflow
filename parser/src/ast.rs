@@ -38,7 +38,111 @@ pub struct ImportItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PipelineParam {
     pub name: String,
+    pub param_type: ParamType,
     pub default_value: Option<Value>,
+}
+
+/// A dimension of a declared shape: a wildcard or an exact length.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ParamDim {
+    /// `*` — any length.
+    Any,
+    /// An exact length, as in the `3` of `Tensor[*,*,3]`.
+    Fixed(usize),
+}
+
+/// A shape as declared on a parameter: an unknown rank, or a fixed rank whose
+/// dimensions may contain wildcards.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum ParamShape {
+    /// Rank is not pinned: `Tensor`, `Image`, `Audio`.
+    #[default]
+    AnyRank,
+    /// Rank is pinned: `Tensor[2,3]`, `Image[*,*,3]`, `Tensor[rank=2]`.
+    Ranked { dims: Vec<ParamDim> },
+}
+
+/// The declared type of a pipeline parameter.
+///
+/// Every `accept` names one of these; there is no untyped parameter, because
+/// the type is what lets the checker reason about what flows where.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ParamType {
+    /// An opaque byte buffer, e.g. a WAV file's contents.
+    RawBytes,
+    /// An integer argument. Arguments are readable by actions but never flow
+    /// through a chain.
+    IntArg,
+    /// A floating-point argument.
+    FloatArg,
+    /// A string argument.
+    StrArg,
+    /// A boolean argument.
+    BoolArg,
+    /// A rank-0 numeric value.
+    Scalar,
+    /// A tensor, with an optional shape specification.
+    Tensor(ParamShape),
+    /// An image, with an optional shape specification. The channel dimension is
+    /// validated against the payload's own layout.
+    Image(ParamShape),
+    /// An audio payload, with an optional shape specification. Channel and
+    /// sample dimensions are validated against the payload's own layout.
+    Audio(ParamShape),
+    /// A tuple of payloads.
+    Composite,
+}
+
+impl ParamType {
+    /// The type's keyword, as written in a declaration.
+    pub fn keyword(&self) -> &'static str {
+        match self {
+            ParamType::RawBytes => "RawBytes",
+            ParamType::IntArg => "IntArg",
+            ParamType::FloatArg => "FloatArg",
+            ParamType::StrArg => "StrArg",
+            ParamType::BoolArg => "BoolArg",
+            ParamType::Scalar => "Scalar",
+            ParamType::Tensor(_) => "Tensor",
+            ParamType::Image(_) => "Image",
+            ParamType::Audio(_) => "Audio",
+            ParamType::Composite => "Composite",
+        }
+    }
+
+    /// Whether this is one of the argument types, which are never flowable.
+    pub fn is_arg(&self) -> bool {
+        matches!(
+            self,
+            ParamType::IntArg | ParamType::FloatArg | ParamType::StrArg | ParamType::BoolArg
+        )
+    }
+}
+
+impl std::fmt::Display for ParamType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let shape = match self {
+            ParamType::Tensor(shape) | ParamType::Image(shape) | ParamType::Audio(shape) => shape,
+            _ => return write!(f, "{}", self.keyword()),
+        };
+        match shape {
+            ParamShape::AnyRank => write!(f, "{}", self.keyword()),
+            // All-wildcard ranks are written back in their short form.
+            ParamShape::Ranked { dims } if dims.iter().all(|d| *d == ParamDim::Any) => {
+                write!(f, "{}[rank={}]", self.keyword(), dims.len())
+            }
+            ParamShape::Ranked { dims } => {
+                let parts: Vec<String> = dims
+                    .iter()
+                    .map(|d| match d {
+                        ParamDim::Any => "*".to_string(),
+                        ParamDim::Fixed(n) => n.to_string(),
+                    })
+                    .collect();
+                write!(f, "{}[{}]", self.keyword(), parts.join(", "))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

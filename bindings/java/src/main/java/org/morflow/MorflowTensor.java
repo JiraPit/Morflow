@@ -13,9 +13,18 @@ public class MorflowTensor {
     private final ByteBuffer data;
     private final int[] shape;
     private final String dtype;
+    private final String payloadType;
+    private final String colorSpace;
+    private final String layout;
+    private final int sampleRate;
+    private final int channels;
 
     /**
      * Constructs a MorflowTensor wrapping a native or direct {@link ByteBuffer}.
+     *
+     * <p>The payload is sent as a plain tensor. Use {@link #asImage} or
+     * {@link #asAudio} to send it as an image or audio payload instead; there is
+     * no type inference based on the shape.
      *
      * @param data Native direct ByteBuffer.
      * @param shape Dimensions array (e.g. [H, W, C] or [channels, samples]).
@@ -25,6 +34,104 @@ public class MorflowTensor {
         this.data = data.order(ByteOrder.LITTLE_ENDIAN);
         this.shape = shape != null ? shape : new int[]{data.capacity()};
         this.dtype = dtype != null ? dtype : "raw";
+        this.payloadType = null;
+        this.colorSpace = null;
+        this.layout = null;
+        this.sampleRate = 0;
+        this.channels = 0;
+    }
+
+    private MorflowTensor(
+            ByteBuffer data,
+            int[] shape,
+            String dtype,
+            String payloadType,
+            String colorSpace,
+            String layout,
+            int sampleRate,
+            int channels) {
+        this.data = data.order(ByteOrder.LITTLE_ENDIAN);
+        this.shape = shape != null ? shape : new int[]{data.capacity()};
+        this.dtype = dtype != null ? dtype : "raw";
+        this.payloadType = payloadType;
+        this.colorSpace = colorSpace;
+        this.layout = layout;
+        this.sampleRate = sampleRate;
+        this.channels = channels;
+    }
+
+    /**
+     * Returns a copy of this tensor that is sent to the engine as an image payload.
+     *
+     * @param colorSpace Color space ("grayscale", "rgb", "rgba", "bgr", "bgra").
+     *                    Inferred from the trailing dimension when null.
+     * @param layout Memory layout ("hwc" or "chw"). Defaults to "hwc".
+     */
+    public MorflowTensor asImage(String colorSpace, String layout) {
+        return new MorflowTensor(data, shape, dtype, "image", colorSpace, layout, 0, 0);
+    }
+
+    /**
+     * Returns a copy of this tensor that is sent to the engine as an image payload
+     * using the default "hwc" layout.
+     */
+    public MorflowTensor asImage(String colorSpace) {
+        return asImage(colorSpace, null);
+    }
+
+    /**
+     * Returns a copy of this tensor that is sent to the engine as an audio payload.
+     *
+     * @param sampleRate Sample rate in Hz. Defaults to 44100 when &lt;= 0.
+     * @param channels    Channel count. Defaults to the leading dimension when &lt;= 0.
+     * @param layout      Memory layout ("planar" or "interleaved"). Defaults to "planar".
+     */
+    public MorflowTensor asAudio(int sampleRate, int channels, String layout) {
+        return new MorflowTensor(data, shape, dtype, "audio", null, layout, sampleRate, channels);
+    }
+
+    /**
+     * Returns a copy of this tensor that is sent to the engine as an audio payload
+     * with the default planar layout and a 44100 Hz sample rate.
+     */
+    public MorflowTensor asAudio() {
+        return asAudio(0, 0, null);
+    }
+
+    /**
+     * Returns the requested payload type ("tensor", "image", "audio"), or null for
+     * a plain tensor.
+     */
+    public String getPayloadType() {
+        return payloadType;
+    }
+
+    /**
+     * Returns the requested color space for an image payload, or null.
+     */
+    public String getColorSpace() {
+        return colorSpace;
+    }
+
+    /**
+     * Returns the requested memory layout for an image or audio payload, or null.
+     */
+    public String getLayout() {
+        return layout;
+    }
+
+    /**
+     * Returns the requested sample rate for an audio payload, or 0 when unset.
+     */
+    public int getSampleRate() {
+        return sampleRate;
+    }
+
+    /**
+     * Returns the requested channel count for an audio payload, or 0 when unset.
+     */
+    public int getChannels() {
+        return channels;
     }
 
     /**

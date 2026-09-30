@@ -2,7 +2,7 @@
 
 import audio_essentials/latest
 
-accept $input_audio
+accept RawBytes $input_audio
 
 # Ingest input audio/WAV to structured Audio stream and tap to $decoded
 $input_audio >> to_audio >> $decoded

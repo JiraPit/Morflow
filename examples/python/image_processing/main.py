@@ -17,7 +17,7 @@ def main():
     print(f"Input image shape: {np_img.shape}, dtype: {np_img.dtype}")
 
     # 2. Execute Morflow pipeline
-    result = pipeline.run(np_img)
+    result = pipeline.run(morflow.Image(np_img, color="rgb"))
 
     # 3. Save output image
     print(f"Output image shape: {result.shape}, dtype: {result.dtype}")

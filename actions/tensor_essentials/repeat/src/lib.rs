@@ -1,14 +1,52 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let repeats_str = args
+        .get_named("repeats")
+        .or_else(|| args.positional.first().map(|s| s.as_str()));
+    let Some(r_str) = repeats_str else {
+        return input;
+    };
+    let repeats = match parse_repeats_str(r_str) {
+        Ok(rr) => rr,
+        Err(_) => return input,
+    };
+    let k = repeats.len();
+    if k == 0 {
+        return input;
+    }
+    let dims_ = input.dims();
+    let mut out = Vec::new();
+    if r >= k {
+        out.extend_from_slice(&dims_[..r - k]);
+        for (i, &rep) in repeats.iter().enumerate() {
+            out.push(dims_[r - k + i] * rep);
+        }
+    } else {
+        for &rep in repeats.iter().take(k - r) {
+            out.push(rep);
+        }
+        for i in 0..r {
+            out.push(dims_[i] * repeats[k - r + i]);
+        }
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 fn parse_repeats_str(s: &str) -> Result<Vec<usize>, String> {
     let clean = s
@@ -51,11 +89,14 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     };
 
     match inner_payload {
-        Payload::Tensor(tensor) => match repeat_tensor(&tensor, &repeats) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match repeat_tensor(&tensor, &repeats)
+        {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
-        _ => Payload::Error(core_types::RString::from("Action \'repeat\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'repeat\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -110,6 +151,28 @@ mod tests {
             assert_eq!(out.as_f32_slice().unwrap(), &[1.0, 2.0, 1.0, 2.0]);
         } else {
             panic!("Expected Tensor output");
+        }
+    }
+    #[test]
+    fn test_repeat_accepts_a_scalar_value() {
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("repeats"), RString::from("[]")));
+        let payload = Payload::WithArgs {
+            payload: RBox::new(Payload::scalar_f32(2.0)),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named,
+            },
+        };
+        let res = process(payload);
+        match res {
+            Payload::Scalar(out) => {
+                assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);
+            }
+            other => panic!(
+                "scalar path produced the wrong payload: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

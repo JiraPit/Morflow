@@ -3,13 +3,13 @@ use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
 
-use abi_stable::std_types::RVec;
 use core_types::Payload;
-use parser::ast::{FlowStep, Pipeline, PipelineParam, Statement, Value};
+use parser::ast::{FlowStep, Pipeline, PipelineParam, Statement};
 
 use crate::outputs::PipelineOutputs;
 use crate::registry::ActionRegistry;
 use crate::scheduler::AutoParallelScheduler;
+use crate::types::{coerce_host_payload, default_payload, ptype_of};
 
 #[derive(Debug)]
 pub enum MorflowError {
@@ -61,8 +61,8 @@ impl Morflow {
         let ast = parser::parse(source).map_err(|errs| {
             MorflowError::Parse(format!(
                 "Syntax error in pipeline: {}",
-                errs.into_iter()
-                    .map(|e| e.to_string())
+                errs.iter()
+                    .map(parser::format_error)
                     .collect::<Vec<_>>()
                     .join(", ")
             ))
@@ -118,42 +118,27 @@ impl MorflowPipeline {
 
     /// Executes the pipeline with multiple positional arguments using auto-parallelization.
     /// Returns `PipelineOutputs` containing all emitted return values.
+    ///
+    /// Each supplied payload is checked against the type its `accept` declared,
+    /// and a parameter with no supplied value falls back to its default, again
+    /// in the representation its declared type calls for.
     pub fn run_args(&mut self, args: Vec<Payload>) -> Result<PipelineOutputs, MorflowError> {
         let mut env: HashMap<String, Payload> = HashMap::new();
 
         // Bind input arguments to pipeline parameters
         for (i, param) in self.ast.params.iter().enumerate() {
-            if let Some(arg) = args.get(i) {
-                env.insert(param.name.clone(), arg.clone());
-            } else if let Some(default_val) = &param.default_value {
-                match default_val {
-                    Value::Int(v) => {
-                        env.insert(
-                            param.name.clone(),
-                            Payload::Data {
-                                buffer: RVec::from(v.to_string().into_bytes()),
-                            },
-                        );
-                    }
-                    Value::Float(v) => {
-                        env.insert(
-                            param.name.clone(),
-                            Payload::Data {
-                                buffer: RVec::from(v.to_string().into_bytes()),
-                            },
-                        );
-                    }
-                    Value::String(v) => {
-                        env.insert(
-                            param.name.clone(),
-                            Payload::Data {
-                                buffer: RVec::from(v.as_bytes().to_vec()),
-                            },
-                        );
-                    }
-                    _ => {}
-                }
-            }
+            let declared = ptype_of(&param.param_type);
+            let bound = match args.get(i) {
+                Some(supplied) => Some(coerce_host_payload(&declared, supplied.clone())),
+                None => default_payload(param),
+            };
+            let Some(bound) = bound else {
+                continue;
+            };
+            declared
+                .verify_payload(&bound)
+                .map_err(|e| MorflowError::TypeMismatch(format!("${}: {}", param.name, e)))?;
+            env.insert(param.name.clone(), bound);
         }
 
         // If pipeline has no declared parameters but an argument was passed, bind it to $input
@@ -180,7 +165,10 @@ fn collect_actions_internal(statements: &[Statement], names: &mut Vec<String>) {
         for step in &chain.steps {
             match step {
                 FlowStep::Action(call) => {
-                    if call.name != "emit" && call.name != "resurface" && !names.contains(&call.name) {
+                    if call.name != "emit"
+                        && call.name != "resurface"
+                        && !names.contains(&call.name)
+                    {
                         names.push(call.name.clone());
                     }
                 }

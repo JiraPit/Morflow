@@ -1,14 +1,61 @@
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let mut start_dim = 0usize;
+    let mut end_dim = -1isize;
+    if let Some(s_str) = args
+        .get_named("start_dim")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(s) = s_str.parse::<usize>() {
+            start_dim = s;
+        }
+    }
+    if let Some(e_str) = args
+        .get_named("end_dim")
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
+    {
+        if let Ok(e) = e_str.parse::<isize>() {
+            end_dim = e;
+        }
+    }
+    if r == 0 {
+        return input;
+    }
+    let end_idx = if end_dim < 0 {
+        ((r as isize + end_dim).max(0)) as usize
+    } else {
+        (end_dim as usize).min(r - 1)
+    };
+    if start_dim >= r || start_dim > end_idx {
+        return input;
+    }
+    let mut out = Vec::new();
+    for i in 0..start_dim {
+        out.push(input.dims()[i]);
+    }
+    let flat: usize = input.dims()[start_dim..=end_idx].iter().product();
+    out.push(flat);
+    for i in (end_idx + 1)..r {
+        out.push(input.dims()[i]);
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -37,11 +84,15 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match tensor.flatten(start_dim, end_dim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e),
-        },
-        _ => Payload::Error(core_types::RString::from("Action \'flatten\' requires Payload::Tensor")),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match tensor.flatten(start_dim, end_dim) {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e),
+            }
+        }
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'flatten\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -72,6 +123,20 @@ mod tests {
             assert_eq!(out.shape.as_slice(), &[2, 4]);
         } else {
             panic!("Expected Tensor output");
+        }
+    }
+
+    #[test]
+    fn test_flatten_accepts_a_scalar_value() {
+        let res = process(Payload::scalar_f32(2.0));
+        match res {
+            Payload::Scalar(out) => {
+                assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);
+            }
+            other => panic!(
+                "scalar path produced the wrong payload: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

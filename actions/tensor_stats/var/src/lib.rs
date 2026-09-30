@@ -1,15 +1,66 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let mut axis: Option<isize> = None;
+    let mut keepdim = false;
+    if let Some(ax_str) = args
+        .get_named("axis")
+        .or_else(|| args.get_named("dim"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(ax) = ax_str.parse::<isize>() {
+            axis = Some(ax);
+        }
+    }
+    if let Some(kd_str) = args.get_named("keepdim") {
+        keepdim = kd_str == "true" || kd_str == "1";
+    }
+
+    let mut out: Vec<usize> = Vec::new();
+    match axis {
+        Some(raw) => {
+            let ax = if raw < 0 {
+                ((raw + r as isize).max(0)) as usize
+            } else {
+                raw as usize
+            };
+            if ax >= r {
+                return input;
+            }
+            for (i, &d) in input.dims().iter().enumerate() {
+                if i == ax {
+                    if keepdim {
+                        out.push(1);
+                    }
+                } else {
+                    out.push(d);
+                }
+            }
+        }
+        None => {
+            if keepdim {
+                out = vec![1; r.max(1)];
+            }
+        }
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -38,11 +89,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match reduce_var(&tensor, axis, unbiased, keepdim) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        _ => Payload::Error("Action \'var\' requires Payload::Tensor".into()),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match reduce_var(&tensor, axis, unbiased, keepdim) {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e.into()),
+            }
+        }
+        _ => Payload::Error("Action \'var\' requires a tensor or scalar value".into()),
     }
 }
 
@@ -123,9 +176,6 @@ fn reduce_var(
                 out_shape.push(dim);
             }
         }
-        if out_shape.is_empty() {
-            out_shape.push(1);
-        }
 
         Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
     } else {
@@ -143,7 +193,11 @@ fn reduce_var(
         };
         let var = sum_sq_diff / divisor;
 
-        let shape = if keepdim { vec![1; r.max(1)] } else { vec![1] };
+        let shape = if keepdim {
+            vec![1; r.max(1)]
+        } else {
+            Vec::new()
+        };
         Tensor::from_f32_vec(vec![var], shape).map_err(|e| e.to_string())
     }
 }
@@ -157,12 +211,12 @@ mod tests {
     fn test_var_action() {
         let tensor = Tensor::from_f32_slice(&[2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
         let res = process(Payload::Tensor(tensor));
-        if let Payload::Tensor(out) = res {
+        if let Payload::Scalar(out) = res {
             let slice = out.as_f32_slice().unwrap();
             // sample variance = 4.5714
             assert!((slice[0] - 4.5714).abs() < 1e-3);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Scalar output");
         }
     }
 }

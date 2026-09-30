@@ -53,6 +53,75 @@ pub struct TensorInput {
     pub data: Buffer,
     pub shape: Vec<u32>,
     pub dtype: Option<String>,
+    /// The payload type to send. One of `"tensor"`, `"image"`, or `"audio"`.
+    /// When omitted the input is a plain `"tensor"`. There is no type
+    /// inference: a rank-3 array is a tensor unless you ask for `"image"`.
+    pub payload_type: Option<String>,
+    /// Color space for `payloadType: "image"`. Inferred from the channel count
+    /// when omitted.
+    pub color_space: Option<String>,
+    /// Sample rate in Hz for `payloadType: "audio"`. Defaults to 44100.
+    pub sample_rate: Option<u32>,
+    /// Channel count for `payloadType: "audio"`. Defaults to the leading dimension.
+    pub channels: Option<u32>,
+    /// Memory layout: `"hwc"` / `"chw"` for images, `"planar"` / `"interleaved"`
+    /// for audio. Defaults to `"hwc"` and `"planar"` respectively.
+    pub layout: Option<String>,
+}
+
+/// Sample rate assumed by `payloadType: "audio"` when the caller omits one.
+const DEFAULT_SAMPLE_RATE: u32 = 44100;
+
+/// Recognized image channel counts mapped to a color space.
+fn infer_color_space(channels: u32) -> Option<ColorSpace> {
+    match channels {
+        1 => Some(ColorSpace::Grayscale),
+        3 => Some(ColorSpace::Rgb),
+        4 => Some(ColorSpace::Rgba),
+        _ => None,
+    }
+}
+
+fn parse_color_space(spec: &str) -> napi::Result<ColorSpace> {
+    match spec.to_ascii_lowercase().as_str() {
+        "gray" | "grey" | "grayscale" => Ok(ColorSpace::Grayscale),
+        "rgb" => Ok(ColorSpace::Rgb),
+        "rgba" => Ok(ColorSpace::Rgba),
+        "bgr" => Ok(ColorSpace::Bgr),
+        "bgra" => Ok(ColorSpace::Bgra),
+        other => Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            format!(
+                "Unknown color space '{}' (expected one of: grayscale, rgb, rgba, bgr, bgra)",
+                other
+            ),
+        )),
+    }
+}
+
+fn parse_image_layout(spec: &str) -> napi::Result<ImageLayout> {
+    match spec.to_ascii_lowercase().as_str() {
+        "hwc" | "interleaved" => Ok(ImageLayout::Hwc),
+        "chw" | "planar" => Ok(ImageLayout::Chw),
+        other => Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            format!("Unknown image layout '{}' (expected 'hwc' or 'chw')", other),
+        )),
+    }
+}
+
+fn parse_audio_layout(spec: &str) -> napi::Result<AudioLayout> {
+    match spec.to_ascii_lowercase().as_str() {
+        "planar" => Ok(AudioLayout::Planar),
+        "interleaved" => Ok(AudioLayout::Interleaved),
+        other => Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            format!(
+                "Unknown audio layout '{}' (expected 'planar' or 'interleaved')",
+                other
+            ),
+        )),
+    }
 }
 
 fn tensor_to_morflow_tensor(tensor: &Tensor) -> MorflowTensor {
@@ -95,6 +164,11 @@ fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
             napi::Status::GenericFailure,
             "Composite payload returned where single tensor was expected",
         )),
+        Payload::Scalar(t) => Ok(tensor_to_morflow_tensor(&t)),
+        Payload::Arg(_) => Err(napi::Error::new(
+            napi::Status::GenericFailure,
+            "Argument payload returned where a tensor was expected",
+        )),
     }
 }
 
@@ -127,26 +201,81 @@ fn tensor_input_to_payload(input: TensorInput) -> napi::Result<Payload> {
         }
     };
 
-    if tensor.rank() == 3 {
-        let channels = tensor.shape[2];
-        let cs = match channels {
-            1 => Some(ColorSpace::Grayscale),
-            3 => Some(ColorSpace::Rgb),
-            4 => Some(ColorSpace::Rgba),
-            _ => None,
-        };
-        if let Some(color_space) = cs {
-            let img = Image::new(tensor, color_space, ImageLayout::Hwc)
-                .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?;
-            return Ok(Payload::Image(img));
+    // An explicit payloadType chooses the payload type outright.
+    if let Some(kind) = input.payload_type.as_deref() {
+        match kind.to_ascii_lowercase().as_str() {
+            "tensor" => return Ok(Payload::Tensor(tensor)),
+            "image" => {
+                let color_space = match input.color_space.as_deref() {
+                    Some(spec) => parse_color_space(spec)?,
+                    None => tensor
+                        .shape
+                        .get(2)
+                        .copied()
+                        .and_then(|c| infer_color_space(c as u32))
+                        .ok_or_else(|| {
+                            napi::Error::new(
+                                napi::Status::InvalidArg,
+                                format!(
+                                    "payloadType \"image\" could not infer a color space from shape {:?}; \
+                                     pass colorSpace: \"grayscale\", \"rgb\", \"rgba\", \"bgr\", or \"bgra\"",
+                                    tensor.shape.as_slice()
+                                ),
+                            )
+                        })?,
+                };
+                let layout = match input.layout.as_deref() {
+                    Some(spec) => parse_image_layout(spec)?,
+                    None => ImageLayout::Hwc,
+                };
+                let img = Image::new(tensor, color_space, layout).map_err(|e| {
+                    napi::Error::new(
+                        napi::Status::InvalidArg,
+                        format!("Invalid image payload: {}", e),
+                    )
+                })?;
+                return Ok(Payload::Image(img));
+            }
+            "audio" => {
+                let layout = match input.layout.as_deref() {
+                    Some(spec) => parse_audio_layout(spec)?,
+                    None => AudioLayout::Planar,
+                };
+                let channel_layout = match input.channels {
+                    Some(ch) => AudioChannelLayout::from_channel_count(ch as usize),
+                    None => AudioChannelLayout::from_channel_count(
+                        tensor.shape.first().copied().unwrap_or(1),
+                    ),
+                };
+                let aud = Audio::new(
+                    tensor,
+                    input.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE),
+                    channel_layout,
+                    layout,
+                )
+                .map_err(|e| {
+                    napi::Error::new(
+                        napi::Status::InvalidArg,
+                        format!("Invalid audio payload: {}", e),
+                    )
+                })?;
+                return Ok(Payload::Audio(aud));
+            }
+            other => {
+                return Err(napi::Error::new(
+                    napi::Status::InvalidArg,
+                    format!(
+                        "Unknown payloadType '{}' (expected one of: tensor, image, audio)",
+                        other
+                    ),
+                ))
+            }
         }
-    } else if tensor.rank() == 2 && tensor.shape[0] <= 8 {
-        let ch = tensor.shape[0];
-        let layout = AudioChannelLayout::from_channel_count(ch);
-        let aud = Audio::new(tensor, 44100, layout, AudioLayout::Planar)
-            .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?;
-        return Ok(Payload::Audio(aud));
     }
+
+    // No payloadType given: a bare array is always a plain Tensor. There is no
+    // type inference; set payloadType to "image" or "audio" to send something
+    // else.
     Ok(Payload::Tensor(tensor))
 }
 
@@ -175,6 +304,87 @@ fn extract_input_payload(
         None => Ok(Payload::Data {
             buffer: RVec::new(),
         }),
+    }
+}
+
+/// A heterogeneous host value bound to a pipeline parameter in declaration
+/// order: a tensor/audio/image object, a typed array, a byte buffer, a plain
+/// number (Scalar or `*Arg`), a string (`StrArg`/`RawBytes`), or a boolean
+/// (`BoolArg`).
+type HostArg = Either6<TensorInput, Float32Array, Buffer, f64, String, bool>;
+
+fn host_arg_to_payload(arg: HostArg) -> napi::Result<Payload> {
+    match arg {
+        Either6::A(tensor_input) => tensor_input_to_payload(tensor_input),
+        Either6::B(f32_arr) => float32_array_to_payload(f32_arr),
+        Either6::C(buf) => Ok(buffer_to_payload(buf)),
+        Either6::D(f) => Ok(text_payload(&format!("{}", f))),
+        Either6::E(s) => Ok(text_payload(&s)),
+        Either6::F(b) => Ok(text_payload(&b.to_string())),
+    }
+}
+
+fn text_payload(text: &str) -> Payload {
+    Payload::Data {
+        buffer: RVec::from(text.as_bytes().to_vec()),
+    }
+}
+
+fn collect_host_args(args: Vec<HostArg>) -> napi::Result<Vec<Payload>> {
+    args.into_iter().map(host_arg_to_payload).collect()
+}
+
+/// Libuv worker task for asynchronous single-output pipeline execution with
+/// positional parameters.
+pub struct AsyncRunArgsTask {
+    pipeline: MorflowPipeline,
+    payloads: Vec<Payload>,
+}
+
+impl Task for AsyncRunArgsTask {
+    type Output = MorflowTensor;
+    type JsValue = MorflowTensor;
+
+    fn compute(&mut self) -> napi::Result<Self::Output> {
+        let payloads = std::mem::take(&mut self.payloads);
+        let outputs = self.pipeline.run_args(payloads).map_err(map_error)?;
+        let single = outputs.into_single().map_err(map_error)?;
+        payload_to_morflow_tensor(single)
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+/// Libuv worker task for asynchronous multi-output pipeline execution with
+/// positional parameters.
+pub struct AsyncRunAllArgsTask {
+    pipeline: MorflowPipeline,
+    payloads: Vec<Payload>,
+}
+
+impl Task for AsyncRunAllArgsTask {
+    type Output = Vec<(String, MorflowTensor)>;
+    type JsValue = napi::JsObject;
+
+    fn compute(&mut self) -> napi::Result<Self::Output> {
+        let payloads = std::mem::take(&mut self.payloads);
+        let outputs = self.pipeline.run_args(payloads).map_err(map_error)?;
+        let mut list = Vec::with_capacity(outputs.len());
+        for (name, out_payload) in outputs.into_iter() {
+            let tensor_obj = payload_to_morflow_tensor(out_payload)?;
+            list.push((name, tensor_obj));
+        }
+        Ok(list)
+    }
+
+    fn resolve(&mut self, env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+        let mut obj = env.create_object()?;
+        for (name, tensor) in output {
+            obj.set_named_property(&name, tensor)?;
+        }
+        Ok(obj)
     }
 }
 
@@ -306,6 +516,57 @@ impl Pipeline {
         Ok(AsyncTask::new(AsyncRunAllTask {
             pipeline: self.inner.clone(),
             payload,
+        }))
+    }
+
+    /// Executes the pipeline synchronously with positional parameters in
+    /// declaration order. Parameters without a supplied value use their
+    /// declared default.
+    #[napi]
+    pub fn run_sync_args(&mut self, args: Vec<HostArg>) -> napi::Result<MorflowTensor> {
+        let payloads = collect_host_args(args)?;
+        let outputs = self.inner.run_args(payloads).map_err(map_error)?;
+        let single = outputs.into_single().map_err(map_error)?;
+        payload_to_morflow_tensor(single)
+    }
+
+    /// Executes the pipeline synchronously returning a map of all named output
+    /// streams, binding positional parameters in declaration order.
+    #[napi]
+    pub fn run_sync_all_args(
+        &mut self,
+        env: Env,
+        args: Vec<HostArg>,
+    ) -> napi::Result<napi::JsObject> {
+        let payloads = collect_host_args(args)?;
+        let outputs = self.inner.run_args(payloads).map_err(map_error)?;
+        let mut obj = env.create_object()?;
+        for (name, out_payload) in outputs.into_iter() {
+            let tensor_obj = payload_to_morflow_tensor(out_payload)?;
+            obj.set_named_property(&name, tensor_obj)?;
+        }
+        Ok(obj)
+    }
+
+    /// Executes the pipeline asynchronously on a worker thread with positional
+    /// parameters in declaration order, returning a Promise<MorflowTensor>.
+    #[napi]
+    pub fn run_args(&self, args: Vec<HostArg>) -> napi::Result<AsyncTask<AsyncRunArgsTask>> {
+        let payloads = collect_host_args(args)?;
+        Ok(AsyncTask::new(AsyncRunArgsTask {
+            pipeline: self.inner.clone(),
+            payloads,
+        }))
+    }
+
+    /// Executes the pipeline asynchronously on a worker thread with positional
+    /// parameters, returning a Promise<Record<string, MorflowTensor>>.
+    #[napi]
+    pub fn run_all_args(&self, args: Vec<HostArg>) -> napi::Result<AsyncTask<AsyncRunAllArgsTask>> {
+        let payloads = collect_host_args(args)?;
+        Ok(AsyncTask::new(AsyncRunAllArgsTask {
+            pipeline: self.inner.clone(),
+            payloads,
         }))
     }
 }

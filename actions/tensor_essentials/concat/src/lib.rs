@@ -46,7 +46,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             }
         }
         Payload::Tensor(t) => Payload::Tensor(t),
-        _ => Payload::Error(core_types::RString::from("Action \'concat\' requires Payload::Composite or Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'concat\' requires Payload::Composite or Payload::Tensor",
+        )),
     }
 }
 

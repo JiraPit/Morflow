@@ -26,8 +26,15 @@ echo "--> Building Java JAR package..."
 if command -v mvn &> /dev/null; then
     (cd bindings/java && mvn package -DskipTests)
     mkdir -p "$TARGET_DIR"
-    cp bindings/java/target/morflow-*.jar "$TARGET_DIR/" 2>/dev/null || true
-    echo "    ✓ Java JAR -> $TARGET_DIR/morflow-0.1.0.jar"
+    # Report the JAR that was actually produced rather than a hardcoded name.
+    jar="$(ls -t bindings/java/target/morflow-*.jar 2>/dev/null | head -1)"
+    if [ -n "$jar" ]; then
+        cp "$jar" "$TARGET_DIR/"
+        echo "    ✓ Java JAR -> $TARGET_DIR/$(basename "$jar")"
+    else
+        echo "    ✗ Error: no morflow-*.jar found in bindings/java/target/"
+        exit 1
+    fi
 fi
 
 echo ""

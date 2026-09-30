@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, RString, TensorDType};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -11,6 +11,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[derive(Clone, Copy)]
 struct BiquadCoeffs {

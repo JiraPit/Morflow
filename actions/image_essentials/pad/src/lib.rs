@@ -1,6 +1,8 @@
 #![allow(clippy::too_many_arguments, clippy::manual_memcpy)]
 
-use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, Tensor, TensorDType,
+};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -12,6 +14,72 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let dims_ = input.dims();
+    let r = dims_.len();
+    if r < 2 {
+        return input;
+    }
+    let mut pad_top = 0usize;
+    let mut pad_bottom = 0usize;
+    let mut pad_left = 0usize;
+    let mut pad_right = 0usize;
+    if let Some(p_str) = args
+        .get_named("pad")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(p) = p_str.parse::<usize>() {
+            pad_top = p;
+            pad_bottom = p;
+            pad_left = p;
+            pad_right = p;
+        }
+    }
+    if let Some(v) = args.get_named("top").or_else(|| args.get_named("pad_top")) {
+        if let Ok(p) = v.parse::<usize>() {
+            pad_top = p;
+        }
+    }
+    if let Some(v) = args
+        .get_named("bottom")
+        .or_else(|| args.get_named("pad_bottom"))
+    {
+        if let Ok(p) = v.parse::<usize>() {
+            pad_bottom = p;
+        }
+    }
+    if let Some(v) = args
+        .get_named("left")
+        .or_else(|| args.get_named("pad_left"))
+    {
+        if let Ok(p) = v.parse::<usize>() {
+            pad_left = p;
+        }
+    }
+    if let Some(v) = args
+        .get_named("right")
+        .or_else(|| args.get_named("pad_right"))
+    {
+        if let Ok(p) = v.parse::<usize>() {
+            pad_right = p;
+        }
+    }
+    let mut out = Vec::with_capacity(r);
+    if r == 2 {
+        out.push(dims_[0] + pad_top + pad_bottom);
+        out.push(dims_[1] + pad_left + pad_right);
+    } else {
+        out.push(dims_[0] + pad_top + pad_bottom);
+        out.push(dims_[1] + pad_left + pad_right);
+        out.push(dims_[2]);
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PadMode {
@@ -110,7 +178,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             );
             Payload::Tensor(res_tensor)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'pad\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'pad\' requires Payload::Tensor",
+        )),
     }
 }
 

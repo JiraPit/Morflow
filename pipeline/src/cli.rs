@@ -397,8 +397,8 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 format!(
                     "Failed to parse pipeline {}: {}",
                     file.display(),
-                    errs.into_iter()
-                        .map(|e| e.to_string())
+                    errs.iter()
+                        .map(parser::format_error)
                         .collect::<Vec<_>>()
                         .join(", ")
                 )

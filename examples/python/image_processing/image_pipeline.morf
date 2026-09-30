@@ -1,11 +1,12 @@
 # Morflow Image Processing Pipeline (.morf)
 
 import base/latest
-from image_essentials/latest import to_tensor, resize, color_adjust, gaussian_blur, to_image
+from base/latest import to_tensor
+from image_essentials/latest import resize, color_adjust, gaussian_blur, to_image
 
-accept $img_in
-accept $target_width = 512
-accept $target_height = 512
+accept Image $img_in
+accept IntArg $target_width = 512
+accept IntArg $target_height = 512
 
 # Direct chained dataflow from host image input to emitted output
 $img_in

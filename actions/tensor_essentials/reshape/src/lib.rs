@@ -1,14 +1,31 @@
-use core_types::{parse_shape_str, DataType, Payload};
+use core_types::{parse_shape_str, ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let shape_str = args
+        .get_named("shape")
+        .or_else(|| args.positional.first().map(|s| s.as_str()));
+    let Some(s_str) = shape_str else {
+        return input;
+    };
+    match parse_shape_str(s_str, input.dims().iter().product()) {
+        Ok(s) => Shape::new(s),
+        Err(_) => input,
+    }
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -31,11 +48,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
                 Err(e) => return Payload::Error(e),
             };
             match tensor.reshape(parsed_shape) {
-                Ok(reshaped) => Payload::Tensor(reshaped),
+                Ok(reshaped) => Payload::from_tensor(reshaped),
                 Err(e) => Payload::Error(e),
             }
         }
-                _ => Payload::Error(core_types::RString::from("Action \'reshape\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'reshape\' requires a tensor or scalar value",
+        )),
     }
 }
 

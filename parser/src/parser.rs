@@ -1,6 +1,16 @@
+use chumsky::error::Simple;
 use chumsky::prelude::*;
 
 use crate::ast::*;
+
+/// The bracketed part of a declared shape, before it is turned into a
+/// [`ParamShape`].
+enum ShapeContent {
+    /// `rank=n`, the short form for n wildcard dimensions.
+    Rank(usize),
+    /// An explicit dimension list, possibly empty.
+    Dims(Vec<ParamDim>),
+}
 
 fn ws<'a>() -> impl Parser<char, (), Error = Simple<char>> + Clone + 'a {
     let comment = choice((just('#').ignored(), just("//").ignored()))
@@ -342,12 +352,83 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     // Pipeline parameter parsing
     let param_name = choice((just('$').ignore_then(ident), ident));
 
-    // accept $a or accept $b = 44100
+    // A dimension inside a declared shape: a wildcard or an exact length.
+    let param_dim = choice((
+        just('*').to(ParamDim::Any),
+        text::digits(10).map(|s: String| ParamDim::Fixed(s.parse().unwrap())),
+    ));
+
+    // The contents of a shape's brackets: either the `rank=n` short form or an
+    // explicit dimension list. `rank=n` is sugar for n wildcards, so the two
+    // forms cannot be mixed.
+    let shape_content = choice((
+        text::keyword("rank")
+            .ignore_then(just('='))
+            .ignore_then(text::digits(10).map(|s: String| s.parse::<usize>().unwrap()))
+            .map(ShapeContent::Rank),
+        param_dim
+            .separated_by(padded(just(',')))
+            .allow_trailing()
+            .collect::<Vec<ParamDim>>()
+            .map(ShapeContent::Dims),
+    ));
+
+    let shape_suffix = just('[')
+        .ignore_then(shape_content)
+        .then_ignore(just(']'))
+        .try_map(
+            |content: ShapeContent, span: std::ops::Range<usize>| match content {
+                ShapeContent::Rank(0) => Err(Simple::custom(
+                    span,
+                    "rank=0 is not a shape; a rank-0 value has the type 'Scalar'",
+                )),
+                ShapeContent::Rank(rank) => Ok(ParamShape::Ranked {
+                    dims: vec![ParamDim::Any; rank],
+                }),
+                ShapeContent::Dims(dims) if dims.is_empty() => Ok(ParamShape::AnyRank),
+                ShapeContent::Dims(dims) => Ok(ParamShape::Ranked { dims }),
+            },
+        );
+
+    let param_type = choice((
+        text::keyword("RawBytes").to(ParamType::RawBytes),
+        text::keyword("IntArg").to(ParamType::IntArg),
+        text::keyword("FloatArg").to(ParamType::FloatArg),
+        text::keyword("StrArg").to(ParamType::StrArg),
+        text::keyword("BoolArg").to(ParamType::BoolArg),
+        text::keyword("Scalar").to(ParamType::Scalar),
+        text::keyword("Composite").to(ParamType::Composite),
+        text::keyword("Tensor")
+            .ignore_then(shape_suffix.clone().or_not())
+            .map(|shape| ParamType::Tensor(shape.unwrap_or(ParamShape::AnyRank))),
+        text::keyword("Image")
+            .ignore_then(shape_suffix.clone().or_not())
+            .map(|shape| ParamType::Image(shape.unwrap_or(ParamShape::AnyRank))),
+        text::keyword("Audio")
+            .ignore_then(shape_suffix.or_not())
+            .map(|shape| ParamType::Audio(shape.unwrap_or(ParamShape::AnyRank))),
+    ));
+
+    // `accept $x` with no type is an easy slip to make.
+    let bare_accept_name = just('$')
+        .ignore_then(ident)
+        .try_map(
+            |_, span: std::ops::Range<usize>| -> Result<ParamType, Simple<char>> {
+                Err(Simple::custom(
+                    span,
+                    "every 'accept' needs a type, for example 'accept RawBytes $input_audio' or 'accept Tensor[rank=2] $frames' (types: RawBytes, IntArg, FloatArg, StrArg, BoolArg, Scalar, Tensor, Image, Audio, Composite)",
+                ))
+            },
+        );
+
+    // accept <type> $a or accept <type> $b = 44100
     let accept_stmt = text::keyword("accept")
-        .ignore_then(padded(param_name))
+        .ignore_then(padded(choice((param_type, bare_accept_name))))
+        .then(padded(param_name))
         .then(padded(just('=')).ignore_then(value.clone()).or_not())
-        .map(|(name, default_value)| PipelineParam {
+        .map(|((param_type, name), default_value)| PipelineParam {
             name,
+            param_type,
             default_value,
         });
 

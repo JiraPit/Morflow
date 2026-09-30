@@ -5,10 +5,157 @@ use core_types::{
     Audio, AudioChannelLayout, AudioLayout, ColorSpace, Image, ImageLayout, Payload, Tensor,
     TensorDType,
 };
-use jni::objects::{JByteBuffer, JClass, JIntArray, JObject, JString, JValue};
-use jni::sys::{jlong, jobject, jobjectArray};
+use jni::objects::{
+    JByteArray, JByteBuffer, JClass, JIntArray, JObject, JObjectArray, JString, JValue,
+};
+use jni::sys::{jint, jlong, jobject, jobjectArray};
 use jni::JNIEnv;
 use pipeline::{Morflow, MorflowError, MorflowPipeline};
+
+/// Sample rate assumed by `payloadType="audio"` when the caller omits one.
+const DEFAULT_SAMPLE_RATE: u32 = 44100;
+
+/// The explicit payload type as passed across the JNI boundary by
+/// `nativeRunDirect`. Each optional field is a plain string so the FFI signature
+/// stays primitive; an empty string means "not specified".
+#[repr(C)]
+pub struct PayloadSpecJava {
+    payload_type: JString<'static>,
+    color_space: JString<'static>,
+    layout: JString<'static>,
+    sample_rate: jint,
+    channels: jint,
+}
+
+impl PayloadSpecJava {
+    fn opt_string(env: &mut JNIEnv, s: &JString) -> Result<Option<String>, String> {
+        if s.is_null() {
+            return Ok(None);
+        }
+        let v: String = env
+            .get_string(s)
+            .map(|v| v.into())
+            .map_err(|e| format!("Failed to read payload spec string: {}", e))?;
+        if v.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(v))
+        }
+    }
+
+    fn into_rust(self, env: &mut JNIEnv) -> Result<PayloadSpec, String> {
+        let kind = match Self::opt_string(env, &self.payload_type)? {
+            Some(spec) => PayloadKind::parse(&spec)?,
+            None => PayloadKind::Tensor,
+        };
+        Ok(PayloadSpec {
+            kind,
+            color_space: Self::opt_string(env, &self.color_space)?,
+            sample_rate: if self.sample_rate > 0 {
+                Some(self.sample_rate as u32)
+            } else {
+                None
+            },
+            channels: if self.channels > 0 {
+                Some(self.channels as u32)
+            } else {
+                None
+            },
+            layout: Self::opt_string(env, &self.layout)?,
+        })
+    }
+}
+
+/// Which payload type the caller explicitly asked for.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PayloadKind {
+    Tensor,
+    Image,
+    Audio,
+}
+
+impl PayloadKind {
+    fn parse(spec: &str) -> Result<Self, String> {
+        match spec.to_ascii_lowercase().as_str() {
+            "tensor" => Ok(PayloadKind::Tensor),
+            "image" => Ok(PayloadKind::Image),
+            "audio" => Ok(PayloadKind::Audio),
+            other => Err(format!(
+                "Unknown payloadType '{}' (expected one of: tensor, image, audio)",
+                other
+            )),
+        }
+    }
+}
+
+/// The explicit payload type plus the metadata needed to build it. There is no
+/// type inference here: a bare array is always `PayloadKind::Tensor`.
+struct PayloadSpec {
+    kind: PayloadKind,
+    color_space: Option<String>,
+    sample_rate: Option<u32>,
+    channels: Option<u32>,
+    layout: Option<String>,
+}
+
+impl Default for PayloadSpec {
+    fn default() -> Self {
+        Self {
+            kind: PayloadKind::Tensor,
+            color_space: None,
+            sample_rate: None,
+            channels: None,
+            layout: None,
+        }
+    }
+}
+
+fn parse_color_space(spec: &str) -> Result<ColorSpace, String> {
+    match spec.to_ascii_lowercase().as_str() {
+        "gray" | "grey" | "grayscale" => Ok(ColorSpace::Grayscale),
+        "rgb" => Ok(ColorSpace::Rgb),
+        "rgba" => Ok(ColorSpace::Rgba),
+        "bgr" => Ok(ColorSpace::Bgr),
+        "bgra" => Ok(ColorSpace::Bgra),
+        other => Err(format!(
+            "Unknown color space '{}' (expected one of: grayscale, rgb, rgba, bgr, bgra)",
+            other
+        )),
+    }
+}
+
+fn parse_image_layout(spec: &str) -> Result<ImageLayout, String> {
+    match spec.to_ascii_lowercase().as_str() {
+        "hwc" => Ok(ImageLayout::Hwc),
+        "chw" => Ok(ImageLayout::Chw),
+        other => Err(format!(
+            "Unknown image layout '{}' (expected 'hwc' or 'chw')",
+            other
+        )),
+    }
+}
+
+fn parse_audio_layout(spec: &str) -> Result<AudioLayout, String> {
+    match spec.to_ascii_lowercase().as_str() {
+        "planar" => Ok(AudioLayout::Planar),
+        "interleaved" => Ok(AudioLayout::Interleaved),
+        other => Err(format!(
+            "Unknown audio layout '{}' (expected 'planar' or 'interleaved')",
+            other
+        )),
+    }
+}
+
+/// Recognized image channel counts mapped to a color space, used only when the
+/// caller asks for an image payload but does not name a color space.
+fn infer_color_space(channels: usize) -> Option<ColorSpace> {
+    match channels {
+        1 => Some(ColorSpace::Grayscale),
+        3 => Some(ColorSpace::Rgb),
+        4 => Some(ColorSpace::Rgba),
+        _ => None,
+    }
+}
 
 fn throw_exception(env: &mut JNIEnv, msg: &str) {
     let _ = env.throw_new("org/morflow/MorflowException", msg);
@@ -179,6 +326,7 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRunDirect<'local>(
     buffer_obj: JByteBuffer<'local>,
     shape_obj: JIntArray<'local>,
     dtype_jstr: JString<'local>,
+    spec: PayloadSpecJava,
 ) -> jobject {
     if handle == 0 {
         throw_exception(&mut env, "Pipeline handle is null");
@@ -186,13 +334,22 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRunDirect<'local>(
     }
     let pipeline = unsafe { &mut *(handle as *mut MorflowPipeline) };
 
-    let input_payload = match direct_to_payload(&mut env, &buffer_obj, &shape_obj, &dtype_jstr) {
-        Ok(p) => p,
+    let spec = match spec.into_rust(&mut env) {
+        Ok(s) => s,
         Err(e) => {
-            throw_exception(&mut env, &format!("Failed to convert direct buffer: {}", e));
+            throw_exception(&mut env, &format!("Invalid payload type: {}", e));
             return std::ptr::null_mut();
         }
     };
+
+    let input_payload =
+        match direct_to_payload(&mut env, &buffer_obj, &shape_obj, &dtype_jstr, &spec) {
+            Ok(p) => p,
+            Err(e) => {
+                throw_exception(&mut env, &format!("Failed to convert direct buffer: {}", e));
+                return std::ptr::null_mut();
+            }
+        };
 
     let outputs = match pipeline.run(input_payload) {
         Ok(out) => out,
@@ -288,6 +445,201 @@ pub extern "system" fn Java_org_morflow_Pipeline_nativeRunAll<'local>(
     map_obj.into_raw()
 }
 
+/// Converts one element of a `Object[]` positional-arguments array into a
+/// payload. Recognizes numbers, strings, booleans, byte arrays, and
+/// `MorflowTensor` instances.
+fn java_arg_to_payload<'local>(
+    env: &mut JNIEnv<'local>,
+    obj: &JObject<'local>,
+) -> Result<Payload, String> {
+    if obj.is_null() {
+        return Ok(Payload::Data {
+            buffer: RVec::new(),
+        });
+    }
+
+    if env
+        .is_instance_of(obj, "org/morflow/MorflowTensor")
+        .map_err(|e| format!("Failed to inspect argument type: {}", e))?
+    {
+        return java_tensor_to_payload(env, obj);
+    }
+    if env
+        .is_instance_of(obj, "[B")
+        .map_err(|e| format!("Failed to inspect argument type: {}", e))?
+    {
+        let byte_arr: &JByteArray = obj.into();
+        let raw: Vec<u8> = env
+            .convert_byte_array(byte_arr)
+            .map_err(|e| format!("Failed to read byte[] argument: {}", e))?;
+        return Ok(Payload::Data {
+            buffer: RVec::from(raw),
+        });
+    }
+    // Numbers, booleans, and strings all carry their text representation.
+    for class in ["java/lang/Number", "java/lang/Boolean", "java/lang/String"] {
+        if env
+            .is_instance_of(obj, class)
+            .map_err(|e| format!("Failed to inspect argument type: {}", e))?
+        {
+            let repr = env
+                .call_method(obj, "toString", "()Ljava/lang/String;", &[])
+                .map_err(|e| format!("Failed to stringify argument: {}", e))?
+                .l()
+                .map_err(|e| format!("toString() did not return a String: {}", e))?;
+            let text: String = env
+                .get_string(&JString::from(repr))
+                .map_err(|e| format!("Failed to read argument text: {}", e))?
+                .into();
+            return Ok(Payload::Data {
+                buffer: RVec::from(text.into_bytes()),
+            });
+        }
+    }
+
+    Err(
+        "Unsupported argument type (expected a number, string, boolean, byte[], or MorflowTensor)"
+            .into(),
+    )
+}
+
+/// Collects every element of an `Object[]` positional-arguments array.
+fn java_args_to_payloads<'local>(
+    env: &mut JNIEnv<'local>,
+    args_obj: JObject<'local>,
+) -> Result<Vec<Payload>, String> {
+    if args_obj.is_null() {
+        return Ok(Vec::new());
+    }
+    let array = JObjectArray::from(args_obj);
+    let len = env
+        .get_array_length(&array)
+        .map_err(|e| format!("Failed to read arguments array length: {}", e))?;
+    let mut payloads = Vec::with_capacity(len as usize);
+    for i in 0..len {
+        let element = env
+            .get_object_array_element(&array, i)
+            .map_err(|e| format!("Failed to read argument {}: {}", i, e))?;
+        payloads.push(java_arg_to_payload(env, &element)?);
+    }
+    Ok(payloads)
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_morflow_Pipeline_nativeRunArgs<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    handle: jlong,
+    args_obj: JObject<'local>,
+) -> jobject {
+    if handle == 0 {
+        throw_exception(&mut env, "Pipeline handle is null");
+        return std::ptr::null_mut();
+    }
+    let pipeline = unsafe { &mut *(handle as *mut MorflowPipeline) };
+
+    let payloads = match java_args_to_payloads(&mut env, args_obj) {
+        Ok(p) => p,
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to convert arguments: {}", e));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let outputs = match pipeline.run_args(payloads) {
+        Ok(out) => out,
+        Err(e) => {
+            map_error_to_exception(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    let single_payload = match outputs.into_single() {
+        Ok(p) => p,
+        Err(e) => {
+            map_error_to_exception(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    match payload_to_java_tensor(&mut env, &single_payload) {
+        Ok(obj) => obj.into_raw(),
+        Err(e) => {
+            throw_exception(
+                &mut env,
+                &format!("Failed to convert output payload: {}", e),
+            );
+            std::ptr::null_mut()
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_org_morflow_Pipeline_nativeRunAllArgs<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    handle: jlong,
+    args_obj: JObject<'local>,
+) -> jobject {
+    if handle == 0 {
+        throw_exception(&mut env, "Pipeline handle is null");
+        return std::ptr::null_mut();
+    }
+    let pipeline = unsafe { &mut *(handle as *mut MorflowPipeline) };
+
+    let payloads = match java_args_to_payloads(&mut env, args_obj) {
+        Ok(p) => p,
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to convert arguments: {}", e));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let outputs = match pipeline.run_args(payloads) {
+        Ok(out) => out,
+        Err(e) => {
+            map_error_to_exception(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
+
+    let hash_map_class = match env.find_class("java/util/HashMap") {
+        Ok(c) => c,
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to find HashMap class: {}", e));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let map_obj = match env.new_object(&hash_map_class, "()V", &[]) {
+        Ok(m) => m,
+        Err(e) => {
+            throw_exception(&mut env, &format!("Failed to instantiate HashMap: {}", e));
+            return std::ptr::null_mut();
+        }
+    };
+
+    for (name, payload) in outputs.into_iter() {
+        let key_jstr = match env.new_string(&name) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        let val_tensor = match payload_to_java_tensor(&mut env, &payload) {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
+
+        let _ = env.call_method(
+            &map_obj,
+            "put",
+            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+            &[JValue::Object(&key_jstr), JValue::Object(&val_tensor)],
+        );
+    }
+
+    map_obj.into_raw()
+}
+
 #[no_mangle]
 pub extern "system" fn Java_org_morflow_Pipeline_nativeDestroy<'local>(
     _env: JNIEnv<'local>,
@@ -310,6 +662,7 @@ fn direct_to_payload<'local>(
     buffer_obj: &JByteBuffer<'local>,
     shape_obj: &JIntArray<'local>,
     dtype_jstr: &JString<'local>,
+    spec: &PayloadSpec,
 ) -> Result<Payload, String> {
     if buffer_obj.is_null() {
         return Ok(Payload::Data {
@@ -349,7 +702,7 @@ fn direct_to_payload<'local>(
         "raw".to_string()
     };
 
-    construct_payload_from_raw(byte_slice, usize_shape, &dtype_str)
+    construct_payload_from_raw(byte_slice, usize_shape, &dtype_str, spec)
 }
 
 fn java_tensor_to_payload<'local>(
@@ -396,13 +749,77 @@ fn java_tensor_to_payload<'local>(
 
     let dtype_jstr = JString::from(dtype_obj);
 
-    direct_to_payload(env, &byte_buffer, &shape_array, &dtype_jstr)
+    // 4. Get the explicit payload type and its optional metadata.
+    let spec = read_payload_spec(env, obj)?;
+
+    direct_to_payload(env, &byte_buffer, &shape_array, &dtype_jstr, &spec)
+}
+
+/// Reads `getPayloadType()` plus the optional `getColorSpace()`,
+/// `getSampleRate()`, `getChannels()`, and `getLayout()` accessors off a Java
+/// `MorflowTensor`. A `null` payload type means a plain tensor.
+fn read_payload_spec<'local>(
+    env: &mut JNIEnv<'local>,
+    obj: &JObject<'local>,
+) -> Result<PayloadSpec, String> {
+    fn call_string<'local>(
+        env: &mut JNIEnv<'local>,
+        obj: &JObject<'local>,
+        method: &str,
+    ) -> Result<Option<String>, String> {
+        let ret = env
+            .call_method(obj, method, "()Ljava/lang/String;", &[])
+            .map_err(|e| format!("Failed to call {}(): {}", method, e))?;
+        let s = JString::from(
+            ret.l()
+                .map_err(|e| format!("{}() did not return Object: {}", method, e))?,
+        );
+        if s.is_null() {
+            return Ok(None);
+        }
+        let v: String = env
+            .get_string(&s)
+            .map_err(|e| format!("Failed to read {}(): {}", method, e))?
+            .into();
+        if v.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(v))
+    }
+
+    let kind = match call_string(env, obj, "getPayloadType")? {
+        Some(spec) => PayloadKind::parse(&spec)?,
+        None => PayloadKind::Tensor,
+    };
+
+    let sample_rate = env
+        .call_method(obj, "getSampleRate", "()I", &[])
+        .map(|v| v.i().unwrap_or(0))
+        .ok()
+        .filter(|&v| v > 0)
+        .map(|v| v as u32);
+
+    let channels = env
+        .call_method(obj, "getChannels", "()I", &[])
+        .map(|v| v.i().unwrap_or(0))
+        .ok()
+        .filter(|&v| v > 0)
+        .map(|v| v as u32);
+
+    Ok(PayloadSpec {
+        kind,
+        color_space: call_string(env, obj, "getColorSpace")?,
+        sample_rate,
+        channels,
+        layout: call_string(env, obj, "getLayout")?,
+    })
 }
 
 fn construct_payload_from_raw(
     byte_slice: &[u8],
     usize_shape: Vec<usize>,
     dtype_str: &str,
+    spec: &PayloadSpec,
 ) -> Result<Payload, String> {
     // Construct Payload from byte slice, shape, and dtype
     let tensor = match dtype_str.to_lowercase().as_str() {
@@ -428,29 +845,53 @@ fn construct_payload_from_raw(
         }
     };
 
-    // Auto-detect Image / Audio if shape matches
-    if tensor.rank() == 3 {
-        let channels = tensor.shape[2];
-        let cs = match channels {
-            1 => Some(ColorSpace::Grayscale),
-            3 => Some(ColorSpace::Rgb),
-            4 => Some(ColorSpace::Rgba),
-            _ => None,
-        };
-        if let Some(color_space) = cs {
-            if let Ok(img) = Image::new(tensor.clone(), color_space, ImageLayout::Hwc) {
-                return Ok(Payload::Image(img));
-            }
+    match spec.kind {
+        PayloadKind::Tensor => Ok(Payload::Tensor(tensor)),
+        PayloadKind::Image => {
+            let color_space = match spec.color_space.as_deref() {
+                Some(name) => parse_color_space(name)?,
+                None => tensor
+                    .shape
+                    .get(2)
+                    .copied()
+                    .and_then(infer_color_space)
+                    .ok_or_else(|| {
+                        format!(
+                            "payloadType \"image\" could not infer a color space from shape {:?}; \
+                             pass colorSpace=\"grayscale\", \"rgb\", \"rgba\", \"bgr\", or \"bgra\"",
+                            tensor.shape.as_slice()
+                        )
+                    })?,
+            };
+            let layout = match spec.layout.as_deref() {
+                Some(name) => parse_image_layout(name)?,
+                None => ImageLayout::Hwc,
+            };
+            let img = Image::new(tensor, color_space, layout)
+                .map_err(|e| format!("Invalid image payload: {}", e))?;
+            Ok(Payload::Image(img))
         }
-    } else if tensor.rank() == 2 && tensor.shape[0] <= 8 {
-        let ch = tensor.shape[0];
-        let layout = AudioChannelLayout::from_channel_count(ch);
-        if let Ok(aud) = Audio::new(tensor.clone(), 44100, layout, AudioLayout::Planar) {
-            return Ok(Payload::Audio(aud));
+        PayloadKind::Audio => {
+            let layout = match spec.layout.as_deref() {
+                Some(name) => parse_audio_layout(name)?,
+                None => AudioLayout::Planar,
+            };
+            let channel_layout = match spec.channels {
+                Some(ch) => AudioChannelLayout::from_channel_count(ch as usize),
+                None => AudioChannelLayout::from_channel_count(
+                    tensor.shape.first().copied().unwrap_or(1),
+                ),
+            };
+            let aud = Audio::new(
+                tensor,
+                spec.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE),
+                channel_layout,
+                layout,
+            )
+            .map_err(|e| format!("Invalid audio payload: {}", e))?;
+            Ok(Payload::Audio(aud))
         }
     }
-
-    Ok(Payload::Tensor(tensor))
 }
 
 fn payload_to_java_tensor<'local>(
@@ -470,6 +911,10 @@ fn payload_to_java_tensor<'local>(
         Payload::Error(err) => Err(err.to_string()),
         Payload::Composite(_) => {
             Err("Composite payloads cannot be returned directly as a single MorflowTensor".into())
+        }
+        Payload::Scalar(t) => tensor_to_java_morflow_tensor(env, t),
+        Payload::Arg(_) => {
+            Err("Argument payloads cannot be returned directly as a MorflowTensor".into())
         }
     }
 }

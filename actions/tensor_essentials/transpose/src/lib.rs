@@ -1,14 +1,43 @@
-use core_types::{DataType, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let r = input.rank();
+    let d0 = args
+        .get_named("dim0")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+        .and_then(|s| s.parse::<isize>().ok())
+        .unwrap_or(-1);
+    let d1 = args
+        .get_named("dim1")
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
+        .and_then(|s| s.parse::<isize>().ok())
+        .unwrap_or(-2);
+    if r == 0 {
+        return input;
+    }
+    let d0_idx = if d0 < 0 { d0 + r as isize } else { d0 };
+    let d1_idx = if d1 < 0 { d1 + r as isize } else { d1 };
+    if d0_idx < 0 || d0_idx as usize >= r || d1_idx < 0 || d1_idx as usize >= r {
+        return input;
+    }
+    let mut out = input.dims().to_vec();
+    out.swap(d0_idx as usize, d1_idx as usize);
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -37,11 +66,13 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match tensor.transpose(dim0, dim1) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match tensor.transpose(dim0, dim1) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e),
         },
-        _ => Payload::Error(core_types::RString::from("Action \'transpose\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'transpose\' requires a tensor or scalar value",
+        )),
     }
 }
 

@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use abi_stable::std_types::{RBox, RString, RVec, Tuple2};
 use core_types::{
-    ActionArgs, Audio, AudioChannelLayout, AudioLayout, Image, ImageLayout, Payload, Tensor,
+    scalar_number, tensor_scalar_text, ActionArgs, Audio, AudioChannelLayout, AudioLayout, Image,
+    ImageLayout, Payload,
 };
 use parser::ast::{
     ActionCall, BinaryOp, Condition, FlowChain, FlowStep, SliceItem, Statement, Value, VarRef,
@@ -280,25 +281,12 @@ impl AutoParallelScheduler {
                         MorflowError::Execution("Loop 'each' requires an input tensor".to_string())
                     })?;
 
-                    let tensor = match payload_in {
-                        Payload::Tensor(tensor) => tensor,
-                        Payload::Image(image) => image.tensor,
-                        Payload::Audio(audio) => audio.tensor,
-                        _ => {
-                            return Err(MorflowError::TypeMismatch(
-                                "Cannot execute 'each' loop on non-Tensor/non-Image/non-Audio payload".to_string(),
-                            ));
-                        }
-                    };
-
-                    let rank = tensor.rank();
-                    if rank == 0 {
-                        return Err(MorflowError::Execution(
-                            "Cannot loop over scalar/empty tensor".to_string(),
-                        ));
-                    }
-
-                    let num_slices = tensor.shape[0];
+                    // Resolve the iteration axis from the payload variant so the
+                    // loop iterates channels for images and multi-channel audio,
+                    // and preserves the payload type on every iteration.
+                    let (_, num_slices) = payload_in
+                        .each_axis()
+                        .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?;
 
                     // AUTO-PARALLELIZATION:
                     // 1. Expand the loop into N independent slice execution sub-flows.
@@ -307,21 +295,24 @@ impl AutoParallelScheduler {
                     let slice_results: Result<Vec<Payload>, MorflowError> = (0..num_slices)
                         .into_par_iter()
                         .map(|i| {
-                            // Zero-copy slice view for this iteration
-                            let slice = tensor
-                                .slice_axis_index(0, i)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
+                            // Zero-copy slice view for this iteration, carrying the
+                            // original payload variant where the shape allows it.
+                            let slice_payload = payload_in
+                                .each_slice(i)
+                                .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?;
 
-                            let slice_payload = Payload::Tensor(slice.clone());
+                            // The env holds the loop variable, so it needs its own
+                            // handle to the same iteration payload.
+                            let loop_val = slice_payload.clone();
                             let layered_env = LayeredEnv {
                                 parent: env,
                                 local_name: &each_loop.var_name,
-                                local_val: &slice_payload,
+                                local_val: &loop_val,
                                 local_writes: RwLock::new(HashMap::new()),
                             };
                             let env_ref = EnvRef::Layered(&layered_env);
 
-                            let mut iter_in = Some(Payload::Tensor(slice));
+                            let mut iter_in = Some(slice_payload);
                             for (sub_idx, stmt) in each_loop.body.iter().enumerate() {
                                 let Statement::Flow(sub_flow) = stmt;
                                 let mut sub_step_res = None;
@@ -347,25 +338,14 @@ impl AutoParallelScheduler {
 
                     let collected = slice_results?;
 
-                    // Recombine output tensors along axis 0 in parallel
-                    let mut tensor_slices = Vec::with_capacity(collected.len());
-                    let mut all_tensors = true;
-
-                    for item in &collected {
-                        if let Payload::Tensor(t) = item {
-                            tensor_slices.push(t.clone());
-                        } else {
-                            all_tensors = false;
-                        }
-                    }
-
-                    if all_tensors && !tensor_slices.is_empty() {
-                        let stacked = Tensor::stack(&tensor_slices, 0)
-                            .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        current = Some(Payload::Tensor(stacked));
-                    } else {
-                        current = collected.into_iter().last();
-                    }
+                    // Restack the iteration outputs into a single payload,
+                    // preserving the variant and rejecting mismatched results
+                    // rather than silently dropping iterations.
+                    current = Some(
+                        payload_in
+                            .each_restack(&collected)
+                            .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?,
+                    );
                 }
                 FlowStep::Route(route_block) => {
                     let mut matched_branch = None;
@@ -495,7 +475,7 @@ impl AutoParallelScheduler {
                         }
                     }
                 }
-                Ok(Payload::Tensor(sliced))
+                Ok(Payload::from_tensor(sliced))
             }
             Payload::Image(image) => {
                 let mut sliced = image.tensor;
@@ -546,10 +526,15 @@ impl AutoParallelScheduler {
                     }
                 }
 
-                if let Ok(img) = Image::new(sliced.clone(), image.color_space, image.layout) {
-                    Ok(Payload::Image(img))
-                } else {
-                    Ok(Payload::Tensor(sliced))
+                // Slicing an image must leave something an Image can still hold,
+                // so a slice that drops below rank 2 is refused rather than
+                // silently changing the payload's type.
+                match Image::new(sliced.clone(), image.color_space, image.layout) {
+                    Ok(img) => Ok(Payload::Image(img)),
+                    Err(e) => Err(MorflowError::TypeMismatch(format!(
+                        "Cannot slice {}: {}",
+                        var_ref.name, e
+                    ))),
                 }
             }
             Payload::Audio(audio) => {
@@ -598,6 +583,11 @@ impl AutoParallelScheduler {
                 }
 
                 let rank = sliced.rank();
+                // A single sample is a rank-0 value, which Audio cannot hold, so
+                // it becomes a Scalar rather than changing the type to a tensor.
+                if rank == 0 {
+                    return Ok(Payload::Scalar(sliced));
+                }
                 let ch_count = match (rank, audio.layout) {
                     (1, _) => 1,
                     (2, AudioLayout::Planar) => sliced.shape[0],
@@ -616,7 +606,10 @@ impl AutoParallelScheduler {
                         return Ok(Payload::Audio(aud));
                     }
                 }
-                Ok(Payload::Tensor(sliced))
+                Err(MorflowError::TypeMismatch(format!(
+                    "Cannot slice ${}: the result has rank {} and {} channels, which is not a valid Audio payload",
+                    var_ref.name, rank, ch_count
+                )))
             }
             Payload::Data { buffer } => {
                 if let Some(SliceItem::Range {
@@ -645,6 +638,12 @@ impl AutoParallelScheduler {
                     Ok(Payload::Data { buffer })
                 }
             }
+            // Arguments are plain values and scalars are rank-0, so neither has
+            // a dimension to slice.
+            Payload::Arg(_) | Payload::Scalar(_) => Err(MorflowError::TypeMismatch(format!(
+                "Cannot slice ${}: it holds a value, not a payload",
+                var_ref.name
+            ))),
             other => Ok(other),
         }
     }
@@ -661,6 +660,10 @@ impl AutoParallelScheduler {
                         Payload::Data { buffer } => {
                             String::from_utf8_lossy(buffer.as_slice()).to_string()
                         }
+                        Payload::Arg(bytes) => {
+                            String::from_utf8_lossy(bytes.as_slice()).to_string()
+                        }
+                        Payload::Scalar(t) => tensor_scalar_text(t),
                         Payload::Tensor(t) => {
                             format!("<Tensor shape={:?}>", t.shape.as_slice())
                         }
@@ -875,28 +878,29 @@ fn resolve_number_or_field(
                         _ => None,
                     },
                     Some("peak") | Some("peak_abs") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) => Some(t.peak_abs()),
+                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.peak_abs()),
                         Payload::Image(img) => Some(img.tensor.peak_abs()),
                         Payload::Audio(aud) => Some(aud.tensor.peak_abs()),
                         _ => None,
                     },
                     Some("rms") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) => Some(t.rms()),
+                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.rms()),
                         Payload::Image(img) => Some(img.tensor.rms()),
                         Payload::Audio(aud) => Some(aud.tensor.rms()),
                         _ => None,
                     },
                     Some("mean") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) => Some(t.mean()),
+                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.mean()),
                         Payload::Image(img) => Some(img.tensor.mean()),
                         Payload::Audio(aud) => Some(aud.tensor.mean()),
                         _ => None,
                     },
                     Some("len") | Some("length") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) => Some(t.num_elements() as f64),
+                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.num_elements() as f64),
                         Payload::Image(img) => Some(img.tensor.num_elements() as f64),
                         Payload::Audio(aud) => Some(aud.tensor.num_elements() as f64),
                         Payload::Data { buffer } => Some(buffer.len() as f64),
+                        Payload::Arg(bytes) => Some(bytes.len() as f64),
                         _ => None,
                     },
                     _ => match payload.unwrap_payload() {
@@ -912,6 +916,13 @@ fn resolve_number_or_field(
                                 None
                             }
                         }
+                        // An argument parameter is readable as a number when it
+                        // holds one.
+                        Payload::Arg(bytes) => std::str::from_utf8(bytes.as_slice())
+                            .ok()
+                            .and_then(|s| s.trim().parse::<f64>().ok()),
+                        // A scalar is a single number of whatever dtype it holds.
+                        Payload::Scalar(t) => scalar_number(t),
                         _ => None,
                     },
                 }

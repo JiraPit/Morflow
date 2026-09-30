@@ -1,4 +1,4 @@
-use core_types::{DataType, ImageLayout, Payload};
+use core_types::{ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -9,6 +9,71 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> Shape {
+    let dims_ = input.dims();
+    let r = dims_.len();
+    if r < 2 {
+        return input;
+    }
+    let (in_h, in_w) = (dims_[0], dims_[1]);
+    let mut crop_x = 0usize;
+    let mut crop_y = 0usize;
+    let mut crop_w: Option<usize> = None;
+    let mut crop_h: Option<usize> = None;
+    if let Some(x_str) = args
+        .get_named("x")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(v) = x_str.parse::<usize>() {
+            crop_x = v;
+        }
+    }
+    if let Some(y_str) = args
+        .get_named("y")
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()))
+    {
+        if let Ok(v) = y_str.parse::<usize>() {
+            crop_y = v;
+        }
+    }
+    if let Some(w_str) = args
+        .get_named("width")
+        .or_else(|| args.get_named("w"))
+        .or_else(|| args.positional.get(2).map(|s| s.as_str()))
+    {
+        crop_w = w_str.parse::<usize>().ok();
+    }
+    if let Some(h_str) = args
+        .get_named("height")
+        .or_else(|| args.get_named("h"))
+        .or_else(|| args.positional.get(3).map(|s| s.as_str()))
+    {
+        crop_h = h_str.parse::<usize>().ok();
+    }
+    let x0 = crop_x.min(in_w);
+    let y0 = crop_y.min(in_h);
+    let w = crop_w.unwrap_or(in_w.saturating_sub(x0)).min(in_w - x0);
+    let h = crop_h.unwrap_or(in_h.saturating_sub(y0)).min(in_h - y0);
+    let mut out = Vec::with_capacity(r);
+    if r == 3 && in_w > 4 && dims_[0] <= 4 {
+        // CHW layout: [C, H, W]
+        out.push(dims_[0]);
+        out.push(h);
+        out.push(w);
+    } else {
+        out.push(h);
+        out.push(w);
+        if r == 3 {
+            out.push(dims_[2]);
+        }
+    }
+    Shape::new(out)
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -89,7 +154,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
 
             Payload::Tensor(tensor)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'crop\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'crop\' requires Payload::Tensor",
+        )),
     }
 }
 

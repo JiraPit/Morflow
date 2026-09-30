@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -8,16 +8,24 @@ pub extern "C" fn get_input_type() -> DataType {
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(_input: Shape, _args: ActionArgs) -> Shape {
+    Shape::new(Vec::new())
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
     let (inner_payload, _) = payload.take_payload_and_args();
 
     match inner_payload {
-        Payload::Tensor(tensor) => match compute_det(&tensor) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match compute_det(&tensor) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
         other => other,
@@ -96,7 +104,7 @@ fn compute_det(tensor: &Tensor) -> Result<Tensor, String> {
     let out_shape = if r > 2 {
         tensor.shape[0..r - 2].to_vec()
     } else {
-        vec![1]
+        Vec::new()
     };
 
     Tensor::from_f32_vec(out_dets, out_shape).map_err(|e| e.to_string())
@@ -112,10 +120,24 @@ mod tests {
         // [4, 7; 2, 6] -> det = 24 - 14 = 10
         let mat = Tensor::from_f32_shape(&[4.0, 7.0, 2.0, 6.0], vec![2, 2]).unwrap();
         let res = process(Payload::Tensor(mat));
-        if let Payload::Tensor(out) = res {
+        if let Payload::Scalar(out) = res {
             assert!((out.as_f32_slice().unwrap()[0] - 10.0).abs() < 1e-4);
         } else {
-            panic!("Expected Tensor output");
+            panic!("Expected Scalar output");
+        }
+    }
+    #[test]
+    fn test_det_returns_scalar_for_tensor_input() {
+        let tensor = Tensor::from_f32_shape(&[4.0, 7.0, 2.0, 6.0], vec![2, 2]).unwrap();
+        let res = process(Payload::Tensor(tensor));
+        match res {
+            Payload::Scalar(out) => {
+                assert!(out.as_f32_slice().is_some());
+            }
+            other => panic!(
+                "action did not return a scalar: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

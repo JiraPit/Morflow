@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -9,6 +9,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -28,8 +36,8 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match compute_diag(&tensor, k) {
-            Ok(t) => Payload::Tensor(t),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match compute_diag(&tensor, k) {
+            Ok(t) => Payload::from_tensor(t),
             Err(e) => Payload::Error(e.into()),
         },
         other => other,

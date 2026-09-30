@@ -28,23 +28,25 @@ echo " Host OS: $UNAME_S (producing .$EXT libraries)"
 echo " Target Pack: $TARGET_PACK | Target Action: $TARGET_ACTION"
 echo "=================================================="
 
-# Function to build and copy a single action
+# Function to build and copy a single action.
+# Returns 0 if the action was built, 1 if it was filtered out by the
+# target pack/action arguments. A hard failure exits the script.
 build_action() {
     local pack="$1"
     local action="$2"
 
     if [ "$TARGET_PACK" != "all" ] && [ "$TARGET_PACK" != "$pack" ]; then
-        return 0
+        return 1
     fi
     if [ "$TARGET_ACTION" != "all" ] && [ "$TARGET_ACTION" != "$action" ]; then
-        return 0
+        return 1
     fi
 
     echo "--> Compiling [$pack] $action..."
     cargo build --release --package "$action"
 
     mkdir -p "$TARGET_DIR/actions/$pack"
-    
+
     local src_file="$TARGET_DIR/${PREFIX}${action}.${EXT}"
     if [ ! -f "$src_file" ]; then
         src_file="$TARGET_DIR/${action}.${EXT}"
@@ -55,33 +57,30 @@ build_action() {
         cp "$src_file" "$TARGET_DIR/actions/$pack/$dest_action_file"
         cp "$src_file" "$TARGET_DIR/actions/$dest_action_file"
         echo "    ✓ Packaged to $TARGET_DIR/actions/$pack/$dest_action_file"
+        return 0
     else
         echo "    ✗ Error: Compiled library not found at $src_file"
         exit 1
     fi
 }
 
-mkdir -p "$TARGET_DIR/actions/base"
-mkdir -p "$TARGET_DIR/actions/audio_essentials"
-mkdir -p "$TARGET_DIR/actions/image_essentials"
+# Discover every action under actions/<pack>/<action>/ and build it.
+# The action tree is the single source of truth, so new actions and packs are
+# picked up automatically without editing this script.
+BUILT=0
+SKIPPED=0
 
-# Base Actions
-for act in identity to_tensor; do
-    build_action "base" "$act"
-done
-
-# Image Essentials Actions
-for act in to_image resize crop pad color_adjust gaussian_blur edge_detect sharpen threshold rotate flip blend morphology; do
-    build_action "image_essentials" "$act"
-done
-
-# Audio Essentials Actions
-for act in to_audio to_pcm to_wav gain normalize biquad_filter compressor limiter noise_gate stereo_widen resample stft delay; do
-    build_action "audio_essentials" "$act"
+for pack_dir in actions/*/; do
+    pack="$(basename "$pack_dir")"
+    for action_dir in "$pack_dir"*/; do
+        [ -f "$action_dir/Cargo.toml" ] || continue
+        act="$(basename "$action_dir")"
+        build_action "$pack" "$act" && BUILT=$((BUILT + 1)) || SKIPPED=$((SKIPPED + 1))
+    done
 done
 
 echo ""
 echo "=================================================="
-echo " Action Pack build complete!"
+echo " Action Pack build complete! ($BUILT built, $SKIPPED skipped)"
 echo " Binaries located in $TARGET_DIR/actions/"
 echo "=================================================="

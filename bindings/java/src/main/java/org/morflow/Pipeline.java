@@ -64,10 +64,7 @@ public class Pipeline implements AutoCloseable {
      */
     public MorflowTensor run(MorflowTensor input) {
         checkClosed();
-        if (input == null) {
-            return nativeRun(nativeHandle, null);
-        }
-        return nativeRunDirect(nativeHandle, input.getData(), input.getShape(), input.getDtype());
+        return nativeRun(nativeHandle, input);
     }
 
     /**
@@ -89,8 +86,37 @@ public class Pipeline implements AutoCloseable {
      * @return Single emitted output tensor.
      */
     public MorflowTensor run(ByteBuffer directBuffer, int[] shape, String dtype) {
+        return run(directBuffer, shape, dtype, null, null, null, 0, 0);
+    }
+
+    /**
+     * Executes the pipeline with a direct {@link ByteBuffer} and an explicit payload type.
+     *
+     * <p>There is no type inference. With a null {@code payloadType} the input is
+     * sent as a plain tensor, regardless of its shape.
+     *
+     * @param directBuffer Direct byte buffer allocated via {@link ByteBuffer#allocateDirect(int)}.
+     * @param shape        Dimensions array (e.g. [H, W, C] or [channels, samples]).
+     * @param dtype        Data type ("f32", "u8", "i32", "raw").
+     * @param payloadType  "tensor", "image", or "audio". Null means a plain tensor.
+     * @param colorSpace   Color space for "image" ("grayscale", "rgb", "rgba", "bgr", "bgra").
+     * @param layout       "hwc"/"chw" for images, "planar"/"interleaved" for audio.
+     * @param sampleRate   Sample rate in Hz for "audio". 0 defaults to 44100.
+     * @param channels     Channel count for "audio". 0 defaults to the leading dimension.
+     * @return Single emitted output tensor.
+     */
+    public MorflowTensor run(
+            ByteBuffer directBuffer,
+            int[] shape,
+            String dtype,
+            String payloadType,
+            String colorSpace,
+            String layout,
+            int sampleRate,
+            int channels) {
         checkClosed();
-        return nativeRunDirect(nativeHandle, directBuffer, shape, dtype);
+        return nativeRunDirect(
+                nativeHandle, directBuffer, shape, dtype, payloadType, colorSpace, layout, sampleRate, channels);
     }
 
     /**
@@ -113,6 +139,33 @@ public class Pipeline implements AutoCloseable {
     public Map<String, MorflowTensor> runAll(MorflowTensor input) {
         checkClosed();
         return nativeRunAll(nativeHandle, input);
+    }
+
+    /**
+     * Executes the pipeline with positional parameters bound in declaration
+     * order. Each value is a {@link MorflowTensor}, a {@code byte[]} (raw
+     * bytes), a number ({@code Scalar} or {@code *Arg}), a {@link String}
+     * ({@code StrArg}), or a {@link Boolean} ({@code BoolArg}). Parameters
+     * without a supplied value use their declared default.
+     *
+     * @param args Positional parameter values.
+     * @return Single emitted output tensor.
+     */
+    public MorflowTensor runArgs(Object... args) {
+        checkClosed();
+        return nativeRunArgs(nativeHandle, args);
+    }
+
+    /**
+     * Executes the pipeline with positional parameters bound in declaration
+     * order and returns a dictionary of all named emitted streams.
+     *
+     * @param args Positional parameter values.
+     * @return Map of stream name to output tensor.
+     */
+    public Map<String, MorflowTensor> runAllArgs(Object... args) {
+        checkClosed();
+        return nativeRunAllArgs(nativeHandle, args);
     }
 
     /**
@@ -154,7 +207,18 @@ public class Pipeline implements AutoCloseable {
     private static native long nativeFromStr(String source);
     private static native String[] nativeGetParams(long handle);
     private static native MorflowTensor nativeRun(long handle, MorflowTensor input);
-    private static native MorflowTensor nativeRunDirect(long handle, ByteBuffer buffer, int[] shape, String dtype);
+    private static native MorflowTensor nativeRunDirect(
+            long handle,
+            ByteBuffer buffer,
+            int[] shape,
+            String dtype,
+            String payloadType,
+            String colorSpace,
+            String layout,
+            int sampleRate,
+            int channels);
     private static native Map<String, MorflowTensor> nativeRunAll(long handle, MorflowTensor input);
+    private static native MorflowTensor nativeRunArgs(long handle, Object[] args);
+    private static native Map<String, MorflowTensor> nativeRunAllArgs(long handle, Object[] args);
     private static native void nativeDestroy(long handle);
 }

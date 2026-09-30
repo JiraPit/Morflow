@@ -1,15 +1,23 @@
-use core_types::{DataType, Payload, TensorDType};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[inline]
 fn gelu_exact(x: f32) -> f32 {
@@ -56,16 +64,20 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(mut tensor) if tensor.dtype == TensorDType::F32 => {
+        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
+            if tensor.dtype == TensorDType::F32 =>
+        {
             let slice = tensor.as_f32_slice_mut();
             if use_tanh {
                 slice.par_iter_mut().for_each(|x| *x = gelu_tanh(*x));
             } else {
                 slice.par_iter_mut().for_each(|x| *x = gelu_exact(*x));
             }
-            Payload::Tensor(tensor)
+            Payload::from_tensor(tensor)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'gelu\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'gelu\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -85,6 +97,17 @@ mod tests {
             assert!((slice[2] - (-0.1587)).abs() < 1e-3);
         } else {
             panic!("Expected Tensor output");
+        }
+    }
+    #[test]
+    fn test_gelu_accepts_a_scalar_value() {
+        let res = process(Payload::scalar_f32(2.0));
+        match res {
+            Payload::Scalar(_) => {}
+            other => panic!(
+                "scalar path produced the wrong payload: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

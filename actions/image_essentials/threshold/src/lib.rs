@@ -1,4 +1,4 @@
-use core_types::{DataType, Payload, Tensor, TensorDType};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -10,6 +10,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum ThreshMode {
@@ -56,7 +64,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             apply_threshold(&mut tensor, threshold_opt, max_val_opt, mode);
             Payload::Tensor(tensor)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'threshold\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'threshold\' requires Payload::Tensor",
+        )),
     }
 }
 

@@ -1,14 +1,22 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -39,11 +47,15 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match roll_tensor(&tensor, shift, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        _ => Payload::Error(core_types::RString::from("Action \'roll\' requires Payload::Tensor")),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match roll_tensor(&tensor, shift, axis) {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e.into()),
+            }
+        }
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'roll\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -109,6 +121,20 @@ mod tests {
             assert_eq!(out.as_f32_slice().unwrap(), &[4.0, 5.0, 1.0, 2.0, 3.0]);
         } else {
             panic!("Expected Tensor output");
+        }
+    }
+
+    #[test]
+    fn test_roll_accepts_a_scalar_value() {
+        let res = process(Payload::scalar_f32(2.0));
+        match res {
+            Payload::Scalar(out) => {
+                assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);
+            }
+            other => panic!(
+                "scalar path produced the wrong payload: {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

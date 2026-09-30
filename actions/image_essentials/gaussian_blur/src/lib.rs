@@ -1,4 +1,6 @@
-use core_types::{DataType, ImageLayout, Payload, Tensor, TensorDType};
+use core_types::{
+    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, Tensor, TensorDType,
+};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -10,6 +12,14 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum BlurType {
@@ -59,7 +69,9 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             let res = apply_blur(&tensor, layout, sigma, radius, blur_type);
             Payload::Tensor(res)
         }
-        _ => Payload::Error(core_types::RString::from("Action \'gaussian_blur\' requires Payload::Tensor")),
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'gaussian_blur\' requires Payload::Tensor",
+        )),
     }
 }
 

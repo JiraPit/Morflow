@@ -192,11 +192,9 @@ impl Tensor {
     /// Returns the total number of elements represented by this view.
     #[inline]
     pub fn num_elements(&self) -> usize {
-        if self.shape.is_empty() {
-            0
-        } else {
-            self.shape.iter().product()
-        }
+        // A rank-0 tensor is a scalar and holds exactly one element, which is the
+        // empty product. Returning 0 here would make scalars unstackable.
+        self.shape.iter().product()
     }
 
     /// Returns the rank (number of dimensions) of the tensor.

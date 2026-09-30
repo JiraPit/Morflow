@@ -6,7 +6,7 @@
 #
 # Custom options:
 #   curl -fsSL https://raw.githubusercontent.com/JiraPit/Morflow/main/install.sh | bash -s -- --dir /usr/local/bin
-#   MORFLOW_VERSION=0.1.2 curl -fsSL https://raw.githubusercontent.com/JiraPit/Morflow/main/install.sh | bash
+#   MORFLOW_VERSION=0.2.0 curl -fsSL https://raw.githubusercontent.com/JiraPit/Morflow/main/install.sh | bash
 #
 # Environment variables:
 #   MORFLOW_INSTALL_DIR  Directory to install the binary to (default: ~/.morflow/bin)
@@ -18,7 +18,8 @@ set -e
 REPO="${MORFLOW_REPO:-JiraPit/Morflow}"
 INSTALL_DIR="${MORFLOW_INSTALL_DIR:-$HOME/.morflow/bin}"
 VERSION="${MORFLOW_VERSION:-}"
-FALLBACK_VERSION="0.1.2"
+# Must match the engine CLI version in pipeline/Cargo.toml.
+FALLBACK_VERSION="0.2.0"
 
 # Parse optional arguments when invoked as `bash -s -- [args]`
 while [ $# -gt 0 ]; do

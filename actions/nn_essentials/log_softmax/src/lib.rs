@@ -1,15 +1,23 @@
-use core_types::{DataType, Payload, Tensor};
+use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Tensor
+    DataType::Tensor | DataType::Scalar
 }
+
+#[no_mangle]
+pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> Shape {
+    input
+}
+
+// Compile-time check that get_output_shape matches the core_types ABI.
+const _: GetShapeFn = get_output_shape;
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload) -> Payload {
@@ -29,11 +37,15 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 
     match inner_payload {
-        Payload::Tensor(tensor) => match compute_log_softmax(&tensor, axis) {
-            Ok(t) => Payload::Tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        _ => Payload::Error(core_types::RString::from("Action \'log_softmax\' requires Payload::Tensor")),
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match compute_log_softmax(&tensor, axis) {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e.into()),
+            }
+        }
+        _ => Payload::Error(core_types::RString::from(
+            "Action \'log_softmax\' requires a tensor or scalar value",
+        )),
     }
 }
 
@@ -41,7 +53,7 @@ fn compute_log_softmax(tensor: &Tensor, axis_raw: isize) -> Result<Tensor, Strin
     let vals = tensor.to_vec_f32();
     let r = tensor.rank();
     if r == 0 {
-        return Ok(Tensor::from_f32_slice(&[0.0]));
+        return Ok(Tensor::from_f32_vec(vec![0.0], vec![]).unwrap());
     }
 
     let ax = if axis_raw < 0 {
