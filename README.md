@@ -169,7 +169,7 @@ pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResu
     input.into()
 }
 ```
-Compile to `.so`/`.dll` and drop it into your actions directory—Morflow discovers and registers it dynamically at runtime with zero host recompilation.
+Compile to `.so`/`.dll`/`.dylib` and drop it into your actions directory—Morflow discovers and registers it dynamically at runtime with zero host recompilation.
 
 ---
 
