@@ -64,7 +64,7 @@ def test_bytes_payload():
 
 def test_audio_pipeline_raw_pcm_and_wav():
     pipeline = morflow.from_str("""
-        import audio_essentials/latest
+        import audio_basics/latest
         accept Bytes $data
         $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
     """)
@@ -81,7 +81,7 @@ def test_bare_rank2_array_is_a_plain_tensor():
     """There is no type inference: a bare [4, N] feature matrix is a tensor and
     reaches tensor actions without any wrapping."""
     pipeline = morflow.from_str("""
-        import tensor_essentials/latest
+        import tensor_basics/latest
         accept Tensor $data
         $data >> reshape(shape="2, 1000") >> emit
     """)
@@ -94,7 +94,7 @@ def test_bare_rank2_array_is_a_plain_tensor():
 def test_tensor_wrapper_forces_plain_tensor():
     """morflow.Tensor is the explicit form of the same plain-tensor behavior."""
     pipeline = morflow.from_str("""
-        import tensor_essentials/latest
+        import tensor_basics/latest
         accept Tensor $data
         $data >> reshape(shape="2, 1000") >> emit
     """)
@@ -106,7 +106,7 @@ def test_tensor_wrapper_forces_plain_tensor():
 
 def test_audio_wrapper_forces_audio_payload():
     pipeline = morflow.from_str("""
-        import audio_essentials/latest
+        import audio_basics/latest
         accept Audio $audio
         $audio >> to_wav >> emit
     """)
@@ -119,7 +119,7 @@ def test_audio_wrapper_forces_audio_payload():
 def test_image_wrapper_forces_image_payload():
     pipeline = morflow.from_str("""
         from base/latest import to_tensor
-        from image_essentials/latest import to_image
+        from image_basics/latest import to_image
         accept Image $image
         $image >> to_tensor >> to_image >> emit
     """)
@@ -150,7 +150,7 @@ def test_bare_rank2_array_is_not_inferred_as_audio():
     """A bare [2, N] array is a plain tensor, so an audio-native action rejects
     it. Wrap it in morflow.Audio to send an audio payload."""
     pipeline = morflow.from_str("""
-        from audio_essentials/latest import to_wav
+        from audio_basics/latest import to_wav
         accept Audio $audio
         $audio >> to_wav >> emit
     """)
@@ -165,7 +165,7 @@ def test_bare_rank3_array_runs_as_a_plain_tensor():
     DataType::Tensor input, so they accept it directly and to_image re-wraps
     the result as an image."""
     pipeline = morflow.from_str("""
-        from image_essentials/latest import to_image
+        from image_basics/latest import to_image
         accept Tensor $image
         $image >> to_image >> emit
     """)
@@ -185,7 +185,7 @@ def test_scalar_param_accepts_plain_number():
 
 def test_scalar_param_survives_action_chain():
     pipeline = morflow.from_str("""
-        import nn_essentials/latest
+        import nn_basics/latest
         accept Scalar $value
         $value >> relu >> emit
     """)
@@ -195,7 +195,7 @@ def test_scalar_param_survives_action_chain():
 
 def test_intarg_param_with_default():
     pipeline = morflow.from_str("""
-        import audio_essentials/latest
+        import audio_basics/latest
         accept Bytes $data
         accept IntArg $rate = 48000
         $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
@@ -209,7 +209,7 @@ def test_intarg_param_with_default():
 
 def test_arg_params_and_scalar_together():
     pipeline = morflow.from_str("""
-        import audio_essentials/latest
+        import audio_basics/latest
         accept Audio $audio
         accept FloatArg $linear = 1.0
         accept BoolArg $routed = true
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
 def test_qr_composite_component_selection():
     pipeline = morflow.from_str('''
-        import linalg_essentials/latest
+        import linalg_basics/latest
         accept Tensor[3,2] $matrix
         $matrix >> qr >> $parts
         $parts[0] >> emit("q")

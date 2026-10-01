@@ -2,7 +2,7 @@
 
 import base/latest
 from base/latest import to_tensor
-from image_essentials/latest import resize, color_adjust, gaussian_blur, to_image
+from image_basics/latest import resize, color_adjust, gaussian_blur, to_image
 
 accept Image $img_in
 accept IntArg $target_width = 512

@@ -62,10 +62,10 @@ fn tensor_and_scalar_contracts_match_native_execution() {
         "abs", "add", "clamp", "cos", "div", "exp", "log", "mul", "neg", "pow", "rsqrt", "sign",
         "sin", "sqrt", "sub", "tan",
     ] {
-        compare(&registry, "math_essentials", action, tensor(&[2, 3]), &[]);
+        compare(&registry, "math_basics", action, tensor(&[2, 3]), &[]);
         compare(
             &registry,
-            "math_essentials",
+            "math_basics",
             action,
             Payload::scalar_f32(1.0),
             &[],
@@ -83,24 +83,18 @@ fn tensor_and_scalar_contracts_match_native_execution() {
         ("transpose", vec![2, 3, 4], vec![]),
         ("unsqueeze", vec![2, 3], vec![("dim", "1")]),
     ] {
-        compare(
-            &registry,
-            "tensor_essentials",
-            action,
-            tensor(&input),
-            &values,
-        );
+        compare(&registry, "tensor_basics", action, tensor(&input), &values);
     }
     compare(
         &registry,
-        "tensor_essentials",
+        "tensor_basics",
         "unsqueeze",
         tensor(&[2, 3]),
         &[],
     );
     compare(
         &registry,
-        "tensor_essentials",
+        "tensor_basics",
         "unsqueeze",
         tensor(&[2, 3]),
         &[("axis", "0"), ("dim", "1")],
@@ -128,10 +122,10 @@ fn tensor_and_scalar_contracts_match_native_execution() {
         "softmax",
         "tanh",
     ] {
-        compare(&registry, "nn_essentials", action, tensor(&[2, 3]), &[]);
+        compare(&registry, "nn_basics", action, tensor(&[2, 3]), &[]);
         compare(
             &registry,
-            "nn_essentials",
+            "nn_basics",
             action,
             Payload::scalar_f32(1.0),
             &[],
@@ -140,7 +134,7 @@ fn tensor_and_scalar_contracts_match_native_execution() {
     for action in ["avg_pool2d", "max_pool2d"] {
         compare(
             &registry,
-            "nn_essentials",
+            "nn_basics",
             action,
             tensor(&[2, 4, 6]),
             &[("kernel_size", "2"), ("stride", "2")],
@@ -153,18 +147,18 @@ fn matrix_contracts_include_batches_and_diagonal_offsets() {
     let matrix =
         || Payload::Tensor(Tensor::from_f32_shape(&[4.0, 1.0, 1.0, 4.0], vec![2, 2]).unwrap());
     for action in ["cholesky", "inv", "det", "trace"] {
-        compare(&registry, "linalg_essentials", action, matrix(), &[]);
+        compare(&registry, "linalg_basics", action, matrix(), &[]);
     }
     for action in ["inv", "det", "trace"] {
         let input = Payload::Tensor(
             Tensor::from_f32_shape(&[4.0, 1.0, 1.0, 4.0, 4.0, 1.0, 1.0, 4.0], vec![2, 2, 2])
                 .unwrap(),
         );
-        compare(&registry, "linalg_essentials", action, input, &[]);
+        compare(&registry, "linalg_basics", action, input, &[]);
     }
     compare(
         &registry,
-        "linalg_essentials",
+        "linalg_basics",
         "diag",
         tensor(&[3, 4]),
         &[("diagonal", &isize::MIN.to_string())],
@@ -173,7 +167,7 @@ fn matrix_contracts_include_batches_and_diagonal_offsets() {
         for offset in ["-1", "0", "1", "10"] {
             compare(
                 &registry,
-                "linalg_essentials",
+                "linalg_basics",
                 "diag",
                 tensor(&shape),
                 &[("diagonal", offset)],
@@ -195,32 +189,32 @@ fn image_contracts_cover_layout_changes_and_arbitrary_rotation() {
             "sharpen",
             "threshold",
         ] {
-            compare(&registry, "image_essentials", action, tensor(&shape), &[]);
+            compare(&registry, "image_basics", action, tensor(&shape), &[]);
         }
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "crop",
             tensor(&shape),
             &[("x", "1"), ("y", "2"), ("width", "5"), ("height", "4")],
         );
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "pad",
             tensor(&shape),
             &[("pad", "1")],
         );
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "resize",
             tensor(&shape),
             &[("width", "5"), ("height", "3")],
         );
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "resize",
             tensor(&shape),
             &[
@@ -232,7 +226,7 @@ fn image_contracts_cover_layout_changes_and_arbitrary_rotation() {
         for angle in ["0", "45", "90", "180", "270"] {
             compare(
                 &registry,
-                "image_essentials",
+                "image_basics",
                 "rotate",
                 tensor(&shape),
                 &[("angle", angle)],
@@ -242,7 +236,7 @@ fn image_contracts_cover_layout_changes_and_arbitrary_rotation() {
             for layout in ["hwc", "chw"] {
                 compare(
                     &registry,
-                    "image_essentials",
+                    "image_basics",
                     "to_image",
                     tensor(&shape),
                     &[("color", color), ("layout", layout)],
@@ -268,7 +262,7 @@ fn audio_contracts_match_mono_and_stereo_execution() {
             let input = Audio::from_f32_planar(&vec![0.5; channels * 64], channels, 48000).unwrap();
             compare(
                 &registry,
-                "audio_essentials",
+                "audio_basics",
                 action,
                 Payload::Audio(input),
                 &[],
@@ -279,7 +273,7 @@ fn audio_contracts_match_mono_and_stereo_execution() {
                 Audio::from_f32_planar(&vec![0.5; channels * length], channels, 48000).unwrap();
             compare(
                 &registry,
-                "audio_essentials",
+                "audio_basics",
                 "stft",
                 Payload::Audio(input),
                 &[("n_fft", "16"), ("hop_size", "4")],
@@ -288,7 +282,7 @@ fn audio_contracts_match_mono_and_stereo_execution() {
         let input = Audio::from_f32_planar(&vec![0.5; channels * 101], channels, 48000).unwrap();
         compare(
             &registry,
-            "audio_essentials",
+            "audio_basics",
             "resample",
             Payload::Audio(input),
             &[("from_rate", "48000"), ("to_rate", "24000")],
@@ -299,40 +293,30 @@ fn audio_contracts_match_mono_and_stereo_execution() {
 fn invalid_shapes_fail_before_execution_and_dynamic_arguments_are_unknown() {
     let registry = ActionRegistry::default();
     for (pack, action, shape, values) in [
-        ("linalg_essentials", "cholesky", vec![2, 3], vec![]),
-        ("linalg_essentials", "inv", vec![2, 3], vec![]),
+        ("linalg_basics", "cholesky", vec![2, 3], vec![]),
+        ("linalg_basics", "inv", vec![2, 3], vec![]),
         ("tensor_stats", "cumsum", vec![2, 3], vec![("axis", "-3")]),
-        ("tensor_essentials", "transpose", vec![], vec![]),
+        ("tensor_basics", "transpose", vec![], vec![]),
         (
-            "tensor_essentials",
+            "tensor_basics",
             "permute",
             vec![2, 3],
             vec![("dims", "[0,0]")],
         ),
+        ("tensor_basics", "unsqueeze", vec![2, 3], vec![("dim", "4")]),
         (
-            "tensor_essentials",
-            "unsqueeze",
-            vec![2, 3],
-            vec![("dim", "4")],
-        ),
-        (
-            "tensor_essentials",
+            "tensor_basics",
             "transpose",
             vec![2, 3],
             vec![("dim0", "4")],
         ),
         (
-            "nn_essentials",
+            "nn_basics",
             "max_pool2d",
             vec![2, 2],
             vec![("kernel_size", "4")],
         ),
-        (
-            "image_essentials",
-            "resize",
-            vec![2, 3],
-            vec![("width", "0")],
-        ),
+        ("image_basics", "resize", vec![2, 3], vec![("width", "0")]),
     ] {
         let id = ActionIdentity::new(pack, "latest", action).unwrap();
         let loaded = registry.get_or_load(&id).unwrap();
@@ -356,9 +340,9 @@ fn invalid_shapes_fail_before_execution_and_dynamic_arguments_are_unknown() {
         );
     }
     for (pack, action, key) in [
-        ("tensor_essentials", "transpose", "dim0"),
+        ("tensor_basics", "transpose", "dim0"),
         ("tensor_stats", "sum", "axis"),
-        ("image_essentials", "resize", "width"),
+        ("image_basics", "resize", "width"),
     ] {
         let loaded = registry
             .get_or_load(&ActionIdentity::new(pack, "latest", action).unwrap())
@@ -402,7 +386,7 @@ fn norm_positional_order_and_metadata_conversions_are_conservative() {
         &[],
     );
     let to_audio = registry
-        .get_or_load(&ActionIdentity::new("audio_essentials", "latest", "to_audio").unwrap())
+        .get_or_load(&ActionIdentity::new("audio_basics", "latest", "to_audio").unwrap())
         .unwrap();
     assert!(matches!(
         to_audio.output_result(&Shape::new([2, 64]), &ActionArgs::default()),
@@ -410,7 +394,7 @@ fn norm_positional_order_and_metadata_conversions_are_conservative() {
     ));
     compare(
         &registry,
-        "audio_essentials",
+        "audio_basics",
         "to_audio",
         tensor(&[2, 64]),
         &[("channels", "2"), ("layout", "planar")],
@@ -428,35 +412,29 @@ fn strided_image_views_follow_the_same_shape_contracts() {
     };
     compare(
         &registry,
-        "image_essentials",
+        "image_basics",
         "resize",
         view(),
         &[("width", "5"), ("height", "3")],
     );
     compare(
         &registry,
-        "image_essentials",
+        "image_basics",
         "to_image",
         view(),
         &[("color", "rgba"), ("layout", "chw")],
     );
+    compare(&registry, "image_basics", "pad", view(), &[("pad", "1")]);
     compare(
         &registry,
-        "image_essentials",
-        "pad",
-        view(),
-        &[("pad", "1")],
-    );
-    compare(
-        &registry,
-        "image_essentials",
+        "image_basics",
         "rotate",
         view(),
         &[("angle", "45")],
     );
     compare(
         &registry,
-        "image_essentials",
+        "image_basics",
         "crop",
         view(),
         &[("width", "5"), ("height", "3")],
@@ -467,7 +445,7 @@ fn strided_image_views_follow_the_same_shape_contracts() {
 fn qr_validates_input_and_returns_correct_composite_components() {
     let registry = ActionRegistry::default();
     let loaded = registry
-        .get_or_load(&ActionIdentity::new("linalg_essentials", "latest", "qr").unwrap())
+        .get_or_load(&ActionIdentity::new("linalg_basics", "latest", "qr").unwrap())
         .unwrap();
     assert!(matches!(
         loaded.output_result(&Shape::new([3]), &ActionArgs::default()),
@@ -506,22 +484,22 @@ fn boundary_shapes_and_argument_precedence_match_execution() {
         );
     }
     for action in ["flatten", "squeeze", "unsqueeze"] {
-        compare(&registry, "tensor_essentials", action, tensor(&[]), &[]);
+        compare(&registry, "tensor_basics", action, tensor(&[]), &[]);
     }
     for shape in [vec![1, 1], vec![1, 2, 1], vec![2, 3, 2], vec![2, 3, 5]] {
         for action in ["crop", "pad", "resize", "rotate", "to_image"] {
-            compare(&registry, "image_essentials", action, tensor(&shape), &[]);
+            compare(&registry, "image_basics", action, tensor(&shape), &[]);
         }
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "crop",
             tensor(&shape),
             &[("x", "100"), ("y", "100")],
         );
         compare(
             &registry,
-            "image_essentials",
+            "image_basics",
             "rotate",
             tensor(&shape),
             &[("angle", "0.0005")],
@@ -537,7 +515,7 @@ fn large_static_dimensions_and_opaque_outputs_are_checked() {
         ("rotate", vec![100_000, 100_000], vec![("angle", "0.0005")]),
     ] {
         let loaded = registry
-            .get_or_load(&ActionIdentity::new("image_essentials", "latest", action).unwrap())
+            .get_or_load(&ActionIdentity::new("image_basics", "latest", action).unwrap())
             .unwrap();
         assert!(
             matches!(loaded.output_result(&Shape::new(shape.clone()), &args(&values)), ShapeResult::Ok(ref result) if result.dims() == shape)
@@ -546,7 +524,7 @@ fn large_static_dimensions_and_opaque_outputs_are_checked() {
     compare(&registry, "base", "identity", tensor(&[2, 3]), &[]);
     for action in ["to_pcm", "to_wav"] {
         let loaded = registry
-            .get_or_load(&ActionIdentity::new("audio_essentials", "latest", action).unwrap())
+            .get_or_load(&ActionIdentity::new("audio_basics", "latest", action).unwrap())
             .unwrap();
         assert!(matches!(
             loaded.output_result(&Shape::new([2, 8]), &ActionArgs::default()),
@@ -559,7 +537,7 @@ fn large_static_dimensions_and_opaque_outputs_are_checked() {
     }
     // The channel product can overflow even when the sample count fits.
     let loaded = registry
-        .get_or_load(&ActionIdentity::new("audio_essentials", "latest", "resample").unwrap())
+        .get_or_load(&ActionIdentity::new("audio_basics", "latest", "resample").unwrap())
         .unwrap();
     assert!(matches!(
         loaded.output_result(

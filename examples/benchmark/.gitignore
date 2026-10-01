@@ -1,0 +1,20 @@
+# Benchmark reports, including custom --output paths within this directory.
+*.json
+results/
+artifacts/
+
+# Interrupted atomic writes and captured benchmark logs.
+*.tmp
+*.log
+
+# Python caches, test coverage, and local environments.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.venv/
+venv/

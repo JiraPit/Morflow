@@ -554,7 +554,7 @@ mod tests {
     #[test]
     fn test_dsp_pipeline_end_to_end() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio audio_in
 
             $audio_in >> gain(db=+6.0) >> biquad_filter(type="lowpass", freq=5000.0) >> limiter(ceiling_db=-1.0) >> normalize(target_peak=0.9) >> emit
@@ -584,7 +584,7 @@ mod tests {
     #[test]
     fn test_multichannel_spatial_dsp_pipeline() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio stereo_in
 
             $stereo_in >> stereo_widen(width=1.5) >> delay(time_ms=10.0, feedback=0.2, mix=0.3) >> compressor(threshold_db=-10.0, ratio=3.0) >> emit
@@ -612,7 +612,7 @@ mod tests {
     #[test]
     fn test_spectral_stft_and_resample_pipeline() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio audio_in
 
             $audio_in >> resample(from_rate=48000.0, to_rate=44100.0) >> stft(n_fft=256, hop_size=128) >> emit
@@ -674,7 +674,7 @@ mod tests {
     #[test]
     fn test_audio_payload_pipeline_execution() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio audio_in
 
             $audio_in >> if ($audio_in.sample_rate >= 44100) {
@@ -711,7 +711,7 @@ mod tests {
     fn test_image_pipeline_end_to_end() {
         let morf_src = r#"
             from base/latest import to_tensor
-            import image_essentials/latest
+            import image_basics/latest
             accept Image img_in
 
             $img_in >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn test_mid_stream_emit_pass_through() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio audio_in
 
             $audio_in
@@ -785,7 +785,7 @@ mod tests {
     #[test]
     fn test_action_pack_package_import() {
         let morf_src = r#"
-            import audio_essentials.latest
+            import audio_basics.latest
 
             accept Audio audio_in
 
@@ -809,7 +809,7 @@ mod tests {
     fn test_action_pack_from_import_with_alias() {
         let morf_src = r#"
             import base.latest
-            from audio_essentials.latest import gain as amp
+            from audio_basics.latest import gain as amp
 
             accept Audio audio_in
 
@@ -832,11 +832,11 @@ mod tests {
     #[test]
     fn test_action_pack_qualified_invocation() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
             import base/latest
             accept Audio audio_in
 
-            $audio_in >> audio_essentials.gain(linear=4.0) >> base.identity >> emit
+            $audio_in >> audio_basics.gain(linear=4.0) >> base.identity >> emit
         "#;
 
         let mut pipeline = Morflow::from_str(morf_src).expect("Failed to compile pipeline");
@@ -855,7 +855,7 @@ mod tests {
     #[test]
     fn test_audio_to_audio_and_to_wav_end_to_end() {
         let morf_src = r#"
-            import audio_essentials/latest
+            import audio_basics/latest
 
             accept Bytes audio_in
 
@@ -894,10 +894,10 @@ mod tests {
     #[test]
     fn test_tensor_and_math_pipeline() {
         let morf_src = r#"
-            import tensor_essentials/latest
-            import math_essentials/latest
+            import tensor_basics/latest
+            import math_basics/latest
             import tensor_stats/latest
-            import nn_essentials/latest
+            import nn_basics/latest
 
             accept Tensor x
 
@@ -923,8 +923,8 @@ mod tests {
     #[test]
     fn test_linalg_and_nn_pipeline() {
         let morf_src = r#"
-            import nn_essentials/latest
-            import linalg_essentials/latest
+            import nn_basics/latest
+            import linalg_basics/latest
 
             accept Tensor x
 
@@ -969,7 +969,7 @@ mod tests {
     #[test]
     fn test_each_over_planar_stereo_audio_preserves_audio_payload() {
         let morf_src = r#"
-            from audio_essentials/latest import gain
+            from audio_basics/latest import gain
             accept Audio audio
 
             $audio >> each ($channel) {
@@ -1002,7 +1002,7 @@ mod tests {
         // The body uses an audio-native action, which only succeeds if the loop
         // variable is a real Audio payload rather than a bare Tensor.
         let morf_src = r#"
-            from audio_essentials/latest import gain
+            from audio_basics/latest import gain
             accept Audio audio
 
             $audio >> each ($channel) {
@@ -1176,7 +1176,7 @@ mod tests {
     fn test_each_over_interleaved_audio_iterates_channel_axis() {
         // Interleaved [N, C] = [8, 2] iterates axis 1, giving 2 iterations.
         let morf_src = r#"
-            from audio_essentials/latest import gain
+            from audio_basics/latest import gain
             accept Audio audio
 
             $audio >> each ($channel) {

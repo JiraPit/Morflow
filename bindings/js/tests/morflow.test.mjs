@@ -120,7 +120,7 @@ test('Morflow - error handling on invalid pipeline syntax', () => {
 
 test('Morflow - audio to_audio and to_wav pipeline', async () => {
   const dsl = `
-    import audio_essentials/latest
+    import audio_basics/latest
     accept Bytes $data
     $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
   `;
@@ -142,7 +142,7 @@ test('Morflow - bare rank-2 array is a plain tensor', () => {
   // There is no type inference: a bare [4, N] feature matrix is a tensor and
   // reaches tensor actions without any wrapping.
   const pipeline = morflow.fromStr(`
-    import tensor_essentials/latest
+    import tensor_basics/latest
     accept Tensor $data
     $data >> reshape(shape="2, 1000") >> emit
   `);
@@ -156,7 +156,7 @@ test('Morflow - bare rank-2 array is a plain tensor', () => {
 
 test('Morflow - payloadType tensor forces a plain tensor', () => {
   const pipeline = morflow.fromStr(`
-    import tensor_essentials/latest
+    import tensor_basics/latest
     accept Tensor $data
     $data >> reshape(shape="2, 1000") >> emit
   `);
@@ -172,7 +172,7 @@ test('Morflow - payloadType tensor forces a plain tensor', () => {
 
 test('Morflow - payloadType audio forces an audio payload', async () => {
   const pipeline = morflow.fromStr(`
-    import audio_essentials/latest
+    import audio_basics/latest
     accept Audio $audio
     $audio >> to_wav >> emit
   `);
@@ -194,7 +194,7 @@ test('Morflow - payloadType audio forces an audio payload', async () => {
 test('Morflow - payloadType image forces an image payload', () => {
   const pipeline = morflow.fromStr(`
     from base/latest import to_tensor
-    from image_essentials/latest import to_image
+    from image_basics/latest import to_image
     accept Image $image
     $image >> to_tensor >> to_image >> emit
   `);
@@ -235,7 +235,7 @@ test('Morflow - bare rank-2 array is not inferred as audio', () => {
   // A bare [2, N] array is a plain tensor, so an audio-native action rejects
   // it. Set payloadType: 'audio' to send an audio payload.
   const pipeline = morflow.fromStr(`
-    from audio_essentials/latest import to_wav
+    from audio_basics/latest import to_wav
     accept Audio $audio
     $audio >> to_wav >> emit
   `);
@@ -254,7 +254,7 @@ test('Morflow - bare rank-3 array runs as a plain tensor', () => {
   // A rank-3 array is no longer auto-promoted to an image. Image actions
   // declare DataType::Tensor input, so they still accept it directly.
   const pipeline = morflow.fromStr(`
-    from image_essentials/latest import to_image
+    from image_basics/latest import to_image
     accept Tensor $image
     $image >> to_image >> emit
   `);
@@ -265,7 +265,7 @@ test('Morflow - bare rank-3 array runs as a plain tensor', () => {
 
 test('Morflow - scalar param accepts a plain number', () => {
   const pipeline = morflow.fromStr(`
-    import nn_essentials/latest
+    import nn_basics/latest
     accept Scalar $value
     $value >> relu >> emit
   `);
@@ -276,7 +276,7 @@ test('Morflow - scalar param accepts a plain number', () => {
 
 test('Morflow - IntArg positional parameter with default', async () => {
   const pipeline = morflow.fromStr(`
-    import audio_essentials/latest
+    import audio_basics/latest
     accept Bytes $data
     accept IntArg $rate = 48000
     $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
@@ -293,7 +293,7 @@ test('Morflow - IntArg positional parameter with default', async () => {
 test('Morflow - StrArg, BoolArg and Scalar positional parameters', () => {
   const pipeline = morflow.fromStr(`
     import base/latest
-    from audio_essentials/latest import to_wav
+    from audio_basics/latest import to_wav
     accept Audio $audio
     accept FloatArg $linear = 1.0
     accept BoolArg $routed = true
@@ -321,7 +321,7 @@ $data >> identity >> emit`), /not declared by the imports/);
 
 test('Morflow - select QR Composite components', () => {
   const pipeline = morflow.fromStr(`
-    import linalg_essentials/latest
+    import linalg_basics/latest
     accept Tensor[3,2] $matrix
     $matrix >> qr >> $parts
     $parts[0] >> emit("q")

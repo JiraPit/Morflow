@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       action_pack:
-        description: 'Action Pack to build (audio_essentials, image_essentials, base, or "all")'
+        description: 'Action Pack to build (audio_basics, image_basics, base, or "all")'
         required: false
         default: 'all'
       action_name:

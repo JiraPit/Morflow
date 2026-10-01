@@ -32,7 +32,7 @@ fn run(action: &pipeline::LoadedAction, input: Payload, args: ActionArgs) -> Pay
 fn normalized_softmax_axes_preserve_existing_negative_axis_behavior() {
     let registry = ActionRegistry::default();
     for name in ["softmax", "log_softmax"] {
-        let action = loaded(&registry, "nn_essentials", name);
+        let action = loaded(&registry, "nn_basics", name);
         let input = input();
         let args = args(&[("axis", "-99")]);
         let ShapeCheckResult::Ready { prepared, .. } =
@@ -59,7 +59,7 @@ fn normalized_softmax_axes_preserve_existing_negative_axis_behavior() {
 fn pooling_uses_normalized_parameters_and_predicted_geometry() {
     let registry = ActionRegistry::default();
     for name in ["max_pool2d", "avg_pool2d"] {
-        let action = loaded(&registry, "nn_essentials", name);
+        let action = loaded(&registry, "nn_basics", name);
         let input = input();
         let args = args(&[("kernel", "0"), ("stride", "0")]);
         let ShapeCheckResult::Ready { prepared, .. } =
@@ -106,7 +106,7 @@ fn deferred_reductions_and_ready_rolls_keep_axes_in_order() {
         panic!("expected tensor")
     };
     assert_eq!(output.to_vec_f32(), vec![3., 12.]);
-    let roll = loaded(&registry, "tensor_essentials", "roll");
+    let roll = loaded(&registry, "tensor_basics", "roll");
     let Payload::Tensor(output) = run(&roll, input(), args(&[("shift", "1"), ("axis", "-1")]))
     else {
         panic!("expected tensor")

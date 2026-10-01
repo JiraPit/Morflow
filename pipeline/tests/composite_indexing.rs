@@ -8,7 +8,7 @@ fn matrix() -> Payload {
 fn qr_components_can_be_selected_and_indexed_further() {
     let mut flow = Morflow::from_str(
         r#"
-        import linalg_essentials/latest
+        import linalg_basics/latest
         accept Tensor[3,2] $matrix
         $matrix >> qr >> $parts
         $parts[0] >> emit("q")
@@ -112,7 +112,7 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn checker_tracks_qr_shapes_and_rejects_bad_selected_calls() {
-    let prefix = "import linalg_essentials/latest\nimport tensor_essentials/latest\naccept Tensor[3,2] $matrix\n$matrix >> qr >> $parts\n";
+    let prefix = "import linalg_basics/latest\nimport tensor_basics/latest\naccept Tensor[3,2] $matrix\n$matrix >> qr >> $parts\n";
     assert!(check(&format!(
         "{prefix}$parts[0] >> reshape(shape=\"[6]\") >> emit"
     ))

@@ -1,5 +1,5 @@
 # Prepare with: morflow prep examples/qr_components.morf
-import linalg_essentials/latest
+import linalg_basics/latest
 accept Tensor[3,2] $matrix
 
 $matrix >> qr >> $parts

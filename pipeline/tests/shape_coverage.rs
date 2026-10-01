@@ -8,8 +8,8 @@ fn coverage(source: &str) -> ShapeCoverage {
     let mut loaded = HashMap::new();
     for (pack, name) in [
         ("base", "identity"),
-        ("tensor_essentials", "reshape"),
-        ("linalg_essentials", "matmul"),
+        ("tensor_basics", "reshape"),
+        ("linalg_basics", "matmul"),
     ] {
         loaded.insert(
             name.to_string(),
@@ -117,7 +117,7 @@ fn builtins_only_are_not_vacuously_one_hundred_percent() {
 fn cli_uses_the_recursive_loop_output_shape_for_following_actions() {
     let source = r#"
 from base/latest import identity
-from tensor_essentials/latest import reshape
+from tensor_basics/latest import reshape
 accept Tensor[2,6] $x
 accept IntArg $choice
 $x >> each ($row) {
@@ -142,7 +142,7 @@ fn cli_presents_shape_safety_last_for_verified_deferred_and_invalid_calls() {
     ] {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("presentation.morf");
-        std::fs::write(&path, format!("from tensor_essentials/latest import reshape\naccept Tensor[{shape}] $x\n$x >> reshape(\"{target}\") >> emit\n")).unwrap();
+        std::fs::write(&path, format!("from tensor_basics/latest import reshape\naccept Tensor[{shape}] $x\n$x >> reshape(\"{target}\") >> emit\n")).unwrap();
         let output = std::process::Command::new(env!("CARGO_BIN_EXE_morflow"))
             .args(["check", path.to_str().unwrap()])
             .env("NO_COLOR", "1")

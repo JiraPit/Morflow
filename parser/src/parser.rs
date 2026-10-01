@@ -161,7 +161,7 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             (pos, named)
         });
 
-    // Action call: e.g. load_audio("in.wav"), identity, or image_essentials.resize(512, 512)
+    // Action call: e.g. load_audio("in.wav"), identity, or image_basics.resize(512, 512)
     // Exclude reserved keywords: if, else, each, route, pipeline, accept, import, from, as, true, false
     let single_ident = ident.try_map(|name, span| {
         let is_reserved = matches!(

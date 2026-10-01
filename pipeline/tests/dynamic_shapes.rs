@@ -80,11 +80,7 @@ fn every_rank_determined_action_preserves_rank_with_no_known_lengths() {
             {
                 continue;
             }
-            let input = Shape::unknown(if pack_name == "audio_essentials" {
-                1
-            } else {
-                2
-            });
+            let input = Shape::unknown(if pack_name == "audio_basics" { 1 } else { 2 });
             let parameters = match name.as_str() {
                 "reshape" => args(&[("shape", "[2,-1]")]),
                 "permute" => args(&[("dims", "[1,0]")]),
@@ -100,13 +96,13 @@ fn every_rank_determined_action_preserves_rank_with_no_known_lengths() {
                 assert_eq!(shape[1].shape().unwrap().rank(), 2);
             } else {
                 let expected_rank = match (pack_name.as_str(), name.as_str()) {
-                    ("audio_essentials", _) => 1,
+                    ("audio_basics", _) => 1,
                     ("tensor_stats", "cumsum") => 2,
                     ("tensor_stats", "argmax" | "argmin") => 1,
                     ("tensor_stats", _) => 0,
-                    ("linalg_essentials", "det" | "trace") => 0,
-                    ("linalg_essentials", "dot" | "diag") | ("tensor_essentials", "flatten") => 1,
-                    ("tensor_essentials", "unsqueeze") => 3,
+                    ("linalg_basics", "det" | "trace") => 0,
+                    ("linalg_basics", "dot" | "diag") | ("tensor_basics", "flatten") => 1,
+                    ("tensor_basics", "unsqueeze") => 3,
                     _ => 2,
                 };
                 assert_eq!(
@@ -125,11 +121,11 @@ fn every_rank_determined_action_preserves_rank_with_no_known_lengths() {
 fn genuinely_length_dependent_ranks_stay_unknown() {
     let registry = ActionRegistry::default();
     for (pack, name, rank) in [
-        ("tensor_essentials", "squeeze", 3),
-        ("audio_essentials", "resample", 2),
-        ("audio_essentials", "stft", 1),
-        ("audio_essentials", "to_audio", 2),
-        ("image_essentials", "to_image", 3),
+        ("tensor_basics", "squeeze", 3),
+        ("audio_basics", "resample", 2),
+        ("audio_basics", "stft", 1),
+        ("audio_basics", "to_audio", 2),
+        ("image_basics", "to_image", 3),
         ("base", "to_tensor", 3),
     ] {
         assert!(
@@ -146,16 +142,16 @@ fn genuinely_length_dependent_ranks_stay_unknown() {
 fn unknown_arguments_preserve_rank_when_they_do_not_determine_it() {
     let registry = ActionRegistry::default();
     for (pack, name, key, rank) in [
-        ("tensor_essentials", "transpose", "dim0", 2),
-        ("tensor_essentials", "permute", "dims", 2),
-        ("tensor_essentials", "unsqueeze", "axis", 3),
-        ("tensor_essentials", "roll", "axis", 2),
+        ("tensor_basics", "transpose", "dim0", 2),
+        ("tensor_basics", "permute", "dims", 2),
+        ("tensor_basics", "unsqueeze", "axis", 3),
+        ("tensor_basics", "roll", "axis", 2),
         ("tensor_stats", "sum", "axis", 1),
         ("tensor_stats", "norm", "axis", 1),
-        ("nn_essentials", "softmax", "axis", 2),
-        ("nn_essentials", "avg_pool2d", "kernel", 2),
-        ("image_essentials", "resize", "width", 2),
-        ("linalg_essentials", "diag", "k", 1),
+        ("nn_basics", "softmax", "axis", 2),
+        ("nn_basics", "avg_pool2d", "kernel", 2),
+        ("image_basics", "resize", "width", 2),
+        ("linalg_basics", "diag", "k", 1),
     ] {
         let ValueShapeResult::Ok(shape) = prediction(
             &registry,
@@ -203,7 +199,7 @@ fn zero_dimensions_roundtrip_and_validate_as_real_lengths() {
         ))
         .is_err());
     let registry = ActionRegistry::default();
-    let concat = action(&registry, "tensor_essentials", "concat");
+    let concat = action(&registry, "tensor_basics", "concat");
     let input = ValueShape::composite([
         ValueShape::tensor(Shape::new([0, 3])),
         ValueShape::tensor(Shape::new([2, 3])),
@@ -239,10 +235,10 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn each_preserves_row_dimensions_and_infers_the_restacked_output() {
-    let prefix="import tensor_essentials/latest\naccept Tensor[*,3] $input\n$input >> each ($row) { $row >> reshape(shape=\"[3]\") }";
+    let prefix="import tensor_basics/latest\naccept Tensor[*,3] $input\n$input >> each ($row) { $row >> reshape(shape=\"[3]\") }";
     assert!(check(&format!("{prefix} >> transpose >> emit")).is_ok());
     // Row length remains three, so this is rejected statically inside each.
-    assert!(check("import tensor_essentials/latest\naccept Tensor[*,3] $input\n$input >> each ($row) { $row >> reshape(shape=\"[4]\") } >> emit").is_err());
+    assert!(check("import tensor_basics/latest\naccept Tensor[*,3] $input\n$input >> each ($row) { $row >> reshape(shape=\"[4]\") } >> emit").is_err());
     // Restacking restores the batch dimension and its known length.
     let fixed = prefix.replace("[*,3]", "[2,3]");
     assert!(check(&format!("{fixed} >> reshape(shape=\"[3]\") >> emit")).is_err());
@@ -274,7 +270,7 @@ fn conversion_contracts_retain_rank_when_the_payload_kind_makes_it_known() {
     assert_eq!(shape.shape().unwrap().rank(), 2);
     let ValueShapeResult::Ok(shape) = prediction(
         &registry,
-        "audio_essentials",
+        "audio_basics",
         "to_audio",
         Shape::unknown(1),
         args(&[]),
@@ -284,7 +280,7 @@ fn conversion_contracts_retain_rank_when_the_payload_kind_makes_it_known() {
     assert_eq!(shape.shape().unwrap().rank(), 1);
     let ValueShapeResult::Ok(shape) = prediction(
         &registry,
-        "audio_essentials",
+        "audio_basics",
         "resample",
         Shape::new([Dimension::Known(2), Dimension::Unknown]),
         args(&[]),
@@ -294,7 +290,7 @@ fn conversion_contracts_retain_rank_when_the_payload_kind_makes_it_known() {
     assert_eq!(shape.shape().unwrap().rank(), 2);
     let ValueShapeResult::Ok(shape) = prediction(
         &registry,
-        "tensor_essentials",
+        "tensor_basics",
         "squeeze",
         Shape::unknown(1),
         args(&[]),

@@ -139,7 +139,7 @@ mod tests {
         let src = r#"
         # Real-world Morflow Pipeline
         import base/latest
-        from audio_essentials/latest import load_audio, compute_noise_profile, denoise, compressor, soft_clip, normalize, highpass, stereo_widen, export
+        from audio_basics/latest import load_audio, compute_noise_profile, denoise, compressor, soft_clip, normalize, highpass, stereo_widen, export
 
         // 1. Load source and tap original
         load_audio("source.flac") >> $raw_audio
@@ -383,8 +383,8 @@ mod tests {
     fn test_action_pack_imports() {
         let src = r#"
             import base/latest
-            import audio_essentials/latest as audio
-            from image_essentials/0.1.0 import resize, color_adjust as ca, gaussian_blur
+            import audio_basics/latest as audio
+            from image_basics/0.1.0 import resize, color_adjust as ca, gaussian_blur
             import base/0.1.0/identity as ident
 
             accept Image $img_in
@@ -393,7 +393,7 @@ mod tests {
                 >> base/identity
                 >> resize(512, 512)
                 >> ca(contrast=1.1)
-                >> image_essentials/gaussian_blur(sigma=1.5)
+                >> image_basics/gaussian_blur(sigma=1.5)
                 >> ident
                 >> emit
         "#;
@@ -413,7 +413,7 @@ mod tests {
 
         match &pipeline.imports[1] {
             ImportStmt::Package(pkg) => {
-                assert_eq!(pkg.package, "audio_essentials");
+                assert_eq!(pkg.package, "audio_basics");
                 assert_eq!(pkg.version, "latest");
                 assert_eq!(pkg.alias, Some("audio".to_string()));
             }
@@ -422,7 +422,7 @@ mod tests {
 
         match &pipeline.imports[2] {
             ImportStmt::Items(items) => {
-                assert_eq!(items.package, "image_essentials");
+                assert_eq!(items.package, "image_basics");
                 assert_eq!(items.version, "0.1.0");
                 assert_eq!(items.items.len(), 3);
                 assert_eq!(items.items[0].name, "resize");
@@ -460,7 +460,7 @@ mod tests {
             assert_eq!(call.name, "ca");
         }
         if let FlowStep::Action(call) = &flow.steps[4] {
-            assert_eq!(call.name, "image_essentials/gaussian_blur");
+            assert_eq!(call.name, "image_basics/gaussian_blur");
         }
         if let FlowStep::Action(call) = &flow.steps[5] {
             assert_eq!(call.name, "ident");

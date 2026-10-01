@@ -47,7 +47,7 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     let registry = ActionRegistry::default();
     compare(
         &registry,
-        "linalg_essentials",
+        "linalg_basics",
         "dot",
         pair(&[2, 3], &[6]),
         ActionArgs::default(),
@@ -55,7 +55,7 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     );
     compare(
         &registry,
-        "linalg_essentials",
+        "linalg_basics",
         "outer",
         pair(&[2], &[3]),
         ActionArgs::default(),
@@ -63,7 +63,7 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     );
     compare(
         &registry,
-        "linalg_essentials",
+        "linalg_basics",
         "matmul",
         pair(&[2, 3], &[3, 4]),
         ActionArgs::default(),
@@ -71,7 +71,7 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     );
     compare(
         &registry,
-        "nn_essentials",
+        "nn_basics",
         "cosine_similarity",
         pair(&[2, 3, 4], &[2, 3, 4]),
         ActionArgs::default(),
@@ -83,7 +83,7 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     };
     compare(
         &registry,
-        "tensor_essentials",
+        "tensor_basics",
         "concat",
         Payload::Composite(
             vec![
@@ -98,11 +98,11 @@ fn native_contracts_cover_all_five_ordered_input_actions() {
     );
     // Tensor-only forms keep their existing self-operation or pass-through semantics.
     for (pack, action, input, output) in [
-        ("linalg_essentials", "dot", vec![2, 2], vec![1]),
-        ("linalg_essentials", "outer", vec![2, 2], vec![4, 4]),
-        ("linalg_essentials", "matmul", vec![2, 2], vec![2, 2]),
-        ("nn_essentials", "cosine_similarity", vec![2, 3], vec![2, 3]),
-        ("tensor_essentials", "concat", vec![2, 3], vec![2, 3]),
+        ("linalg_basics", "dot", vec![2, 2], vec![1]),
+        ("linalg_basics", "outer", vec![2, 2], vec![4, 4]),
+        ("linalg_basics", "matmul", vec![2, 2], vec![2, 2]),
+        ("nn_basics", "cosine_similarity", vec![2, 3], vec![2, 3]),
+        ("tensor_basics", "concat", vec![2, 3], vec![2, 3]),
     ] {
         compare(
             &registry,
@@ -122,8 +122,8 @@ fn non_f32_tensor_components_keep_shape_and_value_counts() {
     let b = Payload::Tensor(
         Tensor::from_rvec_u8(vec![3, 4, 5].into(), vec![3], core_types::TensorDType::U8).unwrap(),
     );
-    let out = loaded(&registry, "linalg_essentials", "outer")
-        .process(Payload::Composite(vec![a, b].into()));
+    let out =
+        loaded(&registry, "linalg_basics", "outer").process(Payload::Composite(vec![a, b].into()));
     let Payload::Tensor(out) = out else {
         panic!("Expected outer product")
     };
@@ -134,7 +134,7 @@ fn non_f32_tensor_components_keep_shape_and_value_counts() {
 #[test]
 fn matmul_broadcasts_batches_in_order_and_rejects_incompatible_batches() {
     let registry = ActionRegistry::default();
-    let action = loaded(&registry, "linalg_essentials", "matmul");
+    let action = loaded(&registry, "linalg_basics", "matmul");
     let a = Payload::Tensor(
         Tensor::from_f32_shape(&[vec![1.; 6], vec![2.; 6]].concat(), vec![2, 1, 2, 3]).unwrap(),
     );
@@ -172,15 +172,11 @@ fn matmul_broadcasts_batches_in_order_and_rejects_incompatible_batches() {
 fn arity_types_dimensions_and_overflow_fail_before_processing() {
     let registry = ActionRegistry::default();
     for (pack, action, input) in [
-        ("linalg_essentials", "dot", pair(&[2], &[3])),
-        ("linalg_essentials", "matmul", pair(&[2, 3], &[2, 4])),
-        ("nn_essentials", "cosine_similarity", pair(&[2, 3], &[3, 2])),
-        ("tensor_essentials", "concat", pair(&[2, 3], &[3, 4])),
-        (
-            "tensor_essentials",
-            "concat",
-            Payload::Composite(vec![].into()),
-        ),
+        ("linalg_basics", "dot", pair(&[2], &[3])),
+        ("linalg_basics", "matmul", pair(&[2, 3], &[2, 4])),
+        ("nn_basics", "cosine_similarity", pair(&[2, 3], &[3, 2])),
+        ("tensor_basics", "concat", pair(&[2, 3], &[3, 4])),
+        ("tensor_basics", "concat", Payload::Composite(vec![].into())),
     ] {
         let action = loaded(&registry, pack, action);
         assert!(matches!(
@@ -190,10 +186,10 @@ fn arity_types_dimensions_and_overflow_fail_before_processing() {
         assert!(matches!(action.process(input), Payload::Error(_)));
     }
     for (pack, name) in [
-        ("linalg_essentials", "dot"),
-        ("linalg_essentials", "outer"),
-        ("linalg_essentials", "matmul"),
-        ("nn_essentials", "cosine_similarity"),
+        ("linalg_basics", "dot"),
+        ("linalg_basics", "outer"),
+        ("linalg_basics", "matmul"),
+        ("nn_basics", "cosine_similarity"),
     ] {
         let action = loaded(&registry, pack, name);
         assert!(matches!(
@@ -220,7 +216,7 @@ fn arity_types_dimensions_and_overflow_fail_before_processing() {
         ValueShape::tensor(Shape::new([2])),
     ]);
     assert!(matches!(
-        loaded(&registry, "linalg_essentials", "outer")
+        loaded(&registry, "linalg_basics", "outer")
             .output_value_result(&huge, &ActionArgs::default()),
         Some(ValueShapeResult::Invalid(_))
     ));
@@ -230,22 +226,22 @@ fn arity_types_dimensions_and_overflow_fail_before_processing() {
 fn empty_inputs_do_not_panic_in_native_kernels() {
     let registry = ActionRegistry::default();
     for (pack, name, input, expected) in [
-        ("linalg_essentials", "dot", pair(&[0], &[0]), vec![1]),
-        ("linalg_essentials", "outer", pair(&[2], &[0]), vec![2, 0]),
+        ("linalg_basics", "dot", pair(&[0], &[0]), vec![1]),
+        ("linalg_basics", "outer", pair(&[2], &[0]), vec![2, 0]),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "matmul",
             pair(&[2, 0], &[0, 3]),
             vec![2, 3],
         ),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "matmul",
             pair(&[0, 2], &[2, 3]),
             vec![0, 3],
         ),
         (
-            "nn_essentials",
+            "nn_basics",
             "cosine_similarity",
             pair(&[2, 0], &[2, 0]),
             vec![2],
@@ -274,37 +270,37 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
 fn typed_composite_declarations_and_qr_output_infer_downstream_shapes() {
     for (imports, ty, call, output) in [
         (
-            "linalg_essentials",
+            "linalg_basics",
             "Composite[Tensor[2,3],Tensor[3,4]]",
             "matmul",
             "[8]",
         ),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "Composite[Tensor[2,3],Tensor[6]]",
             "dot",
             "[1]",
         ),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "Composite[Tensor[2],Tensor[3]]",
             "outer",
             "[6]",
         ),
         (
-            "nn_essentials",
+            "nn_basics",
             "Composite[Tensor[2,3],Tensor[2,3]]",
             "cosine_similarity",
             "[2]",
         ),
         (
-            "tensor_essentials",
+            "tensor_basics",
             "Composite[Tensor[2,3],Tensor[4,3],Tensor[1,3]]",
             "concat",
             "[21]",
         ),
     ] {
-        let prefix=format!("import {imports}/latest\nimport tensor_essentials/latest as tensor\naccept {ty} $parts\n$parts >> {call}");
+        let prefix=format!("import {imports}/latest\nimport tensor_basics/latest as tensor\naccept {ty} $parts\n$parts >> {call}");
         assert!(
             check(&format!(
                 "{prefix} >> tensor.reshape(shape=\"{output}\") >> emit"
@@ -320,7 +316,7 @@ fn typed_composite_declarations_and_qr_output_infer_downstream_shapes() {
             "{call}"
         );
     }
-    let source="import linalg_essentials/latest\naccept Tensor[3,2] $matrix\n$matrix >> qr >> $parts\n$parts >> matmul >> emit";
+    let source="import linalg_basics/latest\naccept Tensor[3,2] $matrix\n$matrix >> qr >> $parts\n$parts >> matmul >> emit";
     assert!(check(source).is_ok());
     let mut flow = Morflow::from_str(source).unwrap();
     let out = flow.run(tensor(&[3, 2], 1.)).unwrap();

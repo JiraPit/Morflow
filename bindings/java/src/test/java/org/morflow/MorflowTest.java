@@ -85,7 +85,7 @@ public class MorflowTest {
     @Test
     public void testAudioToAudioAndToWavPipeline() {
         String dsl = """
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Bytes $data
             $data >> to_audio(channels=2, sample_rate=44100, dtype="i16") >> gain(linear=2.0) >> to_wav >> emit
         """;
@@ -114,7 +114,7 @@ public class MorflowTest {
         // There is no type inference: a bare rank-2 [4, N] float32 array is a
         // plain tensor and reaches tensor actions without any wrapping.
         String dsl = """
-            import tensor_essentials/latest
+            import tensor_basics/latest
             accept Tensor $data
             $data >> reshape(shape="2, 1000") >> emit
         """;
@@ -134,7 +134,7 @@ public class MorflowTest {
         // declare DataType::Tensor input, so a bare array still runs without
         // any wrapping.
         String dsl = """
-            from image_essentials/latest import to_image
+            from image_basics/latest import to_image
             accept Tensor $image
             $image >> to_image >> emit
         """;
@@ -154,7 +154,7 @@ public class MorflowTest {
         // An asImage payload requires a pipeline that declares Image.
         String dsl = """
             from base/latest import to_tensor
-            from image_essentials/latest import to_image
+            from image_basics/latest import to_image
             accept Image $image
             $image >> to_tensor >> to_image >> emit
         """;
@@ -169,7 +169,7 @@ public class MorflowTest {
     @Test
     public void testExplicitAudioPayload() {
         String dsl = """
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio $audio
             $audio >> to_wav >> emit
         """;
@@ -228,7 +228,7 @@ public class MorflowTest {
     @Test
     public void testScalarParamAcceptsPlainNumber() {
         String dsl = """
-            import nn_essentials/latest
+            import nn_basics/latest
             accept Scalar $value
             $value >> relu >> emit
         """;
@@ -242,7 +242,7 @@ public class MorflowTest {
     @Test
     public void testArgParamsPositionalWithDefault() {
         String dsl = """
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Bytes $data
             accept IntArg $rate = 48000
             $data >> to_audio(channels=2, sample_rate=$rate, dtype="i16") >> to_wav >> emit
@@ -261,7 +261,7 @@ public class MorflowTest {
     @Test
     public void testMixedArgParams() {
         String dsl = """
-            import audio_essentials/latest
+            import audio_basics/latest
             accept Audio $audio
             accept FloatArg $linear = 1.0
             accept BoolArg $routed = true
@@ -289,7 +289,7 @@ public class MorflowTest {
     @Test
     public void testQrCompositeSelection() {
         String dsl = """
-            import linalg_essentials/latest
+            import linalg_basics/latest
             accept Tensor[3,2] $matrix
             $matrix >> qr >> $parts
             $parts[0] >> emit("q")

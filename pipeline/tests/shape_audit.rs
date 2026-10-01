@@ -161,9 +161,9 @@ fn every_native_action_has_a_sound_complete_and_partial_prediction() {
                 .contains(&name.as_str())
             {
                 Payload::Composite(vec![tensor(&[2, 2]), tensor(&[2, 2])].into())
-            } else if pack_name == "audio_essentials" && name != "to_audio" {
+            } else if pack_name == "audio_basics" && name != "to_audio" {
                 Payload::Audio(Audio::from_f32_planar(&[0.5; 34], 2, 48000).unwrap())
-            } else if pack_name == "image_essentials" {
+            } else if pack_name == "image_basics" {
                 tensor(&[5, 7, 3])
             } else {
                 tensor(&[2, 2])
@@ -221,13 +221,13 @@ fn reduction_empty_and_singleton_shapes_and_dynamic_axes_match_execution() {
 #[test]
 fn empty_matrices_and_shape_preserving_kernels_match_execution() {
     let registry = ActionRegistry::default();
-    for pack in ["math_essentials", "nn_essentials", "linalg_essentials"] {
+    for pack in ["math_basics", "nn_basics", "linalg_basics"] {
         let names: &[&str] = match pack {
-            "math_essentials" => &[
+            "math_basics" => &[
                 "abs", "add", "clamp", "cos", "div", "exp", "log", "mul", "neg", "pow", "rsqrt",
                 "sign", "sin", "sqrt", "sub", "tan",
             ],
-            "nn_essentials" => &[
+            "nn_basics" => &[
                 "gelu",
                 "leaky_relu",
                 "log_softmax",
@@ -249,9 +249,9 @@ fn empty_matrices_and_shape_preserving_kernels_match_execution() {
             }
         }
     }
-    let loaded = action(&registry, "audio_essentials", "to_audio");
+    let loaded = action(&registry, "audio_basics", "to_audio");
     compare(&loaded, tensor(&[0, 2]), args(&[("channels", "2")]));
-    let loaded = action(&registry, "tensor_essentials", "reshape");
+    let loaded = action(&registry, "tensor_basics", "reshape");
     compare(&loaded, tensor(&[0, 3]), args(&[("shape", "[2,-1]")]));
     assert!(matches!(
         loaded.output_result(
@@ -300,7 +300,7 @@ fn image_layout_inference_and_transform_arguments_match_partial_predictions() {
                 if name == "to_tensor" {
                     "base"
                 } else {
-                    "image_essentials"
+                    "image_basics"
                 },
                 name,
             );
@@ -314,44 +314,44 @@ fn compound_shapes_cover_broadcasts_empty_axes_and_independent_unknown_dimension
     let registry = ActionRegistry::default();
     for (pack, name, left, right, parameters) in [
         (
-            "linalg_essentials",
+            "linalg_basics",
             "matmul",
             vec![2, 1, 3, 4],
             vec![1, 5, 4, 2],
             args(&[]),
         ),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "matmul",
             vec![0, 3, 4],
             vec![1, 4, 2],
             args(&[]),
         ),
         (
-            "linalg_essentials",
+            "linalg_basics",
             "matmul",
             vec![2, 3, 0],
             vec![0, 4],
             args(&[]),
         ),
-        ("linalg_essentials", "outer", vec![0, 3], vec![2], args(&[])),
-        ("linalg_essentials", "dot", vec![0, 3], vec![0], args(&[])),
+        ("linalg_basics", "outer", vec![0, 3], vec![2], args(&[])),
+        ("linalg_basics", "dot", vec![0, 3], vec![0], args(&[])),
         (
-            "nn_essentials",
+            "nn_basics",
             "cosine_similarity",
             vec![2, 0],
             vec![2, 0],
             args(&[]),
         ),
         (
-            "tensor_essentials",
+            "tensor_basics",
             "concat",
             vec![0, 3],
             vec![2, 3],
             args(&[("axis", "0")]),
         ),
         (
-            "tensor_essentials",
+            "tensor_basics",
             "concat",
             vec![2, 0],
             vec![2, 3],
@@ -399,7 +399,7 @@ fn audio_lengths_channels_and_conversion_metadata_match_execution() {
                     if name == "to_tensor" {
                         "base"
                     } else {
-                        "audio_essentials"
+                        "audio_basics"
                     },
                     name,
                 );
@@ -416,7 +416,7 @@ fn audio_lengths_channels_and_conversion_metadata_match_execution() {
             }
         }
     }
-    let to_image = action(&registry, "image_essentials", "to_image");
+    let to_image = action(&registry, "image_basics", "to_image");
     let to_tensor = action(&registry, "base", "to_tensor");
     for layout in ["hwc", "chw"] {
         for color in ["gray", "rgb", "rgba"] {
@@ -439,12 +439,12 @@ fn audio_lengths_channels_and_conversion_metadata_match_execution() {
 #[test]
 fn known_invalid_empty_dimensions_are_rejected_statically() {
     let registry = ActionRegistry::default();
-    let resample = action(&registry, "audio_essentials", "resample");
+    let resample = action(&registry, "audio_basics", "resample");
     assert!(matches!(
         resample.output_result(&Shape::new([0, 3]), &args(&[])),
         ShapeResult::Invalid(_)
     ));
-    let to_audio = action(&registry, "audio_essentials", "to_audio");
+    let to_audio = action(&registry, "audio_basics", "to_audio");
     assert!(matches!(
         to_audio.output_value_result(
             &ValueShape::tensor(Shape::new([2, 3])),
@@ -479,7 +479,7 @@ fn known_invalid_empty_dimensions_are_rejected_statically() {
         "threshold",
         "to_image",
     ] {
-        let loaded = action(&registry, "image_essentials", name);
+        let loaded = action(&registry, "image_basics", name);
         assert!(
             matches!(
                 loaded.output_result(

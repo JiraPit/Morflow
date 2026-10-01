@@ -1,6 +1,6 @@
 # Morflow Multi-Channel Audio Split Pipeline (.morf)
 
-import audio_essentials/latest
+import audio_basics/latest
 
 accept Bytes $input_audio
 

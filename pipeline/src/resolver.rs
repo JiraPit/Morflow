@@ -116,7 +116,7 @@ mod tests {
     }
     #[test]
     fn versions_aliases_and_explicit_paths_survive_resolution() {
-        let r = resolver("import base/0.1.0 as old\nimport base/0.2.0 as new\nfrom image_essentials/latest import resize as scale\n");
+        let r = resolver("import base/0.1.0 as old\nimport base/0.2.0 as new\nfrom image_basics/latest import resize as scale\n");
         assert_eq!(
             r.resolve("old/identity", |_, _| unreachable!())
                 .unwrap()
