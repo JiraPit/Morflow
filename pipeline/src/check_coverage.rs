@@ -146,7 +146,7 @@ impl ShapeCoverage {
                 }
                 FlowStep::Action(call) => {
                     // Built-ins route values and have no native shapecheck contract.
-                    if call.name == "emit" || call.name == "resurface" {
+                    if call.name == "emit" {
                         continue;
                     }
                     let mut call = call.clone();

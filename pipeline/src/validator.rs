@@ -94,7 +94,7 @@ fn validate_flow_chain(
 
     for step in &flow.steps {
         match step {
-            FlowStep::Action(call) if call.name == "emit" || call.name == "resurface" => {
+            FlowStep::Action(call) if call.name == "emit" => {
                 if is_nested_sub_flow {
                     return Err(MorflowError::Compile(
                         "'emit' cannot be called inside a nested sub-flow (loops or branches); emit the result from the top-level flow instead.".to_string(),

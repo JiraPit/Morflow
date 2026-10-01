@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "abs"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "add"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "argmax"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "argmin"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "avg_pool2d"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -335,7 +335,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "biquad_filter"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -379,7 +379,7 @@ dependencies = [
 
 [[package]]
 name = "blend"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -426,7 +426,7 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cast"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -458,7 +458,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "cholesky"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "clamp"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -524,7 +524,7 @@ checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 
 [[package]]
 name = "color_adjust"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -554,7 +554,7 @@ dependencies = [
 
 [[package]]
 name = "compressor"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "concat"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -628,7 +628,7 @@ checksum = "533d38ecd2709b7608fb8e18e4504deb99e9a72879e6aa66373a76d8dc4259ea"
 
 [[package]]
 name = "core_types"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "abi_stable",
  "rayon",
@@ -636,7 +636,7 @@ dependencies = [
 
 [[package]]
 name = "cos"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "cosine_similarity"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "crop"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "cumsum"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -773,7 +773,7 @@ dependencies = [
 
 [[package]]
 name = "delay"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -809,7 +809,7 @@ dependencies = [
 
 [[package]]
 name = "det"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -817,7 +817,7 @@ dependencies = [
 
 [[package]]
 name = "diag"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -867,7 +867,7 @@ dependencies = [
 
 [[package]]
 name = "div"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -884,7 +884,7 @@ dependencies = [
 
 [[package]]
 name = "dot"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "edge_detect"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -936,7 +936,7 @@ dependencies = [
 
 [[package]]
 name = "exp"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1010,7 +1010,7 @@ dependencies = [
 
 [[package]]
 name = "flatten"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1018,7 +1018,7 @@ dependencies = [
 
 [[package]]
 name = "flip"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "gain"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1064,7 +1064,7 @@ dependencies = [
 
 [[package]]
 name = "gaussian_blur"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1072,7 +1072,7 @@ dependencies = [
 
 [[package]]
 name = "gelu"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "identity"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
 ]
@@ -1374,7 +1374,7 @@ dependencies = [
 
 [[package]]
 name = "inv"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1457,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "layer_norm"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1465,7 +1465,7 @@ dependencies = [
 
 [[package]]
 name = "leaky_relu"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1530,7 +1530,7 @@ dependencies = [
 
 [[package]]
 name = "limiter"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1565,7 +1565,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1579,7 +1579,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "log_softmax"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1605,7 +1605,7 @@ dependencies = [
 
 [[package]]
 name = "matmul"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1623,7 +1623,7 @@ dependencies = [
 
 [[package]]
 name = "max"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1631,7 +1631,7 @@ dependencies = [
 
 [[package]]
 name = "max_pool2d"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1649,7 +1649,7 @@ dependencies = [
 
 [[package]]
 name = "mean"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "min"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1712,7 +1712,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1722,7 +1722,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1745,7 +1745,7 @@ dependencies = [
 
 [[package]]
 name = "morphology"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1763,7 +1763,7 @@ dependencies = [
 
 [[package]]
 name = "mul"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1861,7 +1861,7 @@ dependencies = [
 
 [[package]]
 name = "neg"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1884,7 +1884,7 @@ dependencies = [
 
 [[package]]
 name = "noise_gate"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1907,7 +1907,7 @@ checksum = "0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8"
 
 [[package]]
 name = "norm"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -1915,7 +1915,7 @@ dependencies = [
 
 [[package]]
 name = "normalize"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2093,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "outer"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2101,7 +2101,7 @@ dependencies = [
 
 [[package]]
 name = "pad"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2132,7 +2132,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chumsky",
  "serde",
@@ -2158,7 +2158,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "permute"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2172,7 +2172,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pipeline"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "abi_stable",
  "ariadne",
@@ -2237,7 +2237,7 @@ dependencies = [
 
 [[package]]
 name = "pow"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2418,7 +2418,7 @@ dependencies = [
 
 [[package]]
 name = "qr"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2621,7 +2621,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "relu"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2629,7 +2629,7 @@ dependencies = [
 
 [[package]]
 name = "repeat"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2646,7 +2646,7 @@ dependencies = [
 
 [[package]]
 name = "resample"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "reshape"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2662,7 +2662,7 @@ dependencies = [
 
 [[package]]
 name = "resize"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2712,7 +2712,7 @@ dependencies = [
 
 [[package]]
 name = "rms_norm"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2720,7 +2720,7 @@ dependencies = [
 
 [[package]]
 name = "roll"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2728,7 +2728,7 @@ dependencies = [
 
 [[package]]
 name = "rotate"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2736,7 +2736,7 @@ dependencies = [
 
 [[package]]
 name = "rsqrt"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2920,7 +2920,7 @@ dependencies = [
 
 [[package]]
 name = "sharpen"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2934,7 +2934,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "sigmoid"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2942,7 +2942,7 @@ dependencies = [
 
 [[package]]
 name = "sign"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -2981,7 +2981,7 @@ dependencies = [
 
 [[package]]
 name = "silu"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3004,7 +3004,7 @@ dependencies = [
 
 [[package]]
 name = "sin"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3018,7 +3018,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "softmax"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3026,7 +3026,7 @@ dependencies = [
 
 [[package]]
 name = "sqrt"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3034,7 +3034,7 @@ dependencies = [
 
 [[package]]
 name = "squeeze"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3061,7 +3061,7 @@ dependencies = [
 
 [[package]]
 name = "std"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3079,7 +3079,7 @@ dependencies = [
 
 [[package]]
 name = "stereo_widen"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3087,7 +3087,7 @@ dependencies = [
 
 [[package]]
 name = "stft"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3101,7 +3101,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "sub"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3115,7 +3115,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "sum"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3167,7 +3167,7 @@ dependencies = [
 
 [[package]]
 name = "tan"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3175,7 +3175,7 @@ dependencies = [
 
 [[package]]
 name = "tanh"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3242,7 +3242,7 @@ dependencies = [
 
 [[package]]
 name = "threshold"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3306,7 +3306,7 @@ dependencies = [
 
 [[package]]
 name = "to_audio"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3314,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "to_image"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3322,7 +3322,7 @@ dependencies = [
 
 [[package]]
 name = "to_pcm"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3330,7 +3330,7 @@ dependencies = [
 
 [[package]]
 name = "to_tensor"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3338,7 +3338,7 @@ dependencies = [
 
 [[package]]
 name = "to_wav"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3355,7 +3355,7 @@ dependencies = [
 
 [[package]]
 name = "trace"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3363,7 +3363,7 @@ dependencies = [
 
 [[package]]
 name = "transpose"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3440,7 +3440,7 @@ checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
 
 [[package]]
 name = "unsqueeze"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",
@@ -3505,7 +3505,7 @@ dependencies = [
 
 [[package]]
 name = "var"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "core_types",
  "rayon",

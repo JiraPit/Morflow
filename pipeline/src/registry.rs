@@ -232,7 +232,6 @@ impl ActionRegistry {
                 )
             })?;
 
-            verify_action_abi(&lib)?;
             let shapecheck_fn = *lib
                 .get::<core_types::ShapeCheckFn>(b"shapecheck")
                 .map_err(|e| format!("Missing mandatory shapecheck export: {e}"))?;
@@ -268,103 +267,6 @@ impl ActionRegistry {
                 shapecheck_fn,
                 _library: Arc::new(lib),
             })
-        }
-    }
-}
-
-fn verify_action_abi(lib: &Library) -> Result<(), String> {
-    unsafe {
-        let version = lib
-            .get::<extern "C" fn() -> u32>(b"get_action_abi_version")
-            .map_err(|_| {
-                "Action lacks the mandatory shapecheck ABI. Prepare an updated action version."
-                    .to_string()
-            })?;
-        if version() != core_types::shapecheck::ACTION_ABI_VERSION {
-            return Err("Incompatible action ABI. Prepare an updated action version.".into());
-        }
-        let layout = lib
-            .get::<extern "C" fn() -> *const core_types::abi_stable::type_layout::TypeLayout>(
-                b"get_action_abi_layout",
-            )
-            .map_err(|_| "Missing action ABI layout export".to_string())?;
-        let actual = layout().as_ref().ok_or("Null action ABI layout")?;
-        core_types::abi_stable::abi_stability::check_layout_compatibility(
-            <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT,
-            actual,
-        )
-        .map_err(|e| format!("Incompatible action ABI layout: {e}"))
-        .into()
-    }
-}
-#[cfg(all(test, unix))]
-mod shape_abi_tests {
-    use super::*;
-    #[test]
-    fn layouts_and_mandatory_shapecheck_are_checked_before_type_callbacks() {
-        let temp = tempfile::tempdir().unwrap();
-        let expected = <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT;
-        let wrong = <Shape as core_types::StableAbi>::LAYOUT;
-        let identity = ActionIdentity::new("test_pack", "0.3.0", "fixture").unwrap();
-        for (case, layout) in [
-            ("null", None),
-            ("wrong", Some(wrong)),
-            ("missing_shapecheck", Some(expected)),
-        ] {
-            let source = temp.path().join(format!("{case}.c"));
-            let path = source.with_extension("so");
-            let address = layout.map_or(0, |layout| layout as *const _ as usize);
-            std::fs::write(&source, format!(
-                "#include <stdlib.h>\nunsigned get_action_abi_version(void) {{return 1;}}\nconst void *get_action_abi_layout(void) {{return (const void *)0x{address:x};}}\nvoid get_input_type(void) {{abort();}}\nvoid get_output_type(void) {{abort();}}\nvoid process(void) {{abort();}}\n"
-            )).unwrap();
-            assert!(std::process::Command::new("cc")
-                .args(["-shared", "-fPIC"])
-                .arg(&source)
-                .arg("-o")
-                .arg(&path)
-                .status()
-                .unwrap()
-                .success());
-            let receipt = ArtifactReceipt {
-                identity: identity.clone(),
-                concrete_version: "0.3.0".into(),
-                repository: "local/test".into(),
-                sha256: "unused".into(),
-            };
-            let error = ActionRegistry::default()
-                .load_from_path(&identity, receipt, &path)
-                .err()
-                .expect("fixture must be rejected");
-            assert!(
-                error.contains(match case {
-                    "null" => "Null action ABI layout",
-                    "wrong" => "Incompatible action ABI layout",
-                    _ => "shapecheck",
-                }),
-                "{error}"
-            );
-        }
-    }
-    #[test]
-    fn legacy_and_incompatible_actions_are_rejected_before_callbacks() {
-        let temp = tempfile::tempdir().unwrap();
-        for version in [None, Some(0), Some(1), Some(99)] {
-            let source = temp.path().join(format!("version{version:?}.c"));
-            let library = source.with_extension("so");
-            let marker = version.map_or(String::new(), |v| {
-                format!("unsigned get_action_abi_version(void) {{return {v};}}")
-            });
-            std::fs::write(&source,format!("#include <stdlib.h>\n{marker}\nvoid process(void) {{abort();}}\nvoid shapecheck(void) {{abort();}}\n")).unwrap();
-            assert!(std::process::Command::new("cc")
-                .args(["-shared", "-fPIC"])
-                .arg(&source)
-                .arg("-o")
-                .arg(&library)
-                .status()
-                .unwrap()
-                .success());
-            let library = unsafe { Library::new(library) }.unwrap();
-            assert!(verify_action_abi(&library).is_err());
         }
     }
 }

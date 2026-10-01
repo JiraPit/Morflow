@@ -173,7 +173,7 @@ impl AutoParallelScheduler {
                     }
                 }
                 FlowStep::Action(call) => {
-                    if call.name == "emit" || call.name == "resurface" {
+                    if call.name == "emit" {
                         let Some(emitted_lock) = emitted_outputs else {
                             return Err(MorflowError::Execution(
                                 "Emission ('emit') is not allowed inside an 'each' block or nested sub-flow".to_string(),

@@ -56,7 +56,7 @@ cargo add morflow
 <dependency>
     <groupId>org.morflow</groupId>
     <artifactId>morflow</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
@@ -187,61 +187,6 @@ let outputs = pipeline.run(Payload::Image(input_image))?;
 ```
 
 Full end-to-end examples across Rust, Python, JavaScript, and Java are available in the [`examples/`](examples) directory, and comprehensive API guides are available in the **[Official Documentation (morflow.org/doc)](https://morflow.org/doc)**.
-
----
-
-## 🧩 Extending Morflow: Custom Actions
-
-Custom processing actions are written as lightweight Rust shared libraries:
-
-```rust
-// actions/custom_pack/custom_kernel/src/lib.rs
-use core_types::{ActionArgs, DataType, InputDescriptor, Payload, PreparedData,
-                 Shape, ShapeCheckResult, ShapeResult, StableAbi};
-use core_types::shapecheck::{self, ActionAbiLayout, PreparedArgs};
-
-#[no_mangle]
-pub extern "C" fn get_action_abi_version() -> u32 {
-    shapecheck::ACTION_ABI_VERSION
-}
-
-#[no_mangle]
-pub extern "C" fn get_action_abi_layout()
-    -> *const core_types::abi_stable::type_layout::TypeLayout {
-    <ActionAbiLayout as StableAbi>::LAYOUT
-}
-
-#[no_mangle]
-pub extern "C" fn get_input_type() -> DataType { DataType::Tensor }
-#[no_mangle]
-pub extern "C" fn get_output_type() -> DataType { DataType::Tensor }
-
-fn dimensions(input: Shape, _: PreparedArgs) -> ShapeResult {
-    ShapeResult::Ok(input)
-}
-
-#[no_mangle]
-pub extern "C" fn shapecheck(input: InputDescriptor, args: ActionArgs) -> ShapeCheckResult {
-    shapecheck::analyze(input, args, "custom_kernel", get_input_type(),
-                        get_output_type(), Some(dimensions), None)
-}
-
-#[no_mangle]
-pub extern "C" fn process(payload: Payload, _prepared: PreparedData) -> Payload {
-    // Pass-through example; replace with a transformation of the same shape.
-    payload
-}
-```
-Compile the action as a `.so`/`.dll`/`.dylib`, then package it with its Cargo version and checksum receipt:
-
-```bash
-python3 scripts/package_action.py actions/custom_pack/custom_kernel/Cargo.toml \
-    target/release/libcustom_kernel.so --cache ./actions_cache
-```
-
-Import it with `from custom_pack/0.1.0 import custom_kernel` and point `MORFLOW_ACTIONS_PATH` at the cache. `scripts/build-actions.sh` packages repository actions in the same format. Existing unversioned cache files are excluded from version-aware resolution; run `morflow prep` to prepare published actions.
-
-For local test fixtures, build with `cargo build --workspace` and run `python3 scripts/prepare_test_actions.py`. This explicitly creates development `latest` aliases under `target/debug/actions`; published `latest` aliases are refreshed by `morflow prep` or `morflow install`.
 
 ---
 

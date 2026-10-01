@@ -1,7 +1,7 @@
 #[path = "check_coverage.rs"]
 mod coverage;
 #[cfg(test)]
-use core_types::Shape;
+use core_types::{Shape, ShapeResult};
 pub use coverage::{ActionCoverage, ShapeCoverage};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -9,10 +9,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use ariadne::{Color, Label, Report, ReportKind, Source};
-use core_types::{
-    ActionArgs, DataType, Dim, PType, RString, RVec, ShapeResult, ShapeSpec, Tuple2, ValueShape,
-    ValueShapeResult,
-};
+use core_types::{ActionArgs, DataType, Dim, PType, RString, RVec, ShapeSpec, Tuple2, ValueShape};
 use parser::ast::*;
 use rich_rust::prelude::*;
 use rich_rust::r#box::ROUNDED;
@@ -209,6 +206,7 @@ fn unranked_like(pt: &PType) -> PType {
 /// The `PType` an action produces, from its declared output kind and the
 /// shape it reported for a concrete call. Mirrors `PType::with_shape`: a rank-0
 /// result of a tensor-valued action becomes a `Scalar`.
+#[cfg(test)]
 fn refine_output(kind: DataType, spec: ShapeSpec) -> PType {
     match PType::from_data_type(kind) {
         PType::Tensor(_) => match spec.rank() {
@@ -224,6 +222,7 @@ fn refine_output(kind: DataType, spec: ShapeSpec) -> PType {
 /// The `PType` an action produces for a pinned-rank source, from the verdict
 /// its shape function returned. An `Unknown` verdict or an unpinned source
 /// stay wildcard rather than collapsing into a fabricated rank.
+#[cfg(test)]
 fn refine_result(kind: DataType, verdict: ShapeResult) -> PType {
     match verdict {
         ShapeResult::Ok(shape) => refine_output(kind, ShapeSpec::from(shape)),
@@ -388,49 +387,84 @@ fn call_args(call: &ActionCall, params: &[PipelineParam]) -> ActionArgs {
     ActionArgs { positional, named }
 }
 
-/// Renders the E010 report for an action that rejected its own arguments
-/// (e.g. an out-of-range reducer axis) and returns the error string the
-/// check propagates. The action binary supplies the reason, so no action
-/// names are consulted here.
-#[allow(clippy::too_many_arguments)]
-fn invalid_args_report(
-    console: &Console,
-    reason: &RString,
-    produced: &str,
-    call_name: &str,
-    prev_desc: &str,
-    source: &str,
-    filename: &str,
-    file_path: &Path,
-) -> String {
-    let curr_span = find_token_span(source, call_name, 0);
-    let prev_span = if !prev_desc.is_empty() {
-        find_token_span(source, prev_desc, 0)
-    } else {
-        curr_span.clone()
-    };
-    let report = Report::build(ReportKind::Error, (filename, curr_span.clone()))
-        .with_code("E010")
-        .with_message(reason.as_str())
-        .with_label(
-            Label::new((filename, prev_span))
-                .with_message(format!("Produces {}", produced))
-                .with_color(Color::Blue),
-        )
-        .with_label(
-            Label::new((filename, curr_span))
-                .with_message("Action rejected these arguments")
-                .with_color(Color::Red),
-        )
-        .with_help("Check the action's axis/dimension arguments against the input rank.");
-    let _ = report.finish().print((filename, Source::from(source)));
+/// Shape coverage is the last report section, after pipeline and dependency checks.
+fn print_shape_coverage(console: &Console, coverage: &ShapeCoverage) {
+    use rich_rust::renderables::table::Cell;
     console.print("");
+    console.rule(Some("Shape safety"));
+    let Some(percent) = coverage.percentage() else {
+        console.print("Shape safety: N/A (no processing actions)");
+        return;
+    };
+    let color = if coverage.has_invalid() {
+        "red"
+    } else if coverage.ready() == coverage.actions.len() {
+        "green"
+    } else {
+        "yellow"
+    };
     console.print(&format!(
-        "[bold red]✗ Check failed:[/] {} in [dim]{}[/].",
-        reason.as_str(),
-        file_path.display()
+        "[bold {color}]Shape safety: {percent:.1}%[/] ({}/{} actions verified)",
+        coverage.ready(),
+        coverage.actions.len()
     ));
-    "Invalid action argument error".into()
+    console.print("");
+    let mut table = Table::new()
+        .box_style(&ROUNDED)
+        .border_style(Style::parse("dim").unwrap_or_default())
+        .header_style(Style::parse("bold").unwrap_or_default())
+        .with_column(Column::new("Location").max_width(20))
+        .with_column(Column::new("Action").min_width(8).max_width(20))
+        .with_column(Column::new("Result").width(13).no_wrap())
+        .with_column(Column::new("Input → Output").min_width(20).ratio(2));
+    for action in &coverage.actions {
+        let result = match action.status {
+            "Ready" => "[green]Verified[/]",
+            "Deferred" => "[yellow]Runtime check[/]",
+            _ => "[red]Invalid[/]",
+        };
+        table.add_row_cells([
+            Cell::new(action.location.replace('/', " / ")),
+            Cell::new(action.action.clone()),
+            Cell::from_markup(result),
+            Cell::new(format!(
+                "{} → {}",
+                action.input.to_ptype(),
+                if action.status == "Invalid" {
+                    "—".to_string()
+                } else {
+                    action.output.to_ptype().to_string()
+                }
+            )),
+        ]);
+    }
+    console.print_renderable(&table);
+    let unresolved: Vec<_> = coverage
+        .actions
+        .iter()
+        .filter(|a| a.status != "Ready")
+        .collect();
+    if !unresolved.is_empty() {
+        console.print("");
+        console.print("[bold]Actions needing attention[/]");
+        for action in unresolved {
+            console.print(&format!(
+                "  [bold]{} — {}[/]",
+                action.location.replace('/', " / "),
+                action.action
+            ));
+            let reason = if action.reason
+                == "Concrete input dimensions, metadata or argument values are required"
+            {
+                "Some input dimensions, properties, or argument values are only known at runtime."
+            } else {
+                &action.reason
+            };
+            console.print(&format!("    {}", reason));
+        }
+    }
+    console.print("");
+    console.print("Coverage is based on declared shapes and arguments. Dynamic inputs are checked when the pipeline runs.");
 }
 
 /// Executes the comprehensive static check & dry run on a .morf file
@@ -575,7 +609,7 @@ pub fn check_pipeline(
     let mut loaded_actions: HashMap<String, Arc<LoadedAction>> = HashMap::new();
 
     for act_name in &action_names {
-        if act_name == "emit" || act_name == "resurface" {
+        if act_name == "emit" {
             continue;
         }
 
@@ -681,34 +715,6 @@ pub fn check_pipeline(
     }
 
     let shape_coverage = ShapeCoverage::analyze(&ast, &loaded_actions)?;
-    console.rule(Some("Static Shape Safety"));
-    if let Some(percent) = shape_coverage.percentage() {
-        console.print(&format!(
-            "Shape safety: {:.1}% ({}/{} action calls Ready)",
-            percent,
-            shape_coverage.ready(),
-            shape_coverage.actions.len()
-        ));
-    } else {
-        console.print("Shape safety: N/A (no native action calls)");
-    }
-    console.print("Each native action call counts once, including every branch and each body. Built-ins are excluded.");
-    for action in &shape_coverage.actions {
-        console.print(&format!(
-            "{}: {} — {} — input: {}; output: {}; {}",
-            action.location,
-            action.action,
-            action.status,
-            action.input.to_ptype(),
-            action.output.to_ptype(),
-            action.reason
-        ));
-    }
-    console.print("Ready guarantees the shape contract for declared inputs and literal arguments; numerical values and encoded contents are checked during execution.");
-    if shape_coverage.has_invalid() {
-        return Err("Shape check failed: Invalid action contracts".into());
-    }
-
     let mut inspected_flows: Vec<FlowInspection> = Vec::new();
 
     for (stmt_idx, stmt) in ast.statements.iter().enumerate() {
@@ -803,7 +809,7 @@ pub fn check_pipeline(
                     prev_step_desc = format!("${}", var_ref.name);
                 }
                 FlowStep::Action(call) => {
-                    if call.name == "emit" || call.name == "resurface" {
+                    if call.name == "emit" {
                         let emit_desc = if let Some(Value::String(s)) = call.positional_args.first()
                         {
                             format!("{}(\"{}\")", call.name, s)
@@ -843,10 +849,11 @@ pub fn check_pipeline(
 
                     // Retrieve input and output types directly from the loaded action binary!
                     let action_in = loaded.input_type;
-                    let action_out = loaded.output_type;
 
                     if let Some(src) = &curr_type {
-                        if !are_types_compatible(src.data_type(), action_in) {
+                        if !shape_coverage.has_invalid()
+                            && !are_types_compatible(src.data_type(), action_in)
+                        {
                             let curr_span = find_token_span(&source, &call.name, 0);
                             let prev_span = if !prev_step_desc.is_empty() {
                                 find_token_span(&source, &prev_step_desc, 0)
@@ -892,47 +899,10 @@ pub fn check_pipeline(
                         }
                     }
 
-                    // Static and runtime dispatch use the same mandatory callback.
-                    let value_verdict = loaded
-                        .output_value_result(
-                            &curr_type
-                                .as_ref()
-                                .map(ValueShape::from_ptype)
-                                .unwrap_or(ValueShape::Unknown),
-                            &call_args(call, &[]),
-                        )
-                        .expect("mandatory shapecheck result");
-                    let shape_verdict = match &value_verdict {
-                        ValueShapeResult::Invalid(reason) => ShapeResult::Invalid(reason.clone()),
-                        _ => ShapeResult::Unknown,
-                    };
-
-                    // E010: the action itself rejected the call (e.g. an
-                    // out-of-range reducer axis), so fail the check instead of
-                    // claiming a shape the runtime will refuse at execution.
-                    if let ShapeResult::Invalid(reason) = &shape_verdict {
-                        let src_desc = curr_type
-                            .as_ref()
-                            .map(|t| t.to_string())
-                            .unwrap_or_default();
-                        return Err(invalid_args_report(
-                            &console,
-                            reason,
-                            &src_desc,
-                            &call.name,
-                            &prev_step_desc,
-                            &source,
-                            filename_str.as_str(),
-                            file_path,
-                        )
-                        .into());
-                    }
-
-                    let out_ptype = match value_verdict {
-                        ValueShapeResult::Ok(shape) => shape.to_ptype(),
-                        _ => refine_result(action_out, ShapeResult::Unknown),
-                    };
-                    curr_type = Some(out_ptype);
+                    // Presentation uses the same recursive analysis as the final report.
+                    curr_type = shape_coverage.outputs
+                        [&format!("Flow {}/step {}", stmt_idx + 1, step_idx + 1)]
+                        .clone();
                     steps_summary.push(call.name.clone());
                     prev_step_desc = call.name.clone();
                 }
@@ -949,7 +919,7 @@ pub fn check_pipeline(
                         .unwrap_or_else(|| "dynamic axis".to_string());
                     let names = collect_action_names(&each_loop.body);
                     steps_summary.push(format!(
-                        "each (${}) [⚡ Rayon Parallel, {}] {{ {} }}",
+                        "each (${}) (parallel, {}) {{ {} }}",
                         each_loop.var_name,
                         hint,
                         names.join(" >> ")
@@ -994,7 +964,7 @@ pub fn check_pipeline(
     // ==========================================
     // Phase 5: Rich Presentation (rich_rust)
     // ==========================================
-    console.rule(Some("Morflow Pipeline Check & Dry-Run"));
+    console.rule(Some("Pipeline check"));
     console.print(&format!(
         "  [bold cyan]Pipeline:[/]        [green]{}[/]",
         file_path.display()
@@ -1024,7 +994,15 @@ pub fn check_pipeline(
             .map(|p| {
                 let ty = ptype_of(&p.param_type).to_string();
                 if let Some(def) = &p.default_value {
-                    format!("${}: {} = {:?}", p.name, ty, def)
+                    format!(
+                        "${}: {} = {}",
+                        p.name,
+                        ty,
+                        match def {
+                            Value::String(value) => format!("\"{value}\""),
+                            _ => value_to_arg_str(def, &[]),
+                        }
+                    )
                 } else {
                     format!("${}: {}", p.name, ty)
                 }
@@ -1114,47 +1092,9 @@ pub fn check_pipeline(
         }
     }
 
-    // 1. Flow Execution Simulation Table
-    let mut flow_table = Table::new()
-        .box_style(&ROUNDED)
-        .border_style(Style::parse("bright_cyan").unwrap_or_default())
-        .header_style(Style::parse("bold white on blue").unwrap_or_default())
-        .with_column(Column::new("Flow").width(6).justify(JustifyMethod::Center))
-        .with_column(
-            Column::new("Stage")
-                .width(14)
-                .justify(JustifyMethod::Center),
-        )
-        .with_column(Column::new("Input Source").no_wrap())
-        .with_column(Column::new("Execution Chain").no_wrap())
-        .with_column(Column::new("Output Destination").no_wrap());
-
-    for (f_idx, flow) in inspected_flows.iter().enumerate() {
-        let chain_str = flow.steps_summary.join(" [cyan]>>[/] ");
-        let s_idx = flow_to_stage.get(f_idx).copied().unwrap_or(0);
-        let is_parallel = stages.get(s_idx).map(|s| s.len() > 1).unwrap_or(false);
-
-        let stage_str = if is_parallel {
-            format!("Stage {} [bold green](Par)[/]", s_idx + 1)
-        } else {
-            format!("Stage {}", s_idx + 1)
-        };
-
-        flow_table.add_row_markup([
-            format!("#{}", flow.stmt_idx).as_str(),
-            stage_str.as_str(),
-            flow.source_desc.as_str(),
-            chain_str.as_str(),
-            flow.output_desc.as_str(),
-        ]);
-    }
-
-    console.print_renderable(&flow_table);
-    console.print("");
-
     // 2. Execution DAG & Concurrency Plan Tree
     let mut dag_tree = Tree::with_label(rich_rust::markup::render_or_plain(
-        "[bold cyan]Pipeline Execution DAG[/]",
+        "[bold cyan]Execution plan[/]",
     ))
     .guides(TreeGuides::Rounded);
 
@@ -1174,8 +1114,8 @@ pub fn check_pipeline(
         let mut stage_node = TreeNode::new(rich_rust::markup::render_or_plain(&stage_title));
 
         for &f_idx in stage_flows {
-            let flow_num = f_idx + 1;
             let flow = &inspected_flows[f_idx];
+            let flow_num = flow.stmt_idx;
 
             let flow_title = format!(
                 "[bold white]Flow #{}[/]: [cyan]{}[/] [dim]→[/] [green]{}[/]",
@@ -1186,10 +1126,11 @@ pub fn check_pipeline(
             // Trigger or Dependency
             let deps = &all_flow_deps[f_idx];
             if deps.is_empty() {
-                let params_read: Vec<String> = all_flow_reads[f_idx]
+                let params_read: Vec<String> = ast
+                    .params
                     .iter()
-                    .filter(|v| ast.params.iter().any(|p| &p.name == *v))
-                    .map(|v| format!("${}", v))
+                    .filter(|p| all_flow_reads[f_idx].contains(&p.name))
+                    .map(|p| format!("${}", p.name))
                     .collect();
                 let trigger_desc = if params_read.is_empty() {
                     "[dim]Trigger:[/] [cyan]Pipeline Entry[/]".to_string()
@@ -1272,7 +1213,7 @@ pub fn check_pipeline(
 
     // 3. Action Dynamic Inspection Table (showing actual types from action binaries)
     if !action_names.is_empty() {
-        console.print("[bold cyan]Native Action Binaries & Dynamic FFI Types:[/] \n");
+        console.rule(Some("Actions"));
         let width = console.width();
         let show_path = width >= 95;
 
@@ -1282,12 +1223,12 @@ pub fn check_pipeline(
             .header_style(Style::parse("bold white on blue").unwrap_or_default())
             .with_column(Column::new("Action").no_wrap())
             .with_column(
-                Column::new("get_input_type()")
+                Column::new("Accepts")
                     .width(18)
                     .justify(JustifyMethod::Center),
             )
             .with_column(
-                Column::new("get_output_type()")
+                Column::new("Produces")
                     .width(18)
                     .justify(JustifyMethod::Center),
             );
@@ -1296,20 +1237,20 @@ pub fn check_pipeline(
             dep_table = dep_table
                 .with_column(Column::new("Binary Origin").no_wrap())
                 .with_column(
-                    Column::new("Status")
+                    Column::new("Binary")
                         .width(14)
                         .justify(JustifyMethod::Center),
                 );
         } else {
             dep_table = dep_table.with_column(
-                Column::new("Status")
+                Column::new("Binary")
                     .width(14)
                     .justify(JustifyMethod::Center),
             );
         }
 
         for action_name in &action_names {
-            if action_name == "emit" || action_name == "resurface" {
+            if action_name == "emit" {
                 continue;
             }
 
@@ -1341,10 +1282,15 @@ pub fn check_pipeline(
         console.print("");
     }
 
-    console.print(&format!(
-        "[bold green]✓ Pipeline Verified:[/] [bold]{}[/] passed all syntax, SSA variable scope, native action FFI, and data type checks.",
-        file_path.display()
-    ));
+    if shape_coverage.has_invalid() {
+        console.print("[bold red]✗ Check failed:[/] One or more actions have incompatible inputs or arguments.");
+    } else {
+        console.print("[bold green]✓ Pipeline verified:[/] Syntax, variables, action binaries, and types passed checking.");
+    }
+    print_shape_coverage(&console, &shape_coverage);
+    if shape_coverage.has_invalid() {
+        return Err("Shape check failed: incompatible action inputs or arguments".into());
+    }
 
     Ok(())
 }

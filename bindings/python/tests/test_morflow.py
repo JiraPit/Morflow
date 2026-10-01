@@ -222,7 +222,7 @@ def test_arg_params_and_scalar_together():
 
 
 def test_exact_version_and_required_imports():
-    pipeline = morflow.from_str("from base/0.3.0 import identity\naccept Tensor $data\n$data >> identity >> emit")
+    pipeline = morflow.from_str("from base/0.3.1 import identity\naccept Tensor $data\n$data >> identity >> emit")
     np.testing.assert_array_equal(pipeline.run(np.array([1.0, 2.0], dtype=np.float32)), [1.0, 2.0])
     with pytest.raises(RuntimeError, match="not declared by the imports"):
         morflow.from_str("accept Tensor $data\n$data >> identity >> emit")

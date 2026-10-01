@@ -167,10 +167,7 @@ fn collect_actions_internal(statements: &[Statement], names: &mut Vec<String>) {
         for step in &chain.steps {
             match step {
                 FlowStep::Action(call) => {
-                    if call.name != "emit"
-                        && call.name != "resurface"
-                        && !names.contains(&call.name)
-                    {
+                    if call.name != "emit" && !names.contains(&call.name) {
                         names.push(call.name.clone());
                     }
                 }

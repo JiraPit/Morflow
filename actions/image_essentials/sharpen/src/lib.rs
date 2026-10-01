@@ -246,15 +246,6 @@ fn separable_gaussian_f32(
 }
 
 #[no_mangle]
-pub extern "C" fn get_action_abi_version() -> u32 {
-    core_types::shapecheck::ACTION_ABI_VERSION
-}
-#[no_mangle]
-pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
-{
-    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
-}
-#[no_mangle]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

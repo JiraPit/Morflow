@@ -4,7 +4,6 @@ use crate::{
     Tuple2, ValueShape, ValueShapeResult,
 };
 use abi_stable::std_types::ROption;
-pub const ACTION_ABI_VERSION: u32 = 1;
 #[repr(C)]
 #[derive(StableAbi, Debug, Clone)]
 pub enum Metadata {
@@ -158,16 +157,6 @@ impl ShapeCheckResult {
     }
 }
 pub type ShapeCheckFn = extern "C" fn(InputDescriptor, ActionArgs) -> ShapeCheckResult;
-/// Layout checked before either action callback can be invoked.
-#[repr(C)]
-#[derive(StableAbi)]
-pub struct ActionAbiLayout {
-    pub input: InputDescriptor,
-    pub arguments: ActionArgs,
-    pub result: ShapeCheckResult,
-    pub payload: Payload,
-    pub prepared: PreparedData,
-}
 fn partial(value: &ValueShape) -> bool {
     match value {
         ValueShape::Unknown => true,

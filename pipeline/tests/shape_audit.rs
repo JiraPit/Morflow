@@ -56,8 +56,7 @@ fn partial(input: &ValueShape, mask: usize) -> ValueShape {
     }
 }
 fn verify(loaded: &LoadedAction, input: &ValueShape, args: &ActionArgs, output: &Payload) {
-    // QR also exposes the legacy component callback. Check it independently
-    // so the fallback and unified descriptors cannot drift apart.
+    // Check the component view against the same ordered output prediction.
     if let (Some(shape), Payload::Composite(items)) = (input.shape(), output) {
         if let Some(components) = loaded.output_components(shape, args) {
             assert_eq!(components.len(), items.len(), "{}", loaded.name);

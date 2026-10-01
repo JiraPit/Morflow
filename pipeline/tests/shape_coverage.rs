@@ -132,3 +132,40 @@ $x >> each ($row) {
     std::fs::write(&path, source).unwrap();
     pipeline::check::check_pipeline(&path, None).unwrap();
 }
+
+#[test]
+fn cli_presents_shape_safety_last_for_verified_deferred_and_invalid_calls() {
+    for (shape, target, success, percent, result) in [
+        ("2,3", "3,2", true, "100.0%", "Verified"),
+        ("*,3", "3,2", true, "0.0%", "Runtime check"),
+        ("2,3", "4,2", false, "0.0%", "Invalid"),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("presentation.morf");
+        std::fs::write(&path, format!("from tensor_essentials/latest import reshape\naccept Tensor[{shape}] $x\n$x >> reshape(\"{target}\") >> emit\n")).unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_morflow"))
+            .args(["check", path.to_str().unwrap()])
+            .env("NO_COLOR", "1")
+            .output()
+            .unwrap();
+        assert_eq!(
+            output.status.success(),
+            success,
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let text = String::from_utf8(output.stdout).unwrap();
+        assert!(text.find("Pipeline check").unwrap() < text.find("Execution plan").unwrap());
+        assert!(text.find("Execution plan").unwrap() < text.find("Actions").unwrap());
+        assert!(text.rfind("Accepts").unwrap() < text.find("Shape safety").unwrap());
+        let summary = text.split("Shape safety").last().unwrap();
+        assert!(summary.contains(percent));
+        assert!(summary.contains(result));
+        assert!(summary.contains("Input → Output"));
+        assert!(!text.contains("get_input_type()"));
+        assert!(!text.contains("Shape contract satisfied"));
+        if !success {
+            assert!(!text.contains("✓ Pipeline verified"));
+        }
+    }
+}

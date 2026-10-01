@@ -30,6 +30,22 @@ mod tests {
     };
 
     #[test]
+    fn removed_emission_alias_requires_an_import() {
+        let source = "accept Bytes $input\n$input >> resurface\n";
+        let ast = parser::parse(source).unwrap();
+        assert_eq!(
+            crate::engine::collect_action_names(&ast.statements),
+            ["resurface"]
+        );
+        match Morflow::from_str(source) {
+            Err(MorflowError::Action(message)) => {
+                assert!(message.contains("not declared by the imports"))
+            }
+            _ => panic!("Removed emission alias must not be treated as a built-in"),
+        }
+    }
+
+    #[test]
     fn test_morflow_pipeline_execution_with_emit() {
         let morf_src = r#"
             accept Bytes input_data

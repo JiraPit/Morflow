@@ -26,10 +26,7 @@ impl ActionResolver {
                     component(&p.package)?;
                     let version = normalize_version(&p.version)?;
                     let namespace = p.alias.as_ref().unwrap_or(&p.package);
-                    if namespace == "emit"
-                        || namespace == "resurface"
-                        || !aliases.insert(namespace.clone())
-                    {
+                    if namespace == "emit" || !aliases.insert(namespace.clone()) {
                         return Err(format!("Conflicting import namespace '{namespace}'; use distinct aliases for multiple versions"));
                     }
                     resolver.imported_packages.push(PackImport {
@@ -41,7 +38,7 @@ impl ActionResolver {
                 ImportStmt::Items(p) => {
                     for item in &p.items {
                         let name = item.alias.as_ref().unwrap_or(&item.name);
-                        if name == "emit" || name == "resurface" || !aliases.insert(name.clone()) {
+                        if name == "emit" || !aliases.insert(name.clone()) {
                             return Err(format!("Conflicting import alias '{name}'"));
                         }
                         resolver.imported_symbols.insert(
