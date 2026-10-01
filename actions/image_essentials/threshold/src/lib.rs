@@ -1,6 +1,5 @@
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -13,16 +12,13 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> Shape {
-    input
+fn shape_impl(input: Shape, _args: PreparedArgs) -> ShapeResult {
+    core_types::contract::finish(core_types::contract::image_nonempty(&input).map(|()| input))
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
-    shape_impl(input, args).into()
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
+    shape_impl(input, args)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -36,16 +32,16 @@ enum ThreshMode {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, true) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut threshold_opt: Option<f32> = None;
     let mut max_val_opt: Option<f32> = None;
     let mut mode = ThreshMode::Binary;
@@ -56,10 +52,10 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("thresh"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            threshold_opt = t_str.parse::<f32>().ok();
+            threshold_opt = prepared.args.parse::<f32>(t_str).ok();
         }
         if let Some(m_str) = args.get_named("max_val").or_else(|| args.get_named("max")) {
-            max_val_opt = m_str.parse::<f32>().ok();
+            max_val_opt = prepared.args.parse::<f32>(m_str).ok();
         }
         if let Some(mode_str) = args.get_named("mode") {
             mode = match mode_str.to_lowercase().as_str() {
@@ -258,9 +254,37 @@ fn compute_otsu_threshold_f32(slice: &[f32]) -> f32 {
     best_t as f32 / 255.0
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     #[test]

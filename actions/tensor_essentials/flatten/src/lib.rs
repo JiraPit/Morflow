@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -9,7 +10,7 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, Error};
     contract::finish((|| {
         let rank = input.rank();
@@ -29,7 +30,7 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         let mut out = input.dims()[..start].to_vec();
         let flat = input.dims()[start..=end]
             .iter()
-            .try_fold(1usize, |n, d| n.checked_mul(*d))
+            .try_fold(core_types::Dimension::Known(1), |n, d| n.checked_mul(*d))
             .ok_or(Error::from("Flattened dimension overflows"))?;
         out.push(flat);
         out.extend_from_slice(&input.dims()[end + 1..]);
@@ -37,21 +38,18 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut start_dim = 0usize;
     let mut end_dim = -1isize;
@@ -61,7 +59,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("start_dim")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(s) = s_str.parse::<usize>() {
+            if let Ok(s) = prepared.args.parse::<usize>(s_str) {
                 start_dim = s;
             }
         }
@@ -69,7 +67,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("end_dim")
             .or_else(|| args.positional.get(1).map(|s| s.as_str()))
         {
-            if let Ok(e) = e_str.parse::<isize>() {
+            if let Ok(e) = prepared.args.parse::<isize>(e_str) {
                 end_dim = e;
             }
         }
@@ -88,9 +86,37 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
@@ -120,7 +146,14 @@ mod tests {
 
     #[test]
     fn test_flatten_accepts_a_scalar_value() {
-        let res = process(Payload::scalar_f32(2.0));
+        let payload = Payload::scalar_f32(2.0);
+        let core_types::ShapeCheckResult::Ready { prepared, .. } = shapecheck(
+            core_types::InputDescriptor::from_payload(&payload),
+            core_types::ActionArgs::default(),
+        ) else {
+            panic!("expected ready")
+        };
+        let res = crate::process(payload, prepared);
         match res {
             Payload::Scalar(out) => {
                 assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);

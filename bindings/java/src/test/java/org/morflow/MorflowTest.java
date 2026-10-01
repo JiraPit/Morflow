@@ -279,10 +279,34 @@ public class MorflowTest {
     }
     @Test
     public void testExactVersionAndRequiredImports() {
-        String source = "from base/0.2.1 import identity\naccept Tensor $data\n$data >> identity >> emit";
+        String source = "from base/0.3.0 import identity\naccept Tensor $data\n$data >> identity >> emit";
         try (Pipeline pipeline = Morflow.fromStr(source)) {
             assertArrayEquals(new float[]{1.0f, 2.0f}, pipeline.run(new float[]{1.0f, 2.0f}, new int[]{2}).toFloatArray());
         }
         assertThrows(MorflowException.class, () -> Morflow.fromStr("accept Tensor $data\n$data >> identity >> emit"));
+    }
+
+    @Test
+    public void testQrCompositeSelection() {
+        String dsl = """
+            import linalg_essentials/latest
+            accept Tensor[3,2] $matrix
+            $matrix >> qr >> $parts
+            $parts[0] >> emit("q")
+            $parts[1] >> emit("r")
+        $parts >> matmul >> emit("reconstructed")
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            float[] data = {1, 0, 0, 1, 1, 1};
+            Map<String, MorflowTensor> out = pipeline.runAll(MorflowTensor.fromFloatArray(data, new int[]{3, 2}));
+            assertArrayEquals(new int[]{3, 2}, out.get("q").getShape());
+            assertArrayEquals(new int[]{2, 2}, out.get("r").getShape());
+            assertArrayEquals(data, out.get("reconstructed").toFloatArray(), 1e-5f);
+            float[] q = out.get("q").toFloatArray(), r = out.get("r").toFloatArray();
+            for (int i = 0; i < data.length; i++) {
+                int row = i / 2, col = i % 2;
+                assertEquals(data[i], q[row*2]*r[col]+q[row*2+1]*r[2+col], 1e-5f);
+            }
+        }
     }
 }

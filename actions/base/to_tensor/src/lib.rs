@@ -1,6 +1,6 @@
+use core_types::shapecheck::PreparedArgs;
 use core_types::{
-    ActionArgs, ColorSpace, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult, Tensor,
-    TensorDType,
+    ColorSpace, DataType, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType,
 };
 use rayon::prelude::*;
 
@@ -14,16 +14,75 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(_input: Shape, _args: ActionArgs) -> ShapeResult {
+fn shape_impl(_input: Shape, _args: PreparedArgs) -> ShapeResult {
     ShapeResult::Unknown
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
+}
+
+/// Payload kinds distinguish shape-preserving Audio conversion from image conversion.
+pub fn get_output_value_shape<A: Into<PreparedArgs>>(
+    input: core_types::ValueShape,
+    args: A,
+) -> core_types::ValueShapeResult {
+    let args = args.into();
+    use core_types::{Dimension, ValueShape, ValueShapeResult};
+    let ValueShape::Leaf { kind, shape } = &input else {
+        return ValueShapeResult::Unknown;
+    };
+    let Some(shape) = shape.as_ref().into_option() else {
+        return ValueShapeResult::Unknown;
+    };
+    if *kind == DataType::Audio || (*kind == DataType::Tensor && !matches!(shape.rank(), 2 | 3)) {
+        return ValueShapeResult::Ok(ValueShape::tensor(shape.clone()));
+    }
+    // Channel conversion may remove or introduce the channel axis.
+    let color = match core_types::contract::value(&args, &["color", "color_space"], Some(0)) {
+        Ok(value) => value,
+        _ => return ValueShapeResult::Unknown,
+    };
+    let channels = match color.map(str::to_lowercase).as_deref() {
+        Some("gray" | "grey" | "grayscale") => Some(1),
+        Some("rgb" | "bgr") => Some(3),
+        Some("rgba" | "bgra") => Some(4),
+        _ => None,
+    };
+    if shape.rank() == 2 && channels.is_none_or(|c| c == 1) {
+        return ValueShapeResult::Ok(ValueShape::tensor(shape.clone()));
+    }
+    // A valid Image is guaranteed to convert. A raw Tensor can fall back unchanged.
+    if *kind == DataType::Image {
+        if let Some(channels) = channels {
+            return ValueShapeResult::Ok(ValueShape::tensor(Shape::unknown(if channels == 1 {
+                2
+            } else {
+                3
+            })));
+        }
+        return ValueShapeResult::Unknown;
+    }
+    if *kind == DataType::Tensor && shape.rank() == 2 {
+        let layout = args.get_named("layout").unwrap_or("hwc");
+        if layout.starts_with('$') {
+            return ValueShapeResult::Ok(ValueShape::tensor(Shape::unknown(3)));
+        }
+        let (h, w) = (shape.dims()[0], shape.dims()[1]);
+        let c = Dimension::Known(channels.unwrap());
+        return ValueShapeResult::Ok(ValueShape::tensor(Shape::new(
+            if matches!(layout.to_lowercase().as_str(), "chw" | "planar") {
+                [c, h, w]
+            } else {
+                [h, w, c]
+            },
+        )));
+    }
+    if *kind == DataType::Tensor && shape.rank() == 3 && channels.is_some_and(|c| c > 1) {
+        return ValueShapeResult::Ok(ValueShape::tensor(Shape::unknown(3)));
+    }
+    ValueShapeResult::Unknown
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -39,12 +98,12 @@ enum TargetLayout {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut target_color: Option<ColorSpace> = None;
     let mut target_dtype = TargetDType::F32;
     let mut target_layout = TargetLayout::Hwc;
@@ -513,9 +572,37 @@ fn write_rgba_f32(dst: &mut [f32], color: ColorSpace, r: f32, g: f32, b: f32, a:
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        Some(get_output_value_shape),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, Image, RBox, RString, Tuple2};
 
     #[test]

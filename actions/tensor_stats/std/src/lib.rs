@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -11,8 +12,25 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
+    let axis_arg = args
+        .get_named("axis")
+        .or_else(|| args.get_named("dim"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()));
+    if axis_arg.is_some_and(|value| value.starts_with('$')) {
+        let keep = args.get_named("keepdim");
+        if keep.is_some_and(|value| value.starts_with('$')) {
+            return ShapeResult::Unknown;
+        }
+        let keep = keep.is_some_and(|value| value == "true" || value == "1");
+        let rank = if keep {
+            input.rank()
+        } else {
+            input.rank().saturating_sub(1)
+        };
+        return ShapeResult::Ok(Shape::unknown(rank));
+    }
     // Validate the same selected argument that execution consumes.
     for value in [
         core_types::contract::value(&args, &["axis", "dim"], Some(0)),
@@ -27,7 +45,7 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
         .or_else(|| args.get_named("dim"))
         .or_else(|| args.positional.first().map(|s| s.as_str()))
     {
-        if value.parse::<isize>().is_err() {
+        if args.parse::<isize>(value).is_err() {
             return ShapeResult::Invalid(format!("Invalid axis argument '{value}'").into());
         }
     }
@@ -40,7 +58,7 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
         .or_else(|| args.get_named("dim"))
         .or_else(|| args.positional.first().map(|s| s.as_str()))
     {
-        if let Ok(ax) = ax_str.parse::<isize>() {
+        if let Ok(ax) = args.parse::<isize>(ax_str) {
             axis = Some(ax);
         }
     }
@@ -61,11 +79,17 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
         return ShapeResult::Invalid(core_types::reducer_axis_reason(raw, r).into());
     }
     let ax = resolved as usize;
-    let mut out: Vec<usize> = Vec::new();
+    if input.dims()[ax] == 0 {
+        return ShapeResult::Invalid(
+            "Cannot reduce this operation along an empty dimension".into(),
+        );
+    }
+
+    let mut out: Vec<core_types::Dimension> = Vec::new();
     for (i, &d) in input.dims().iter().enumerate() {
         if i == ax {
             if keepdim {
-                out.push(1);
+                out.push(1.into());
             }
         } else {
             out.push(d);
@@ -74,42 +98,33 @@ pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResul
     ShapeResult::Ok(Shape::new(out))
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
-    let mut axis = None;
+    let axis = prepared.unsigned("axis").map(|value| value as usize);
     let mut unbiased = true;
-    let mut keepdim = false;
 
     if let Some(args) = &args_opt {
-        if let Some(ax_str) = args
-            .get_named("axis")
-            .or_else(|| args.get_named("dim"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(ax) = ax_str.parse::<isize>() {
-                axis = Some(ax);
-            }
-        }
         if let Some(unb_str) = args.get_named("unbiased") {
             unbiased = unb_str != "false" && unb_str != "0";
-        }
-        if let Some(kd_str) = args.get_named("keepdim") {
-            keepdim = kd_str == "true" || kd_str == "1";
         }
     }
 
     match inner_payload {
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            match reduce_std(&tensor, axis, unbiased, keepdim) {
+            match reduce_std(
+                &tensor,
+                axis,
+                unbiased,
+                prepared
+                    .output_dims()
+                    .expect("shapecheck prepared dimensions"),
+            ) {
                 Ok(t) => Payload::from_tensor(t),
                 Err(e) => Payload::Error(e.into()),
             }
@@ -120,42 +135,23 @@ fn process_impl(payload: Payload) -> Payload {
 
 fn reduce_std(
     tensor: &Tensor,
-    axis: Option<isize>,
+    axis: Option<usize>,
     unbiased: bool,
-    keepdim: bool,
+    out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
     let vals = tensor.to_vec_f32();
     let r = tensor.rank();
 
-    if let Some(raw_ax) = axis {
-        let ax = if raw_ax < 0 {
-            let pos = raw_ax + r as isize;
-            if pos < 0 {
-                return Err(format!(
-                    "Axis {} out of bounds for tensor of rank {}",
-                    raw_ax, r
-                ));
-            }
-            pos as usize
-        } else {
-            raw_ax as usize
-        };
-
-        if ax >= r {
-            return Err(format!(
-                "Axis {} out of bounds for tensor of rank {}",
-                raw_ax, r
-            ));
-        }
-
+    if let Some(ax) = axis {
         let outer_size: usize = tensor.shape[0..ax].iter().product();
         let axis_len = tensor.shape[ax];
-        if axis_len == 0 {
-            return Err("Cannot compute standard deviation along empty dimension".into());
-        }
+
         let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
 
         let out_len = outer_size * inner_size;
+        if out_len == 0 {
+            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
+        }
         let mut out_vals = vec![0.0f32; out_len];
         let divisor = if unbiased && axis_len > 1 {
             (axis_len - 1) as f32
@@ -185,22 +181,12 @@ fn reduce_std(
                 }
             });
 
-        let mut out_shape = Vec::new();
-        for (i, &dim) in tensor.shape.iter().enumerate() {
-            if i == ax {
-                if keepdim {
-                    out_shape.push(1);
-                }
-            } else {
-                out_shape.push(dim);
-            }
-        }
-
         Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
     } else {
         let n = vals.len();
         if n == 0 {
-            return Ok(Tensor::from_f32_slice(&[0.0]));
+            let shape = out_shape;
+            return Tensor::from_f32_vec(vec![0.0], shape).map_err(|e| e.to_string());
         }
         let sum: f32 = vals.par_iter().sum();
         let mean = sum / n as f32;
@@ -212,18 +198,44 @@ fn reduce_std(
         };
         let std_dev = (sum_sq_diff / divisor).sqrt();
 
-        let shape = if keepdim {
-            vec![1; r.max(1)]
-        } else {
-            Vec::new()
-        };
+        let shape = out_shape;
         Tensor::from_f32_vec(vec![std_dev], shape).map_err(|e| e.to_string())
     }
+}
+
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    let rank = input.value.shape().map(Shape::rank);
+    let result = core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    );
+    core_types::shapecheck::axis_plan(result, rank, 0, None, false)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::Tensor;
 
     #[test]

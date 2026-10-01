@@ -421,23 +421,60 @@ impl AutoParallelScheduler {
     }
 
     fn eval_var_ref(&self, var_ref: &VarRef, env: &EnvRef<'_>) -> Result<Payload, MorflowError> {
-        let base_payload = env.get(&var_ref.name).ok_or_else(|| {
+        let mut payload = env.get(&var_ref.name).ok_or_else(|| {
             MorflowError::Execution(format!(
                 "Variable '${}' not found in environment",
                 var_ref.name
             ))
         })?;
+        for slices in &var_ref.slices {
+            payload = Self::slice_payload(payload, slices, &var_ref.name)?;
+        }
+        Ok(payload)
+    }
 
-        if var_ref.slices.is_empty() {
+    fn slice_payload(
+        mut base_payload: Payload,
+        slices: &[SliceItem],
+        name: &str,
+    ) -> Result<Payload, MorflowError> {
+        let mut slices = slices.to_vec();
+        if slices.is_empty() {
             return Ok(base_payload);
         }
 
+        while let Payload::Composite(items) = base_payload.unwrap_payload() {
+            let Some(slice) = slices.first() else {
+                break;
+            };
+            let SliceItem::Index(index) = slice else {
+                return Err(MorflowError::Execution(format!(
+                    "Composite ${} supports integer indexes only",
+                    name
+                )));
+            };
+            let index = usize::try_from(*index).map_err(|_| {
+                MorflowError::Execution("Composite indexes must be nonnegative".into())
+            })?;
+            base_payload = items.get(index).cloned().ok_or_else(|| {
+                MorflowError::Execution(format!(
+                    "Composite index {index} out of bounds for {} components in ${}",
+                    items.len(),
+                    name
+                ))
+            })?;
+            slices.remove(0);
+        }
+        if slices.is_empty() {
+            return Ok(base_payload);
+        }
+        let base_payload = base_payload.unwrap_payload().clone();
         match base_payload {
             Payload::Tensor(tensor) => {
                 let mut sliced = tensor;
                 let mut current_axis = 0usize;
 
-                for slice_item in &var_ref.slices {
+                for slice_item in &slices {
                     match slice_item {
                         SliceItem::NamedDim { dim_name, index } => {
                             let axis = match dim_name.as_str() {
@@ -475,7 +512,7 @@ impl AutoParallelScheduler {
                 let mut sliced = image.tensor;
                 let mut current_axis = 0usize;
 
-                for slice_item in &var_ref.slices {
+                for slice_item in &slices {
                     match slice_item {
                         SliceItem::NamedDim { dim_name, index } => {
                             let axis = match dim_name.as_str() {
@@ -527,7 +564,7 @@ impl AutoParallelScheduler {
                     Ok(img) => Ok(Payload::Image(img)),
                     Err(e) => Err(MorflowError::TypeMismatch(format!(
                         "Cannot slice {}: {}",
-                        var_ref.name, e
+                        name, e
                     ))),
                 }
             }
@@ -535,7 +572,7 @@ impl AutoParallelScheduler {
                 let mut sliced = audio.tensor;
                 let mut current_axis = 0usize;
 
-                for slice_item in &var_ref.slices {
+                for slice_item in &slices {
                     match slice_item {
                         SliceItem::NamedDim { dim_name, index } => {
                             let axis = match dim_name.as_str() {
@@ -602,15 +639,20 @@ impl AutoParallelScheduler {
                 }
                 Err(MorflowError::TypeMismatch(format!(
                     "Cannot slice ${}: the result has rank {} and {} channels, which is not a valid Audio payload",
-                    var_ref.name, rank, ch_count
+                    name, rank, ch_count
                 )))
             }
             Payload::Data { buffer } => {
+                if slices.len() != 1 {
+                    return Err(MorflowError::Execution(
+                        "Bytes support one range slice per bracket group".into(),
+                    ));
+                }
                 if let Some(SliceItem::Range {
                     start,
                     end,
                     step: _,
-                }) = var_ref.slices.first()
+                }) = slices.first()
                 {
                     let s = start.unwrap_or(0) as usize;
                     let e = end
@@ -629,16 +671,21 @@ impl AutoParallelScheduler {
                         )))
                     }
                 } else {
-                    Ok(Payload::Data { buffer })
+                    Err(MorflowError::Execution(
+                        "Bytes support range slices only".into(),
+                    ))
                 }
             }
             // Arguments are plain values and scalars are rank-0, so neither has
             // a dimension to slice.
             Payload::Arg(_) | Payload::Scalar(_) => Err(MorflowError::TypeMismatch(format!(
                 "Cannot slice ${}: it holds a value, not a payload",
-                var_ref.name
+                name
             ))),
-            other => Ok(other),
+            other => Err(MorflowError::TypeMismatch(format!(
+                "Cannot index {}",
+                core_types::payload_kind_name(&other)
+            ))),
         }
     }
 

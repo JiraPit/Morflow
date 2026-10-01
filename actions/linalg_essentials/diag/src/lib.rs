@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor
@@ -9,25 +10,23 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, Error};
-    contract::finish((|| {
+    if !matches!(input.rank(), 1 | 2) {
+        return ShapeResult::Invalid("diag requires rank 1 or 2".into());
+    }
+    let rank = if input.rank() == 1 { 2 } else { 1 };
+    let result = contract::finish((|| {
         let k = arg::<isize>(&args, &["diagonal", "k"], Some(0), Some(0))?.unwrap();
         let offset = k.unsigned_abs();
         match input.dims() {
             [n] => {
-                if *n == 0 {
-                    return Err(Error::Unknown);
-                }
                 let size = n
                     .checked_add(offset)
                     .ok_or(Error::from("Diagonal matrix dimension overflows"))?;
                 contract::shape([size, size])
             }
             [h, w] => {
-                if *h == 0 || *w == 0 {
-                    return Err(Error::Unknown);
-                }
                 let len = if k >= 0 {
                     (*h).min(w.saturating_sub(offset))
                 } else {
@@ -37,24 +36,25 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
             }
             _ => Err("diag requires rank 1 or 2".into()),
         }
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut k = 0isize;
     if let Some(args) = &args_opt {
@@ -63,7 +63,7 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("k"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(val) = k_str.parse::<isize>() {
+            if let Ok(val) = prepared.args.parse::<isize>(k_str) {
                 k = val;
             }
         }
@@ -129,9 +129,37 @@ fn compute_diag(tensor: &Tensor, k: isize) -> Result<Tensor, String> {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::Tensor;
 
     #[test]

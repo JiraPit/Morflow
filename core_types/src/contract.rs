@@ -1,6 +1,8 @@
 //! Shared validation for native action shape contracts.
-use crate::{ActionArgs, GetShapeFn, Payload, RString, Shape, ShapeResult};
-use std::str::FromStr;
+use crate::shapecheck::{ArgumentSource, CachedParse};
+#[cfg(test)]
+use crate::ActionArgs;
+use crate::{GetShapeFn, Payload, RString, Shape, ShapeResult};
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,6 +19,11 @@ impl From<String> for Error {
         Self::Invalid(s.into())
     }
 }
+impl From<RString> for Error {
+    fn from(s: RString) -> Self {
+        Self::Invalid(s)
+    }
+}
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn finish(result: Result<Shape>) -> ShapeResult {
@@ -26,38 +33,38 @@ pub fn finish(result: Result<Shape>) -> ShapeResult {
         Err(Error::Invalid(reason)) => ShapeResult::Invalid(reason),
     }
 }
-pub fn shape(dims: impl IntoIterator<Item = usize>) -> Result<Shape> {
+pub fn shape<D: Into<crate::Dimension>>(dims: impl IntoIterator<Item = D>) -> Result<Shape> {
     let shape = Shape::new(dims);
     shape
         .dims()
         .iter()
-        .try_fold(1usize, |n, d| n.checked_mul(*d))
+        .try_fold(crate::Dimension::Known(1), |n, d| n.checked_mul(*d))
         .ok_or(Error::from("Shape element count overflows"))?;
     Ok(shape)
 }
 pub fn value<'a>(
-    args: &'a ActionArgs,
+    args: &'a impl ArgumentSource,
     keys: &[&str],
     position: Option<usize>,
 ) -> Result<Option<&'a str>> {
     let value = keys
         .iter()
-        .find_map(|k| args.get_named(k))
-        .or_else(|| position.and_then(|p| args.positional.get(p).map(|s| s.as_str())));
+        .find_map(|k| args.raw().get_named(k))
+        .or_else(|| position.and_then(|p| args.raw().positional.get(p).map(|s| s.as_str())));
     if value.is_some_and(|v| v.starts_with('$')) {
         return Err(Error::Unknown);
     }
     Ok(value)
 }
-pub fn arg<T: FromStr>(
-    args: &ActionArgs,
+pub fn arg<T: CachedParse>(
+    args: &impl ArgumentSource,
     keys: &[&str],
     position: Option<usize>,
     default: Option<T>,
 ) -> Result<Option<T>> {
     match value(args, keys, position)? {
-        Some(v) => v
-            .parse()
+        Some(v) => args
+            .parse(v)
             .map(Some)
             .map_err(|_| Error::from(format!("Invalid {} argument '{v}'", keys[0]))),
         None => Ok(default),
@@ -75,14 +82,39 @@ pub fn axis(dim: isize, rank: usize, insertion: bool) -> Result<usize> {
         _ => Err(format!("Axis {dim} out of bounds for rank {rank}").into()),
     }
 }
+/// Reject dimensions that the image kernels cannot consume.
+pub fn image_nonempty(input: &Shape) -> Result<()> {
+    if input.dims().iter().any(|d| *d == 0) {
+        return Err("Image operations require nonempty spatial dimensions".into());
+    }
+    Ok(())
+}
+/// Whether partial dimensions permit both HWC and CHW layout detection.
+pub fn image_layout_unknown(input: &Shape) -> bool {
+    match input.dims() {
+        [a, _, c] => (c.is_unknown() && !(*a > 4)) || (*c > 4 && a.is_unknown()),
+        _ => false,
+    }
+}
 /// Uses the same HWC-first layout convention as raw tensor image actions.
-pub fn image_dims(input: &Shape) -> Result<(usize, usize, usize, bool)> {
+pub fn image_dims(
+    input: &Shape,
+) -> Result<(crate::Dimension, crate::Dimension, crate::Dimension, bool)> {
+    image_nonempty(input)?;
     let d = input.dims();
     match d {
-        [h, w] => Ok((*h, *w, 1, false)),
+        [h, w] => Ok((*h, *w, 1.into(), false)),
         [a, b, c] => {
-            if *c == 0 || (*c > 4 && *a == 0) {
-                return Err(Error::Unknown);
+            if c.is_unknown() && *a > 4 {
+                return Ok((*a, *b, *c, false));
+            }
+            if c.is_unknown() || (*c > 4 && a.is_unknown()) {
+                return Ok((
+                    crate::Dimension::Unknown,
+                    crate::Dimension::Unknown,
+                    crate::Dimension::Unknown,
+                    false,
+                ));
             }
             if *c > 4 && *a <= 4 {
                 Ok((*b, *c, *a, true))
@@ -93,7 +125,13 @@ pub fn image_dims(input: &Shape) -> Result<(usize, usize, usize, bool)> {
         _ => Err("Image operations require rank 2 or 3 tensors".into()),
     }
 }
-pub fn image_shape(h: usize, w: usize, c: usize, rank: usize, chw: bool) -> Result<Shape> {
+pub fn image_shape(
+    h: crate::Dimension,
+    w: crate::Dimension,
+    c: crate::Dimension,
+    rank: usize,
+    chw: bool,
+) -> Result<Shape> {
     if rank == 2 {
         shape([h, w])
     } else if chw {
@@ -166,12 +204,62 @@ pub fn run(payload: Payload, contract: GetShapeFn, process: fn(Payload) -> Paylo
                 .dims()
                 .iter()
                 .zip(actual)
-                .any(|(e, a)| *e != 0 && e != a)
+                .any(|(e, a)| !e.matches(*a))
         {
             return Payload::Error(
                 format!("Action shape contract mismatch: expected {expected}, produced {actual:?}")
                     .into(),
             );
+        }
+    }
+    output
+}
+
+/// Validate a Composite-producing action's component count, kinds, and shapes.
+pub fn run_composite(
+    payload: Payload,
+    contract: GetShapeFn,
+    components: crate::GetComponentsFn,
+    process: fn(Payload) -> Payload,
+) -> Payload {
+    let expected = payload_dims(&payload).map(|dims| {
+        components(
+            Shape::new(dims.iter().copied()),
+            payload.args().cloned().unwrap_or_default(),
+        )
+    });
+    let output = run(payload, contract, process);
+    if matches!(output, Payload::Error(_)) {
+        return output;
+    }
+    if let Some(expected) = expected {
+        let Payload::Composite(items) = output.unwrap_payload() else {
+            return Payload::Error("Action component contract requires Composite output".into());
+        };
+        if items.len() != expected.len() {
+            return Payload::Error(
+                format!(
+                    "Action component contract expected {} components, produced {}",
+                    expected.len(),
+                    items.len()
+                )
+                .into(),
+            );
+        }
+        for (index, (component, item)) in expected.iter().zip(items).enumerate() {
+            let mut ty = crate::PType::from_data_type(component.kind);
+            match &component.shape {
+                ShapeResult::Ok(shape) => {
+                    ty = ty.with_shape(shape);
+                }
+                ShapeResult::Invalid(reason) => return Payload::Error(reason.clone()),
+                ShapeResult::Unknown => {}
+            }
+            if let Err(reason) = ty.verify_payload(item) {
+                return Payload::Error(
+                    format!("Action component {index} contract mismatch: {reason}").into(),
+                );
+            }
         }
     }
     output
@@ -202,6 +290,44 @@ mod tests {
             other => panic!("Expected error, got {other:?}"),
         }
     }
+    #[test]
+    fn known_zero_is_verified_while_unknown_lengths_are_permitted() {
+        extern "C" fn empty(_: Shape, _: ActionArgs) -> ShapeResult {
+            ShapeResult::Ok(Shape::new([0]))
+        }
+        extern "C" fn dynamic(_: Shape, _: ActionArgs) -> ShapeResult {
+            ShapeResult::Ok(Shape::unknown(1))
+        }
+        let input = || Payload::Tensor(Tensor::from_f32_slice(&[1.]));
+        assert!(matches!(run(input(), empty, three), Payload::Error(_)));
+        assert!(matches!(run(input(), dynamic, three), Payload::Tensor(_)));
+    }
+    #[test]
+    fn composite_guard_checks_component_shapes_and_count() {
+        extern "C" fn unknown(_: Shape, _: ActionArgs) -> ShapeResult {
+            ShapeResult::Unknown
+        }
+        extern "C" fn components(_: Shape, _: ActionArgs) -> crate::RVec<crate::OutputComponent> {
+            vec![crate::OutputComponent {
+                kind: crate::DataType::Tensor,
+                shape: ShapeResult::Ok(Shape::new([2])),
+            }]
+            .into()
+        }
+        fn wrong_shape(_: Payload) -> Payload {
+            Payload::Composite(vec![three(Payload::scalar_f32(1.))].into())
+        }
+        fn wrong_count(_: Payload) -> Payload {
+            Payload::Composite(crate::RVec::new())
+        }
+        for process in [wrong_shape as fn(Payload) -> Payload, wrong_count] {
+            assert!(matches!(
+                run_composite(Payload::scalar_f32(1.), unknown, components, process),
+                Payload::Error(_)
+            ));
+        }
+    }
+
     #[test]
     fn shared_helpers_reject_overflow_and_unresolved_shape_arguments() {
         assert!(matches!(shape([usize::MAX, 2]), Err(Error::Invalid(_))));

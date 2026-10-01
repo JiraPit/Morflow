@@ -1,6 +1,5 @@
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, ShapeResult, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, RString, Shape, ShapeResult, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -14,7 +13,7 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, _args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self};
     contract::finish((|| {
         if !matches!(input.rank(), 1 | 2) {
@@ -24,11 +23,8 @@ fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -124,12 +120,12 @@ impl BiquadCoeffs {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
@@ -160,17 +156,17 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("freq")
             .or_else(|| args.get_named("cutoff_hz"))
         {
-            if let Ok(f) = f_str.parse::<f32>() {
+            if let Ok(f) = prepared.args.parse::<f32>(f_str) {
                 freq = f;
             }
         }
         if let Some(q_str) = args.get_named("q") {
-            if let Ok(val) = q_str.parse::<f32>() {
+            if let Ok(val) = prepared.args.parse::<f32>(q_str) {
                 q = val;
             }
         }
         if let Some(g_str) = args.get_named("gain_db").or_else(|| args.get_named("gain")) {
-            if let Ok(g) = g_str.parse::<f32>() {
+            if let Ok(g) = prepared.args.parse::<f32>(g_str) {
                 gain_db = g;
             }
         }
@@ -178,7 +174,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("sample_rate")
             .or_else(|| args.get_named("rate"))
         {
-            if let Ok(sr) = sr_str.parse::<f32>() {
+            if let Ok(sr) = prepared.args.parse::<f32>(sr_str) {
                 sample_rate = sr;
             }
         }
@@ -204,9 +200,37 @@ fn process_impl(payload: Payload) -> Payload {
     Payload::Audio(audio)
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]

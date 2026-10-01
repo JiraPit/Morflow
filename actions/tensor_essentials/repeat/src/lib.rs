@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -9,14 +10,14 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, Error};
     contract::finish((|| {
         let text = contract::value(&args, &["repeats"], Some(0))?
             .ok_or(Error::from("repeat requires 'repeats'"))?;
-        let repeats = parse_repeats_str(text).map_err(Error::from)?;
+        let repeats = args.usize_list(text).map_err(Error::from)?;
         let rank = input.rank().max(repeats.len());
-        let mut out = vec![1; rank - input.rank()];
+        let mut out = vec![core_types::Dimension::Known(1); rank - input.rank()];
         out.extend_from_slice(input.dims());
         let offset = rank - repeats.len();
         for (i, repeat) in repeats.iter().enumerate() {
@@ -28,41 +29,18 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
-fn parse_repeats_str(s: &str) -> Result<Vec<usize>, String> {
-    let clean = s
-        .trim()
-        .trim_start_matches('[')
-        .trim_end_matches(']')
-        .trim_start_matches('(')
-        .trim_end_matches(')');
-    if clean.is_empty() {
-        return Ok(Vec::new());
-    }
-    clean
-        .split(',')
-        .map(|p| {
-            p.trim()
-                .parse::<usize>()
-                .map_err(|e| format!("Invalid repeat '{}': {}", p, e))
-        })
-        .collect()
-}
-
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut repeats_str = None;
     if let Some(args) = &args_opt {
@@ -75,9 +53,9 @@ fn process_impl(payload: Payload) -> Payload {
         return Payload::Error("repeat action requires 'repeats' argument".into());
     };
 
-    let repeats = match parse_repeats_str(r_str) {
+    let repeats = match prepared.args.usize_list(r_str) {
         Ok(r) => r,
-        Err(e) => return Payload::Error(e.into()),
+        Err(e) => return Payload::Error(e),
     };
 
     match inner_payload {
@@ -118,9 +96,37 @@ fn repeat_tensor(tensor: &Tensor, repeats: &[usize]) -> Result<Tensor, String> {
     Ok(current)
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]

@@ -372,7 +372,10 @@ impl Tensor {
             return None;
         }
         let bytes = self.as_bytes()?;
-        if !bytes.len().is_multiple_of(4) {
+        if bytes.is_empty() {
+            return Some(&[]);
+        }
+        if !bytes.len().is_multiple_of(4) || !(bytes.as_ptr() as *const f32).is_aligned() {
             return None;
         }
         Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4) })
@@ -392,7 +395,10 @@ impl Tensor {
             return None;
         }
         let bytes = self.as_bytes()?;
-        if !bytes.len().is_multiple_of(4) {
+        if bytes.is_empty() {
+            return Some(&[]);
+        }
+        if !bytes.len().is_multiple_of(4) || !(bytes.as_ptr() as *const i32).is_aligned() {
             return None;
         }
         Some(unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const i32, bytes.len() / 4) })
@@ -404,6 +410,9 @@ impl Tensor {
     /// it returns a mutable slice into the existing buffer (0 allocations, 0 copies).
     /// Otherwise, it re-allocates a new contiguous buffer, updates storage, and returns the slice.
     pub fn as_f32_slice_mut(&mut self) -> &mut [f32] {
+        if self.num_elements() == 0 {
+            return &mut [];
+        }
         self.ensure_contiguous_storage();
         let total_bytes = self.num_elements() * self.dtype.element_size();
         let storage_mut = RArc::get_mut(&mut self.storage).unwrap();
@@ -421,6 +430,9 @@ impl Tensor {
 
     /// Provides Copy-on-Write (COW) mutable access to contiguous I32 data.
     pub fn as_i32_slice_mut(&mut self) -> &mut [i32] {
+        if self.num_elements() == 0 {
+            return &mut [];
+        }
         self.ensure_contiguous_storage();
         let total_bytes = self.num_elements() * self.dtype.element_size();
         let storage_mut = RArc::get_mut(&mut self.storage).unwrap();
@@ -771,7 +783,9 @@ impl Tensor {
                     )));
                 }
             }
-            total_axis_len += t.shape[axis];
+            total_axis_len = total_axis_len
+                .checked_add(t.shape[axis])
+                .ok_or_else(|| RString::from("Concat axis length overflows"))?;
         }
 
         let mut out_shape = base_shape.to_vec();
@@ -780,7 +794,10 @@ impl Tensor {
         let outer_size: usize = out_shape[0..axis].iter().product();
         let inner_size: usize = out_shape[(axis + 1)..r].iter().product();
         let elem_size = dtype.element_size();
-        let total_bytes = out_shape.iter().product::<usize>() * elem_size;
+        let total_bytes = out_shape
+            .iter()
+            .try_fold(elem_size, |n, dim| n.checked_mul(*dim))
+            .ok_or_else(|| RString::from("Concat output byte count overflows"))?;
 
         let mut out_bytes = vec![0u8; total_bytes];
 
@@ -821,10 +838,63 @@ impl Tensor {
 
     /// Converts non-contiguous or contiguous tensor into an owned Vec<f32>.
     pub fn to_vec_f32(&self) -> Vec<f32> {
-        let bytes = self.to_contiguous_bytes();
-        let samples: &[f32] =
-            unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4) };
-        samples.to_vec()
+        if let Some(values) = self.as_f32_slice() {
+            return values.to_vec();
+        }
+        let materialized;
+        let bytes = match self.as_bytes() {
+            Some(bytes) => bytes,
+            None => {
+                materialized = self.to_contiguous_bytes();
+                materialized.as_slice()
+            }
+        };
+        match self.dtype {
+            TensorDType::F32 => bytes
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|b| f32::from_ne_bytes(*b))
+                .collect(),
+            TensorDType::F64 => bytes
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(|b| f64::from_ne_bytes(*b) as f32)
+                .collect(),
+            TensorDType::I8 => bytes.iter().map(|b| *b as i8 as f32).collect(),
+            TensorDType::U8 => bytes.iter().map(|b| *b as f32).collect(),
+            TensorDType::I16 => bytes
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|b| i16::from_ne_bytes(*b) as f32)
+                .collect(),
+            TensorDType::I32 => bytes
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|b| i32::from_ne_bytes(*b) as f32)
+                .collect(),
+            TensorDType::I64 => bytes
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(|b| i64::from_ne_bytes(*b) as f32)
+                .collect(),
+            TensorDType::U32 => bytes
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|b| u32::from_ne_bytes(*b) as f32)
+                .collect(),
+            TensorDType::U64 => bytes
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(|b| u64::from_ne_bytes(*b) as f32)
+                .collect(),
+        }
     }
 
     /// Converts non-contiguous or contiguous view into a new contiguous byte buffer.
@@ -1069,6 +1139,30 @@ pub fn parse_shape_str(s: &str, total_elements: usize) -> Result<Vec<usize>, RSt
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn f32_conversion_preserves_element_counts_and_handles_empty_or_unaligned_bytes() {
+        let empty = Tensor::from_f32_shape(&[], vec![0]).unwrap();
+        assert_eq!(empty.as_f32_slice(), Some(&[][..]));
+        assert!(empty.to_vec_f32().is_empty());
+        let mut empty = empty;
+        assert!(empty.as_f32_slice_mut().is_empty());
+        let mut empty_i32 = Tensor::from_i32_vec(Vec::new(), vec![0, 3]).unwrap();
+        assert!(empty_i32.as_i32_slice_mut().is_empty());
+        let integers = Tensor::from_i32_vec(vec![1, 2, 3, 4], vec![2, 2])
+            .unwrap()
+            .transpose(0, 1)
+            .unwrap();
+        assert_eq!(integers.to_vec_f32(), [1., 3., 2., 4.]);
+        let bytes = Tensor::from_rvec_u8(vec![1, 2, 3].into(), vec![3], TensorDType::U8).unwrap();
+        assert_eq!(bytes.to_vec_f32(), [1., 2., 3.]);
+        let mut data = vec![0];
+        data.extend_from_slice(&2.5f32.to_ne_bytes());
+        let mut unaligned = Tensor::from_rvec_u8(data.into(), vec![1], TensorDType::F32).unwrap();
+        unaligned.byte_offset = 1;
+        assert!(unaligned.as_f32_slice().is_none());
+        assert_eq!(unaligned.to_vec_f32(), [2.5]);
+    }
 
     #[test]
     fn test_tensor_reshape_permute_squeeze() {

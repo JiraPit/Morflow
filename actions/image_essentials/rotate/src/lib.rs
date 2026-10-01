@@ -1,6 +1,5 @@
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -13,9 +12,10 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
-    use core_types::contract::{self, arg, Error};
-    contract::finish((|| {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
+    use core_types::contract::{self, arg};
+    let rank = input.rank();
+    let result = contract::finish((|| {
         let (h, w, c, _chw) = contract::image_dims(&input)?;
         let angle = arg::<f32>(&args, &["angle", "angle_deg"], Some(0), Some(90.0))?.unwrap();
         if !angle.is_finite() {
@@ -24,15 +24,18 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         let expand = contract::value(&args, &["expand", "expand_canvas"], None)?
             .map(|s| s.eq_ignore_ascii_case("true") || s == "1")
             .unwrap_or(true);
-        if h == 0 || w == 0 {
-            return Err(Error::Unknown);
-        }
         let norm = ((angle % 360.0) + 360.0) % 360.0;
         let (oh, ow) = if (norm - 90.0).abs() < 1e-3 || (norm - 270.0).abs() < 1e-3 {
             (w, h)
         } else if norm.abs() < 1e-3 || (norm - 180.0).abs() < 1e-3 || !expand {
             (h, w)
+        } else if h.is_unknown() || w.is_unknown() {
+            (
+                core_types::Dimension::Unknown,
+                core_types::Dimension::Unknown,
+            )
         } else {
+            let (h, w) = (h.known().unwrap(), w.known().unwrap());
             let rad = norm.to_radians();
             let sin = rad.sin().abs();
             let cos = rad.cos().abs();
@@ -45,31 +48,32 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
             {
                 return Err("Rotated dimensions overflow".into());
             }
-            (oh as usize, ow as usize)
+            ((oh as usize).into(), (ow as usize).into())
         };
         contract::image_shape(oh, ow, c, input.rank(), false)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, true) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut angle_deg = 90.0f32;
     let mut expand_canvas = true;
     let mut fill_value = 0.0f32;
@@ -80,7 +84,7 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("angle_deg"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(a) = a_str.parse::<f32>() {
+            if let Ok(a) = prepared.args.parse::<f32>(a_str) {
                 angle_deg = a;
             }
         }
@@ -94,7 +98,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("fill")
             .or_else(|| args.get_named("fill_value"))
         {
-            if let Ok(f) = fill_str.parse::<f32>() {
+            if let Ok(f) = prepared.args.parse::<f32>(fill_str) {
                 fill_value = f;
             }
         }
@@ -337,9 +341,37 @@ fn rotate_f32_buffer(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     #[test]

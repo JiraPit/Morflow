@@ -1,6 +1,5 @@
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, RString, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -14,10 +13,15 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
 
-fn rate(value: Option<&str>, fallback: Option<f32>, label: &str) -> Result<Option<f32>, RString> {
+fn rate(
+    args: &PreparedArgs,
+    value: Option<&str>,
+    fallback: Option<f32>,
+    label: &str,
+) -> Result<Option<f32>, RString> {
     let value = match value {
         Some(value) if value.starts_with('$') => return Ok(None),
-        Some(value) => Some(value.parse::<f32>().map_err(|_| {
+        Some(value) => Some(args.parse::<f32>(value).map_err(|_| {
             RString::from(format!("resample {label} must be a positive finite rate"))
         })?),
         None => fallback,
@@ -28,14 +32,16 @@ fn rate(value: Option<&str>, fallback: Option<f32>, label: &str) -> Result<Optio
     Ok(value)
 }
 
-fn rates(args: &ActionArgs, source: Option<f32>) -> Result<(Option<f32>, Option<f32>), RString> {
+fn rates(args: &PreparedArgs, source: Option<f32>) -> Result<(Option<f32>, Option<f32>), RString> {
     let from = rate(
+        args,
         args.get_named("from_rate")
             .or_else(|| args.get_named("source_rate")),
         source,
         "from_rate",
     )?;
     let to = rate(
+        args,
         args.get_named("to_rate")
             .or_else(|| args.get_named("rate"))
             .or_else(|| args.positional.first().map(|s| s.as_str())),
@@ -56,22 +62,22 @@ fn output_len(samples: usize, from: f32, to: f32) -> Result<usize, RString> {
     Ok(length as usize)
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     if !matches!(input.rank(), 1 | 2) {
         return ShapeResult::Invalid(
             "resample requires mono [samples] or planar [channels, samples] audio".into(),
         );
     }
+    if input.rank() == 2 && input.dims()[0] == 0 {
+        return ShapeResult::Invalid("resample channels must be positive".into());
+    }
     let (from, to) = match rates(&args, None) {
         Ok(rates) => rates,
         Err(error) => return ShapeResult::Invalid(error),
     };
-    let (Some(from), Some(to)) = (from, to) else {
-        return ShapeResult::Unknown;
-    };
     let mut dims = input.dims().to_vec();
     if dims.len() == 2 {
-        if dims[0] == 0 {
+        if dims[0].is_unknown() {
             // Unknown channels could be mono, whose runtime output is rank 1.
             return ShapeResult::Unknown;
         }
@@ -80,20 +86,19 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         }
     }
     let last = dims.len() - 1;
-    if dims[last] != 0 {
-        dims[last] = match output_len(dims[last], from, to) {
-            Ok(length) => length,
+    if let (Some(from), Some(to), Some(samples)) = (from, to, dims[last].known()) {
+        dims[last] = match output_len(samples, from, to) {
+            Ok(length) => length.into(),
             Err(error) => return ShapeResult::Invalid(error),
         };
+    } else {
+        dims[last] = core_types::Dimension::Unknown;
     }
     core_types::contract::finish(core_types::contract::shape(dims))
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -112,14 +117,13 @@ fn resample_channel_sinc(
     from_rate: f32,
     to_rate: f32,
     filter_half_len: isize,
+    out_len: usize,
 ) -> Vec<f32> {
     if input.is_empty() || (from_rate - to_rate).abs() < 0.1 {
         return input.to_vec();
     }
 
     let ratio = to_rate / from_rate;
-    // Rates and the maximum output length are validated by process.
-    let out_len = output_len(input.len(), from_rate, to_rate).expect("validated output length");
     let mut output = Vec::with_capacity(out_len);
 
     let cutoff = if ratio < 1.0 { ratio * 0.95 } else { 0.95 };
@@ -158,12 +162,12 @@ fn resample_channel_sinc(
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, _args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
@@ -171,37 +175,17 @@ fn process_impl(payload: Payload) -> Payload {
         }
     };
 
-    if audio.dtype() != TensorDType::F32 {
-        return Payload::Error(RString::from(format!(
-            "Action 'resample' requires F32 audio samples, found {:?}",
-            audio.dtype()
-        )));
-    }
-
-    let args = args_opt.unwrap_or_default();
-    let (from_rate, to_rate) = match rates(&args, Some(audio.sample_rate as f32)) {
-        Ok((Some(from), Some(to))) => (from, to),
-        Ok(_) => {
-            return Payload::Error("resample sample rates must be resolved at execution".into())
-        }
-        Err(error) => return Payload::Error(error),
-    };
-    if !matches!(audio.tensor.rank(), 1 | 2)
-        || (audio.tensor.rank() == 2 && audio.layout != core_types::AudioLayout::Planar)
-        || audio.channels() == 0
-    {
-        return Payload::Error(
-            "resample requires mono [samples] or planar [channels, samples] audio".into(),
-        );
-    }
+    let from_rate = prepared
+        .float("from_rate")
+        .expect("shapecheck prepared source rate") as f32;
+    let to_rate = prepared
+        .float("to_rate")
+        .expect("shapecheck prepared target rate") as f32;
+    let out_len = prepared
+        .unsigned("out_len")
+        .expect("shapecheck prepared output length") as usize;
     let num_channels = audio.channels();
     let channel_len = audio.num_samples();
-    if let Err(error) = output_len(channel_len, from_rate, to_rate).and_then(|len| {
-        len.checked_mul(num_channels)
-            .ok_or_else(|| RString::from("resample output element count overflows"))
-    }) {
-        return Payload::Error(error);
-    }
     let samples = match audio.as_f32_slice() {
         Some(samples) => std::borrow::Cow::Borrowed(samples),
         None => std::borrow::Cow::Owned(audio.to_vec_f32()),
@@ -214,7 +198,7 @@ fn process_impl(payload: Payload) -> Payload {
 
         let resampled_channels: Vec<Vec<f32>> = channel_slices
             .into_par_iter()
-            .map(|ch| resample_channel_sinc(ch, from_rate, to_rate, 8))
+            .map(|ch| resample_channel_sinc(ch, from_rate, to_rate, 8, out_len))
             .collect();
 
         let out_channel_len = resampled_channels.first().map(|v| v.len()).unwrap_or(0);
@@ -235,7 +219,7 @@ fn process_impl(payload: Payload) -> Payload {
         };
         Payload::Audio(out_audio)
     } else {
-        let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8);
+        let resampled = resample_channel_sinc(&samples, from_rate, to_rate, 8, out_len);
         let out_len = resampled.len();
         let out_tensor = match Tensor::from_f32_vec(resampled, vec![out_len]) {
             Ok(tensor) => tensor,
@@ -251,9 +235,100 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    mut args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    use core_types::shapecheck::{Metadata, PreparedValue, ShapeCheckResult};
+    if let Metadata::Audio {
+        dtype,
+        sample_rate,
+        layout,
+        ..
+    } = &input.metadata
+    {
+        if *dtype != TensorDType::F32 {
+            return ShapeCheckResult::Invalid {
+                reason: "resample requires F32 audio samples".into(),
+            };
+        }
+        if input.value.shape().is_some_and(|s| s.rank() == 2)
+            && *layout != core_types::AudioLayout::Planar
+        {
+            return ShapeCheckResult::Invalid {
+                reason: "resample requires planar rank-2 audio".into(),
+            };
+        }
+        if args
+            .get_named("from_rate")
+            .or_else(|| args.get_named("source_rate"))
+            .is_none()
+        {
+            args.named.push(core_types::Tuple2(
+                "from_rate".into(),
+                sample_rate.to_string().into(),
+            ));
+        }
+    }
+    let result = core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    );
+    match result {
+        ShapeCheckResult::Ready {
+            output,
+            mut prepared,
+        } => {
+            let Some(dims) = output.shape().and_then(|s| s.known_dims()) else {
+                return ShapeCheckResult::Deferred {
+                    output,
+                    unresolved: vec![
+                        "resample requires source sample-rate metadata or from_rate".into()
+                    ]
+                    .into(),
+                };
+            };
+            let (Some(from), Some(to)) =
+                rates(&prepared.args, None).expect("shapecheck validated rates")
+            else {
+                unreachable!()
+            };
+            prepared.fields = vec![
+                core_types::Tuple2("from_rate".into(), PreparedValue::Float(from as f64)),
+                core_types::Tuple2("to_rate".into(), PreparedValue::Float(to as f64)),
+                core_types::Tuple2(
+                    "out_len".into(),
+                    PreparedValue::Unsigned(*dims.last().unwrap() as u64),
+                ),
+            ]
+            .into();
+            ShapeCheckResult::Ready { output, prepared }
+        }
+        other => other,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]
@@ -340,14 +415,20 @@ mod tests {
     fn unknown_metadata_and_dimensions_remain_unknown() {
         assert_verdict(
             get_output_shape(Shape::new([100]), args(None, Some("24000"))),
-            ShapeResult::Unknown,
+            ShapeResult::Ok(Shape::unknown(1)),
         );
         assert_verdict(
             get_output_shape(Shape::new([100]), args(Some("$rate"), None)),
-            ShapeResult::Unknown,
+            ShapeResult::Ok(Shape::unknown(1)),
         );
         assert_verdict(
-            get_output_shape(Shape::new([0, 100]), args(Some("48000"), None)),
+            get_output_shape(
+                Shape::new([
+                    core_types::Dimension::Unknown,
+                    core_types::Dimension::Known(100),
+                ]),
+                args(Some("48000"), None),
+            ),
             ShapeResult::Unknown,
         );
         assert_verdict(
@@ -398,7 +479,7 @@ mod tests {
         let metadata_args = args(None, Some("24000"));
         assert!(matches!(
             get_output_shape(Shape::new([1, 101]), metadata_args.clone()),
-            ShapeResult::Unknown
+            ShapeResult::Ok(_)
         ));
         match process(Payload::WithArgs {
             payload: RBox::new(Payload::Audio(audio)),

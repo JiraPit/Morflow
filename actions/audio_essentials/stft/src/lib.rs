@@ -1,8 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, Payload, RString, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, RString, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
@@ -16,7 +15,7 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, Error};
     contract::finish((|| {
         if !matches!(input.rank(), 1 | 2) {
@@ -34,25 +33,26 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
             .checked_next_power_of_two()
             .ok_or(Error::from("STFT FFT size overflows"))?;
         let (channels, samples) = if input.rank() == 1 {
-            (1, input.dims()[0])
+            (core_types::Dimension::Known(1), input.dims()[0])
         } else {
             (input.dims()[0], input.dims()[1])
         };
-        if samples == 0 {
+        if samples.is_unknown() {
             return Err(Error::Unknown);
         }
         if samples < n {
             return Ok(input);
         }
-        contract::shape([channels, fft / 2 + 1, (samples - n) / hop + 1])
+        contract::shape([
+            channels,
+            (fft / 2 + 1).into(),
+            ((samples.known().unwrap() - n) / hop + 1).into(),
+        ])
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -165,12 +165,12 @@ fn next_power_of_two(mut x: usize) -> usize {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let audio = match inner_payload {
         Payload::Audio(a) => a,
         _ => {
@@ -197,7 +197,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("n_fft")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(v) = n.parse::<usize>() {
+            if let Ok(v) = prepared.args.parse::<usize>(n) {
                 n_fft = v;
             }
         }
@@ -205,7 +205,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("hop_size")
             .or_else(|| args.get_named("hop_length"))
         {
-            if let Ok(v) = h.parse::<usize>() {
+            if let Ok(v) = prepared.args.parse::<usize>(h) {
                 hop_size = v.max(1);
             }
         }
@@ -266,9 +266,37 @@ fn process_impl(payload: Payload) -> Payload {
     Payload::Tensor(out_tensor)
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]

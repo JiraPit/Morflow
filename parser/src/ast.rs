@@ -91,6 +91,8 @@ pub enum ParamType {
     Audio(ParamShape),
     /// A tuple of payloads.
     Composite,
+    /// Ordered component declarations, optionally nested.
+    CompositeItems(Vec<ParamType>),
 }
 
 impl ParamType {
@@ -106,7 +108,7 @@ impl ParamType {
             ParamType::Tensor(_) => "Tensor",
             ParamType::Image(_) => "Image",
             ParamType::Audio(_) => "Audio",
-            ParamType::Composite => "Composite",
+            ParamType::Composite | ParamType::CompositeItems(_) => "Composite",
         }
     }
 
@@ -182,7 +184,8 @@ pub struct ActionCall {
 pub struct VarRef {
     pub name: String,
     pub field: Option<String>,
-    pub slices: Vec<SliceItem>,
+    /// One slice group per pair of brackets; each group restarts at axis 0.
+    pub slices: Vec<Vec<SliceItem>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

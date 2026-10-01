@@ -88,7 +88,32 @@ Pre-downloads all actions required by your `.morf` file ahead of time, ensuring 
 morflow prep pipeline.morf
 ```
 
-Shape checks use native action contracts, with execution validating known output dimensions. See [shape contracts](docs/shape-contracts.md) for coverage, unresolved metadata, and local validation.
+Shape checks use native action contracts, with execution validating known output dimensions. See [shape documentation](https://morflow.org/doc#types-shapechecking) for coverage, unresolved metadata, and local validation.
+
+### Select Composite outputs
+
+QR returns a Composite containing Q and R, in that order:
+
+```morf
+import linalg_essentials/latest
+accept Tensor[3,2] $matrix
+
+$matrix >> qr >> $parts
+$parts[0] >> emit("q")
+$parts[1] >> emit("r")
+```
+
+Integer indexes select one payload while preserving its type and dimensions. Indexes start at zero. You can chain selection and tensor indexing, such as `$parts[0][0]` for the first row of Q. QR's component contract lets `check` track Q as Tensor[3,2] and R as Tensor[2,2].
+
+Composite inputs can declare an ordered list of component shapes, including nested lists:
+
+```morf
+import linalg_essentials/latest
+accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
+$matrices >> matmul >> emit("product")
+```
+
+The first matrix is the left operand and the second is the right operand; this produces Tensor[2,4]. The checker and runtime use the same ordered shape contract. QR's `$parts` can also flow directly into `matmul` to reconstruct the original matrix.
 
 ### Action versions and cache
 
@@ -170,30 +195,41 @@ Full end-to-end examples across Rust, Python, JavaScript, and Java are available
 Custom processing actions are written as lightweight Rust shared libraries:
 
 ```rust
-// actions/custom_kernel/src/lib.rs
-use core_types::{ActionArgs, DataType, Payload, Shape, ShapeResult};
+// actions/custom_pack/custom_kernel/src/lib.rs
+use core_types::{ActionArgs, DataType, InputDescriptor, Payload, PreparedData,
+                 Shape, ShapeCheckResult, ShapeResult, StableAbi};
+use core_types::shapecheck::{self, ActionAbiLayout, PreparedArgs};
 
 #[no_mangle]
-pub extern "C" fn get_input_type() -> DataType { DataType::Tensor }
-
-#[no_mangle]
-pub extern "C" fn get_output_type() -> DataType { DataType::Tensor }
-
-#[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    match payload.unwrap_payload() {
-        Payload::Tensor(mut tensor) => {
-            // High-performance in-place tensor transformation
-            Payload::Tensor(tensor)
-        }
-        other => other.clone(),
-    }
+pub extern "C" fn get_action_abi_version() -> u32 {
+    shapecheck::ACTION_ABI_VERSION
 }
 
 #[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
-    // Pass-through: the output has the same shape as the input.
-    input.into()
+pub extern "C" fn get_action_abi_layout()
+    -> *const core_types::abi_stable::type_layout::TypeLayout {
+    <ActionAbiLayout as StableAbi>::LAYOUT
+}
+
+#[no_mangle]
+pub extern "C" fn get_input_type() -> DataType { DataType::Tensor }
+#[no_mangle]
+pub extern "C" fn get_output_type() -> DataType { DataType::Tensor }
+
+fn dimensions(input: Shape, _: PreparedArgs) -> ShapeResult {
+    ShapeResult::Ok(input)
+}
+
+#[no_mangle]
+pub extern "C" fn shapecheck(input: InputDescriptor, args: ActionArgs) -> ShapeCheckResult {
+    shapecheck::analyze(input, args, "custom_kernel", get_input_type(),
+                        get_output_type(), Some(dimensions), None)
+}
+
+#[no_mangle]
+pub extern "C" fn process(payload: Payload, _prepared: PreparedData) -> Payload {
+    // Pass-through example; replace with a transformation of the same shape.
+    payload
 }
 ```
 Compile the action as a `.so`/`.dll`/`.dylib`, then package it with its Cargo version and checksum receipt:
@@ -212,3 +248,5 @@ For local test fixtures, build with `cargo build --workspace` and run `python3 s
 ## 📄 License
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+
+Native shape contracts use `Dimension::Known(usize)` and `Dimension::Unknown`. This retains partially known shapes such as `Tensor[*,*,3]` and distinguishes real zero-length dimensions from wildcards. Tensor `each` preserves row dimensions: `Tensor[*,3]` produces `Tensor[3]` loop variables. See [shape documentation](https://morflow.org/doc#types-shapechecking).

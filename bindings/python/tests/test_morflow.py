@@ -222,7 +222,7 @@ def test_arg_params_and_scalar_together():
 
 
 def test_exact_version_and_required_imports():
-    pipeline = morflow.from_str("from base/0.2.1 import identity\naccept Tensor $data\n$data >> identity >> emit")
+    pipeline = morflow.from_str("from base/0.3.0 import identity\naccept Tensor $data\n$data >> identity >> emit")
     np.testing.assert_array_equal(pipeline.run(np.array([1.0, 2.0], dtype=np.float32)), [1.0, 2.0])
     with pytest.raises(RuntimeError, match="not declared by the imports"):
         morflow.from_str("accept Tensor $data\n$data >> identity >> emit")
@@ -230,3 +230,21 @@ def test_exact_version_and_required_imports():
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+def test_qr_composite_component_selection():
+    pipeline = morflow.from_str('''
+        import linalg_essentials/latest
+        accept Tensor[3,2] $matrix
+        $matrix >> qr >> $parts
+        $parts[0] >> emit("q")
+        $parts[1] >> emit("r")
+        $parts >> matmul >> emit("reconstructed")
+    ''')
+    matrix = np.array([[1., 0.], [0., 1.], [1., 1.]], dtype=np.float32)
+    out = pipeline.run(matrix)
+    assert out['q'].shape == (3, 2)
+    assert out['r'].shape == (2, 2)
+    assert np.allclose(out['q'] @ out['r'], matrix, atol=1e-5)
+
+    assert np.allclose(out["reconstructed"], matrix, atol=1e-5)

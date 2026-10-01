@@ -1,8 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -15,21 +14,19 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, _args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, _args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self};
     contract::finish((|| {
         if !matches!(input.rank(), 2 | 3) {
             return Err("Image operations require rank 2 or 3".into());
         }
+        contract::image_nonempty(&input)?;
         Ok(input)
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -50,16 +47,16 @@ enum MorphShape {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, true) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut op = MorphOp::Dilate;
     let mut kernel_size = 3usize;
     let mut shape = MorphShape::Rect;
@@ -82,7 +79,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("kernel_size")
             .or_else(|| args.get_named("ksize"))
         {
-            if let Ok(k) = k_str.parse::<usize>() {
+            if let Ok(k) = prepared.args.parse::<usize>(k_str) {
                 kernel_size = k.max(1);
             }
         }
@@ -97,7 +94,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("iterations")
             .or_else(|| args.get_named("iter"))
         {
-            if let Ok(it) = it_str.parse::<usize>() {
+            if let Ok(it) = prepared.args.parse::<usize>(it_str) {
                 iterations = it.max(1);
             }
         }
@@ -432,9 +429,37 @@ fn erode_f32(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     #[test]

@@ -14,3 +14,6 @@ Computes the cosine similarity between two tensors along a specified axis: $\fra
 
 ## Behavior
 - Computes normalized dot products between paired vectors in parallel using Rayon.
+
+## Ordered shape contract
+The optional `get_output_value_shape` export accepts and returns recursive `ValueShape` descriptors. Composite components are accessed by their original zero-based positions. The contract validates component types, arity, dimensional constraints, and output sizes; execution verifies the produced payload against the predicted output tree. See the project shape-contract documentation for the dimensional rules.

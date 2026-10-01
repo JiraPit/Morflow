@@ -1,0 +1,9 @@
+# Prepare with: morflow prep examples/qr_components.morf
+import linalg_essentials/latest
+accept Tensor[3,2] $matrix
+
+$matrix >> qr >> $parts
+$parts[0] >> emit("q")
+$parts[1] >> emit("r")
+$parts[0][0] >> emit("first_q_row")
+$parts >> matmul >> emit("reconstructed")

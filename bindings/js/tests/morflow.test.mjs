@@ -311,10 +311,34 @@ test('Morflow - StrArg, BoolArg and Scalar positional parameters', () => {
 });
 
 test('Morflow - exact version and required imports', () => {
-  const pipeline = morflow.fromStr(`from base/0.2.1 import identity
+  const pipeline = morflow.fromStr(`from base/0.3.0 import identity
 accept Tensor $data
 $data >> identity >> emit`);
   assert.deepEqual(Array.from(pipeline.runSync(new Float32Array([1, 2])).toFloat32Array()), [1, 2]);
   assert.throws(() => morflow.fromStr(`accept Tensor $data
 $data >> identity >> emit`), /not declared by the imports/);
+});
+
+test('Morflow - select QR Composite components', () => {
+  const pipeline = morflow.fromStr(`
+    import linalg_essentials/latest
+    accept Tensor[3,2] $matrix
+    $matrix >> qr >> $parts
+    $parts[0] >> emit("q")
+    $parts[1] >> emit("r")
+        $parts >> matmul >> emit("reconstructed")
+  `);
+  const data = new Float32Array([1, 0, 0, 1, 1, 1]);
+  const out = pipeline.runSyncAll({data: Buffer.from(data.buffer), shape: [3, 2], dtype: 'f32'});
+  assert.deepEqual(out.q.shape, [3, 2]);
+  assert.deepEqual(out.r.shape, [2, 2]);
+  assert.deepEqual(out.reconstructed.shape, [3, 2]);
+  const reconstructed = out.reconstructed.toFloat32Array();
+  for (let i = 0; i < data.length; i++) assert.ok(Math.abs(reconstructed[i] - data[i]) < 1e-5);
+  const q = out.q.toFloat32Array();
+  const r = out.r.toFloat32Array();
+  for (let i = 0; i < 6; i++) {
+    const row = Math.floor(i / 2), col = i % 2;
+    assert.ok(Math.abs(q[row * 2] * r[col] + q[row * 2 + 1] * r[2 + col] - data[i]) < 1e-5);
+  }
 });

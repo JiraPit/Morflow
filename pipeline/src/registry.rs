@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use core_types::{
-    ActionArgs, DataType, GetShapeFn, GetTypeFn, Payload, ProcessFn, Shape, ShapeResult,
+    ActionArgs, DataType, GetTypeFn, OutputComponent, Payload, ProcessFn, RVec, Shape, ShapeResult,
+    ValueShape, ValueShapeResult,
 };
 use libloading::{Library, Symbol};
 
@@ -20,9 +21,8 @@ pub struct LoadedAction {
     pub input_type: DataType,
     pub output_type: DataType,
     process_fn: ProcessFn,
-    /// `get_output_shape` is optional so that actions which cannot report a
-    /// shape still load; those simply have an unknown output shape.
-    get_shape_fn: Option<GetShapeFn>,
+    /// Required shape analysis and invocation-local preparation callback.
+    shapecheck_fn: core_types::ShapeCheckFn,
     // Keeps library handle alive in memory so function pointers remain valid
     _library: Arc<Library>,
 }
@@ -31,22 +31,84 @@ unsafe impl Send for LoadedAction {}
 unsafe impl Sync for LoadedAction {}
 
 impl LoadedAction {
-    /// Dispatches a payload to the dynamic library's `process` function via FFI.
-    #[inline]
+    pub fn shapecheck(
+        &self,
+        input: core_types::InputDescriptor,
+        args: ActionArgs,
+    ) -> core_types::ShapeCheckResult {
+        (self.shapecheck_fn)(input, args)
+    }
+    /// The only runtime dispatch path: mandatory preparation and verification.
     pub fn process(&self, payload: Payload) -> Payload {
-        (self.process_fn)(payload)
+        core_types::shapecheck::execute(&self.name, self.shapecheck_fn, self.process_fn, payload)
     }
 
-    /// Asks the action what it would produce for this call.
-    ///
-    /// An action that does not export a shape fn, or that cannot describe its
-    /// result, yields [`ShapeResult::Unknown`] rather than an error, so
-    /// callers can always fall back to a wildcard shape.
+    pub fn output_value_result(
+        &self,
+        input: &ValueShape,
+        args: &ActionArgs,
+    ) -> Option<ValueShapeResult> {
+        Some(
+            self.shapecheck(
+                core_types::InputDescriptor::partial(input.clone()),
+                args.clone(),
+            )
+            .prediction(),
+        )
+    }
     pub fn output_result(&self, input: &Shape, args: &ActionArgs) -> ShapeResult {
-        match &self.get_shape_fn {
-            Some(get_shape) => get_shape(input.clone(), args.clone()),
-            None => ShapeResult::Unknown,
+        let kind = if self.input_type.intersects(DataType::Tensor) {
+            DataType::Tensor
+        } else {
+            self.input_type
+        };
+        match self
+            .output_value_result(
+                &ValueShape::Leaf {
+                    kind,
+                    shape: Some(input.clone()).into(),
+                },
+                args,
+            )
+            .unwrap()
+        {
+            ValueShapeResult::Invalid(reason) => ShapeResult::Invalid(reason),
+            ValueShapeResult::Ok(output) => output
+                .shape()
+                .cloned()
+                .map_or(ShapeResult::Unknown, ShapeResult::Ok),
+            ValueShapeResult::Unknown => ShapeResult::Unknown,
         }
+    }
+    pub fn output_components(
+        &self,
+        input: &Shape,
+        args: &ActionArgs,
+    ) -> Option<RVec<OutputComponent>> {
+        let ValueShapeResult::Ok(ValueShape::Composite(items)) =
+            self.output_value_result(&ValueShape::tensor(input.clone()), args)?
+        else {
+            return None;
+        };
+        Some(
+            items
+                .iter()
+                .map(|item| match item {
+                    ValueShape::Leaf { kind, shape } => OutputComponent {
+                        kind: *kind,
+                        shape: shape
+                            .as_ref()
+                            .into_option()
+                            .cloned()
+                            .map_or(ShapeResult::Unknown, ShapeResult::Ok),
+                    },
+                    _ => OutputComponent {
+                        kind: DataType::Composite,
+                        shape: ShapeResult::Unknown,
+                    },
+                })
+                .collect(),
+        )
     }
 }
 
@@ -170,6 +232,10 @@ impl ActionRegistry {
                 )
             })?;
 
+            verify_action_abi(&lib)?;
+            let shapecheck_fn = *lib
+                .get::<core_types::ShapeCheckFn>(b"shapecheck")
+                .map_err(|e| format!("Missing mandatory shapecheck export: {e}"))?;
             let get_in_sym: Symbol<GetTypeFn> = lib.get(b"get_input_type").map_err(|e| {
                 format!(
                     "Missing 'get_input_type' symbol in '{}': {}",
@@ -191,9 +257,6 @@ impl ActionRegistry {
             let input_type = (*get_in_sym)();
             let output_type = (*get_out_sym)();
             let process_fn = *process_sym;
-            // The exported shape fn. A missing symbol simply means the action cannot
-            // describe its output and reports an unknown shape.
-            let get_shape_fn: Option<GetShapeFn> = lib.get(b"get_output_shape").ok().map(|s| *s);
             Ok(LoadedAction {
                 name: action_name.to_string(),
                 identity: identity.clone(),
@@ -202,9 +265,106 @@ impl ActionRegistry {
                 input_type,
                 output_type,
                 process_fn,
-                get_shape_fn,
+                shapecheck_fn,
                 _library: Arc::new(lib),
             })
+        }
+    }
+}
+
+fn verify_action_abi(lib: &Library) -> Result<(), String> {
+    unsafe {
+        let version = lib
+            .get::<extern "C" fn() -> u32>(b"get_action_abi_version")
+            .map_err(|_| {
+                "Action lacks the mandatory shapecheck ABI. Prepare an updated action version."
+                    .to_string()
+            })?;
+        if version() != core_types::shapecheck::ACTION_ABI_VERSION {
+            return Err("Incompatible action ABI. Prepare an updated action version.".into());
+        }
+        let layout = lib
+            .get::<extern "C" fn() -> *const core_types::abi_stable::type_layout::TypeLayout>(
+                b"get_action_abi_layout",
+            )
+            .map_err(|_| "Missing action ABI layout export".to_string())?;
+        let actual = layout().as_ref().ok_or("Null action ABI layout")?;
+        core_types::abi_stable::abi_stability::check_layout_compatibility(
+            <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT,
+            actual,
+        )
+        .map_err(|e| format!("Incompatible action ABI layout: {e}"))
+        .into()
+    }
+}
+#[cfg(all(test, unix))]
+mod shape_abi_tests {
+    use super::*;
+    #[test]
+    fn layouts_and_mandatory_shapecheck_are_checked_before_type_callbacks() {
+        let temp = tempfile::tempdir().unwrap();
+        let expected = <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT;
+        let wrong = <Shape as core_types::StableAbi>::LAYOUT;
+        let identity = ActionIdentity::new("test_pack", "0.3.0", "fixture").unwrap();
+        for (case, layout) in [
+            ("null", None),
+            ("wrong", Some(wrong)),
+            ("missing_shapecheck", Some(expected)),
+        ] {
+            let source = temp.path().join(format!("{case}.c"));
+            let path = source.with_extension("so");
+            let address = layout.map_or(0, |layout| layout as *const _ as usize);
+            std::fs::write(&source, format!(
+                "#include <stdlib.h>\nunsigned get_action_abi_version(void) {{return 1;}}\nconst void *get_action_abi_layout(void) {{return (const void *)0x{address:x};}}\nvoid get_input_type(void) {{abort();}}\nvoid get_output_type(void) {{abort();}}\nvoid process(void) {{abort();}}\n"
+            )).unwrap();
+            assert!(std::process::Command::new("cc")
+                .args(["-shared", "-fPIC"])
+                .arg(&source)
+                .arg("-o")
+                .arg(&path)
+                .status()
+                .unwrap()
+                .success());
+            let receipt = ArtifactReceipt {
+                identity: identity.clone(),
+                concrete_version: "0.3.0".into(),
+                repository: "local/test".into(),
+                sha256: "unused".into(),
+            };
+            let error = ActionRegistry::default()
+                .load_from_path(&identity, receipt, &path)
+                .err()
+                .expect("fixture must be rejected");
+            assert!(
+                error.contains(match case {
+                    "null" => "Null action ABI layout",
+                    "wrong" => "Incompatible action ABI layout",
+                    _ => "shapecheck",
+                }),
+                "{error}"
+            );
+        }
+    }
+    #[test]
+    fn legacy_and_incompatible_actions_are_rejected_before_callbacks() {
+        let temp = tempfile::tempdir().unwrap();
+        for version in [None, Some(0), Some(1), Some(99)] {
+            let source = temp.path().join(format!("version{version:?}.c"));
+            let library = source.with_extension("so");
+            let marker = version.map_or(String::new(), |v| {
+                format!("unsigned get_action_abi_version(void) {{return {v};}}")
+            });
+            std::fs::write(&source,format!("#include <stdlib.h>\n{marker}\nvoid process(void) {{abort();}}\nvoid shapecheck(void) {{abort();}}\n")).unwrap();
+            assert!(std::process::Command::new("cc")
+                .args(["-shared", "-fPIC"])
+                .arg(&source)
+                .arg("-o")
+                .arg(&library)
+                .status()
+                .unwrap()
+                .success());
+            let library = unsafe { Library::new(library) }.unwrap();
+            assert!(verify_action_abi(&library).is_err());
         }
     }
 }

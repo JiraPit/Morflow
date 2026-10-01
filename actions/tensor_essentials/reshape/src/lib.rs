@@ -1,4 +1,5 @@
-use core_types::{parse_shape_str, ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{parse_shape_str, DataType, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -27,7 +28,7 @@ fn reshape_shape(shape_str: &str, total: usize) -> Result<Vec<usize>, core_types
     Ok(shape)
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     let shape_str = args
         .get_named("shape")
         .or_else(|| args.positional.first().map(|s| s.as_str()));
@@ -38,29 +39,35 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     if shape_str.starts_with('$') {
         return ShapeResult::Unknown;
     }
-    if input.dims().contains(&0) {
-        // Validate syntax and inference rules without inventing an element count.
-        return match parse_shape_str(shape_str, 0) {
-            Ok(shape) if !shape.is_empty() => {
-                if shape
-                    .iter()
-                    .try_fold(1usize, |n, dim| n.checked_mul(*dim))
-                    .is_none()
-                {
-                    ShapeResult::Invalid("reshape target element count overflows".into())
-                } else {
-                    ShapeResult::Unknown
-                }
+    if input.element_count().is_none() && input.dims().contains(&core_types::Dimension::Unknown) {
+        let validated = match parse_shape_str(shape_str, 0) {
+            Ok(shape) if !shape.is_empty() => shape,
+            Ok(_) => {
+                return ShapeResult::Invalid("reshape requires a nonempty target shape".into())
             }
-            Ok(_) => ShapeResult::Invalid("reshape requires a nonempty target shape".into()),
-            Err(error) => ShapeResult::Invalid(error),
+            Err(reason) => return ShapeResult::Invalid(reason),
         };
+        let raw = shape_str
+            .trim()
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .trim_start_matches('(')
+            .trim_end_matches(')');
+        let target = raw
+            .split(',')
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .zip(validated)
+            .map(|(text, n)| {
+                if text == "-1" {
+                    core_types::Dimension::Unknown
+                } else {
+                    n.into()
+                }
+            });
+        return core_types::contract::finish(core_types::contract::shape(target));
     }
-    let Some(total) = input
-        .dims()
-        .iter()
-        .try_fold(1usize, |n, dim| n.checked_mul(*dim))
-    else {
+    let Some(total) = input.element_count() else {
         return ShapeResult::Invalid("reshape input element count overflows".into());
     };
     match reshape_shape(shape_str, total) {
@@ -69,52 +76,64 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
-
-    let mut shape_str = None;
-    if let Some(args) = &args_opt {
-        shape_str = args
-            .get_named("shape")
-            .or_else(|| args.positional.first().map(|s| s.as_str()));
-    }
-
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let inner_payload = payload.into_unwrapped();
+    let parsed_shape = match prepared.output_dims() {
+        Ok(s) => s,
+        Err(e) => return Payload::Error(e),
+    };
     match inner_payload {
-        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            let Some(s_str) = shape_str else {
-                return Payload::Error("reshape action requires 'shape' argument".into());
-            };
-            let parsed_shape = match reshape_shape(s_str, tensor.num_elements()) {
-                Ok(s) => s,
-                Err(e) => return Payload::Error(e),
-            };
-            match tensor.reshape(parsed_shape) {
-                Ok(reshaped) => Payload::from_tensor(reshaped),
-                Err(e) => Payload::Error(e),
-            }
-        }
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match tensor.reshape(parsed_shape) {
+            Ok(reshaped) => Payload::from_tensor(reshaped),
+            Err(e) => Payload::Error(e),
+        },
         _ => Payload::Error(core_types::RString::from(
             "Action \'reshape\' requires a tensor or scalar value",
         )),
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
@@ -210,14 +229,33 @@ mod tests {
 
     #[test]
     fn unknown_dimensions_and_dynamic_targets_are_not_invalid() {
-        for target in ["[2,3]", "[2,-1]", "$shape"] {
+        for (target, expected) in [
+            ("[2,3]", Shape::new([2, 3])),
+            (
+                "[2,-1]",
+                Shape::new([
+                    core_types::Dimension::Known(2),
+                    core_types::Dimension::Unknown,
+                ]),
+            ),
+        ] {
             assert_verdict(
-                get_output_shape(Shape::new([0, 3]), args(Some(target))),
-                ShapeResult::Unknown,
+                get_output_shape(Shape::unknown(2), args(Some(target))),
+                ShapeResult::Ok(expected),
             );
         }
         assert!(matches!(
-            get_output_shape(Shape::new([0, 3]), args(Some("[-1,-1]"))),
+            get_output_shape(Shape::unknown(2), args(Some("$shape"))),
+            ShapeResult::Unknown
+        ));
+        assert!(matches!(
+            get_output_shape(
+                Shape::new([
+                    core_types::Dimension::Unknown,
+                    core_types::Dimension::Known(3)
+                ]),
+                args(Some("[-1,-1]"))
+            ),
             ShapeResult::Invalid(_)
         ));
         let target = format!("[{},{}]", usize::MAX, usize::MAX);
@@ -226,12 +264,24 @@ mod tests {
             ShapeResult::Invalid(_)
         ));
         assert!(matches!(
-            get_output_shape(Shape::new([0, 3]), args(Some(&target))),
+            get_output_shape(
+                Shape::new([
+                    core_types::Dimension::Unknown,
+                    core_types::Dimension::Known(3)
+                ]),
+                args(Some(&target))
+            ),
             ShapeResult::Invalid(_)
         ));
         let target = format!("[{}, {}, -1]", usize::MAX, usize::MAX);
         assert!(matches!(
-            get_output_shape(Shape::new([0, 3]), args(Some(&target))),
+            get_output_shape(
+                Shape::new([
+                    core_types::Dimension::Unknown,
+                    core_types::Dimension::Known(3)
+                ]),
+                args(Some(&target))
+            ),
             ShapeResult::Invalid(_)
         ));
     }

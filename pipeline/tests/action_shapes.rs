@@ -49,7 +49,7 @@ fn compare(
         let actual = dims(&output).unwrap();
         assert_eq!(expected.rank(), actual.len(), "{id}");
         for (e, a) in expected.dims().iter().zip(actual) {
-            if *e != 0 {
+            if !e.is_unknown() {
                 assert_eq!(e, a, "{id}");
             }
         }
@@ -365,7 +365,7 @@ fn invalid_shapes_fail_before_execution_and_dynamic_arguments_are_unknown() {
             .unwrap();
         assert!(matches!(
             loaded.output_result(&Shape::new([2, 3]), &args(&[(key, "$dynamic")])),
-            ShapeResult::Unknown
+            ShapeResult::Ok(_)
         ));
     }
 }
@@ -392,7 +392,7 @@ fn norm_positional_order_and_metadata_conversions_are_conservative() {
         .unwrap();
     assert!(matches!(
         to_tensor.output_result(&Shape::new([2, 64]), &ActionArgs::default()),
-        ShapeResult::Unknown
+        ShapeResult::Ok(ref shape) if shape.dims() == [2, 64]
     ));
     compare(
         &registry,
@@ -406,7 +406,7 @@ fn norm_positional_order_and_metadata_conversions_are_conservative() {
         .unwrap();
     assert!(matches!(
         to_audio.output_result(&Shape::new([2, 64]), &ActionArgs::default()),
-        ShapeResult::Unknown
+        ShapeResult::Ok(ref shape) if shape.dims() == [2, 64]
     ));
     compare(
         &registry,

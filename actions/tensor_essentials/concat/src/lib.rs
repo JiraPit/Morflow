@@ -1,8 +1,9 @@
+use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Composite
+    DataType::Composite | DataType::Tensor
 }
 
 #[no_mangle]
@@ -10,9 +11,21 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
+pub fn get_output_value_shape<A: Into<PreparedArgs>>(
+    input: core_types::ValueShape,
+    args: A,
+) -> core_types::ValueShapeResult {
+    let args = args.into();
+    core_types::composite_contract::concat(input, args)
+}
+
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut axis = 0isize;
     if let Some(args) = &args_opt {
@@ -21,7 +34,7 @@ pub extern "C" fn process(payload: Payload) -> Payload {
             .or_else(|| args.get_named("dim"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(ax) = ax_str.parse::<isize>() {
+            if let Ok(ax) = prepared.args.parse::<isize>(ax_str) {
                 axis = ax;
             }
         }
@@ -52,9 +65,37 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        None,
+        Some(get_output_value_shape),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, RVec, Tensor, Tuple2};
 
     #[test]

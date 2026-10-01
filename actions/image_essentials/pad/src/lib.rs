@@ -1,8 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::manual_memcpy)]
 
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -15,9 +14,10 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, Error};
-    contract::finish((|| {
+    let rank = input.rank();
+    let result = contract::finish((|| {
         let (h, w, c, _chw) = contract::image_dims(&input)?;
         let pad = arg::<usize>(&args, &["pad"], Some(0), Some(0))?.unwrap();
         let top = arg::<usize>(&args, &["top", "pad_top"], None, Some(pad))?.unwrap();
@@ -26,9 +26,6 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         let right = arg::<usize>(&args, &["right", "pad_right"], None, Some(pad))?.unwrap();
         if top == 0 && bottom == 0 && left == 0 && right == 0 {
             return Ok(input);
-        }
-        if h == 0 || w == 0 {
-            return Err(Error::Unknown);
         }
         let h = h
             .checked_add(top)
@@ -40,14 +37,15 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
             .ok_or(Error::from("Padded width overflows"))?;
         // Padding materializes an HWC buffer even for CHW input.
         contract::image_shape(h, w, c, input.rank(), false)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -59,16 +57,16 @@ enum PadMode {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, true) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut pad_top = 0usize;
     let mut pad_bottom = 0usize;
     let mut pad_left = 0usize;
@@ -81,7 +79,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("pad")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(p) = p_str.parse::<usize>() {
+            if let Ok(p) = prepared.args.parse::<usize>(p_str) {
                 pad_top = p;
                 pad_bottom = p;
                 pad_left = p;
@@ -89,7 +87,7 @@ fn process_impl(payload: Payload) -> Payload {
             }
         }
         if let Some(pt_str) = args.get_named("top").or_else(|| args.get_named("pad_top")) {
-            if let Ok(p) = pt_str.parse::<usize>() {
+            if let Ok(p) = prepared.args.parse::<usize>(pt_str) {
                 pad_top = p;
             }
         }
@@ -97,7 +95,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("bottom")
             .or_else(|| args.get_named("pad_bottom"))
         {
-            if let Ok(p) = pb_str.parse::<usize>() {
+            if let Ok(p) = prepared.args.parse::<usize>(pb_str) {
                 pad_bottom = p;
             }
         }
@@ -105,7 +103,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("left")
             .or_else(|| args.get_named("pad_left"))
         {
-            if let Ok(p) = pl_str.parse::<usize>() {
+            if let Ok(p) = prepared.args.parse::<usize>(pl_str) {
                 pad_left = p;
             }
         }
@@ -113,7 +111,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("right")
             .or_else(|| args.get_named("pad_right"))
         {
-            if let Ok(p) = pr_str.parse::<usize>() {
+            if let Ok(p) = prepared.args.parse::<usize>(pr_str) {
                 pad_right = p;
             }
         }
@@ -132,7 +130,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("fill")
             .or_else(|| args.get_named("fill_value"))
         {
-            if let Ok(f) = fv_str.parse::<f32>() {
+            if let Ok(f) = prepared.args.parse::<f32>(fv_str) {
                 fill_value = f;
             }
         }
@@ -331,9 +329,37 @@ fn apply_pad(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     #[test]

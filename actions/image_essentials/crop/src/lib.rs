@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, ImageLayout, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor
@@ -9,46 +10,50 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
-    use core_types::contract::{self, arg, Error};
-    contract::finish((|| {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
+    use core_types::contract::{self, arg};
+    let rank = input.rank();
+    let result = contract::finish((|| {
         let (h, w, c, chw) = contract::image_dims(&input)?;
         let x = arg::<usize>(&args, &["x"], Some(0), Some(0))?.unwrap();
         let y = arg::<usize>(&args, &["y"], Some(1), Some(0))?.unwrap();
         let width = arg::<usize>(&args, &["width", "w"], Some(2), None)?;
         let height = arg::<usize>(&args, &["height", "h"], Some(3), None)?;
-        if h == 0 || w == 0 {
-            return Err(Error::Unknown);
+        let remaining_w = w.saturating_sub(x);
+        let remaining_h = h.saturating_sub(y);
+        let width = width.map_or(remaining_w, |n| {
+            core_types::Dimension::Known(n).min(remaining_w)
+        });
+        let height = height.map_or(remaining_h, |n| {
+            core_types::Dimension::Known(n).min(remaining_h)
+        });
+        if contract::image_layout_unknown(&input) {
+            return Ok(Shape::unknown(input.rank()));
         }
-        let width = width
-            .unwrap_or(w.saturating_sub(x))
-            .min(w.saturating_sub(x));
-        let height = height
-            .unwrap_or(h.saturating_sub(y))
-            .min(h.saturating_sub(y));
         contract::image_shape(height, width, c, input.rank(), chw)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, false) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut crop_x = 0usize;
     let mut crop_y = 0usize;
     let mut crop_w: Option<usize> = None;
@@ -59,7 +64,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("x")
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(x) = x_str.parse::<usize>() {
+            if let Ok(x) = prepared.args.parse::<usize>(x_str) {
                 crop_x = x;
             }
         }
@@ -67,7 +72,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("y")
             .or_else(|| args.positional.get(1).map(|s| s.as_str()))
         {
-            if let Ok(y) = y_str.parse::<usize>() {
+            if let Ok(y) = prepared.args.parse::<usize>(y_str) {
                 crop_y = y;
             }
         }
@@ -76,14 +81,14 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("w"))
             .or_else(|| args.positional.get(2).map(|s| s.as_str()))
         {
-            crop_w = w_str.parse::<usize>().ok();
+            crop_w = prepared.args.parse::<usize>(w_str).ok();
         }
         if let Some(h_str) = args
             .get_named("height")
             .or_else(|| args.get_named("h"))
             .or_else(|| args.positional.get(3).map(|s| s.as_str()))
         {
-            crop_h = h_str.parse::<usize>().ok();
+            crop_h = prepared.args.parse::<usize>(h_str).ok();
         }
     }
 
@@ -131,9 +136,37 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]

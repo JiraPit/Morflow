@@ -22,6 +22,9 @@ pub fn ptype_of(param_type: &ParamType) -> PType {
         ParamType::Image(shape) => PType::Image(shape_spec_of(shape)),
         ParamType::Audio(shape) => PType::Audio(shape_spec_of(shape)),
         ParamType::Composite => PType::Composite,
+        ParamType::CompositeItems(items) => {
+            PType::CompositeItems(items.iter().map(ptype_of).collect())
+        }
     }
 }
 
@@ -58,6 +61,11 @@ pub fn param_type_of(ptype: &PType) -> Option<ParamType> {
         PType::Image(spec) => Some(ParamType::Image(shape_of(spec))),
         PType::Audio(spec) => Some(ParamType::Audio(shape_of(spec))),
         PType::Composite => Some(ParamType::Composite),
+        PType::CompositeItems(items) => items
+            .iter()
+            .map(param_type_of)
+            .collect::<Option<Vec<_>>>()
+            .map(ParamType::CompositeItems),
     }
 }
 

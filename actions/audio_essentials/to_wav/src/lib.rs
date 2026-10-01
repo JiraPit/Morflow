@@ -1,5 +1,6 @@
-use core_types::{ActionArgs, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, RString, RVec};
+use core_types::{Shape, ShapeResult};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -12,8 +13,8 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Bytes
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, _args: A) -> ShapeResult {
+    let _args = _args.into();
     if !matches!(input.rank(), 1 | 2) {
         return ShapeResult::Invalid("to_wav received an unsupported input rank".into());
     }
@@ -21,12 +22,12 @@ pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResu
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut target_dtype = "i16";
     let mut target_sample_rate: Option<u32> = None;
     let mut clip = true;
@@ -44,7 +45,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("sample_rate")
             .or_else(|| args.get_named("rate"))
         {
-            if let Ok(sr) = sr_str.parse::<u32>() {
+            if let Ok(sr) = prepared.args.parse::<u32>(sr_str) {
                 target_sample_rate = Some(sr);
             }
         }
@@ -213,9 +214,37 @@ pub fn encode_wav_binary(
     wav
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, Audio, RBox, RString, Tuple2};
 
     #[test]

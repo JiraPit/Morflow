@@ -115,17 +115,18 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
 
     let slices = slice_item
         .separated_by(padded(just(',')))
+        .at_least(1)
         .delimited_by(just('['), just(']'));
 
     // Variable reference: $var_name or $var.field or $var[0:10]
     let var_ref = just('$')
         .ignore_then(ident)
         .then(just('.').ignore_then(ident).or_not())
-        .then(slices.or_not())
+        .then(slices.repeated())
         .map(|((name, field), slices_opt)| VarRef {
             name,
             field,
-            slices: slices_opt.unwrap_or_default(),
+            slices: slices_opt,
         });
 
     let var_val = var_ref.clone().map(Value::Var);
@@ -390,24 +391,47 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             },
         );
 
-    let param_type = choice((
-        text::keyword("Bytes").to(ParamType::Bytes),
-        text::keyword("IntArg").to(ParamType::IntArg),
-        text::keyword("FloatArg").to(ParamType::FloatArg),
-        text::keyword("StrArg").to(ParamType::StrArg),
-        text::keyword("BoolArg").to(ParamType::BoolArg),
-        text::keyword("Scalar").to(ParamType::Scalar),
-        text::keyword("Composite").to(ParamType::Composite),
-        text::keyword("Tensor")
-            .ignore_then(shape_suffix.clone().or_not())
-            .map(|shape| ParamType::Tensor(shape.unwrap_or(ParamShape::AnyRank))),
-        text::keyword("Image")
-            .ignore_then(shape_suffix.clone().or_not())
-            .map(|shape| ParamType::Image(shape.unwrap_or(ParamShape::AnyRank))),
-        text::keyword("Audio")
-            .ignore_then(shape_suffix.or_not())
-            .map(|shape| ParamType::Audio(shape.unwrap_or(ParamShape::AnyRank))),
-    ));
+    let param_type = recursive(|param_type| {
+        choice((
+            text::keyword("Bytes").to(ParamType::Bytes),
+            text::keyword("IntArg").to(ParamType::IntArg),
+            text::keyword("FloatArg").to(ParamType::FloatArg),
+            text::keyword("StrArg").to(ParamType::StrArg),
+            text::keyword("BoolArg").to(ParamType::BoolArg),
+            text::keyword("Scalar").to(ParamType::Scalar),
+            text::keyword("Composite")
+                .ignore_then(
+                    padded(param_type)
+                        .separated_by(padded(just(',')))
+                        .delimited_by(just('['), just(']'))
+                        .or_not(),
+                )
+                .try_map(|items: Option<Vec<ParamType>>, span| {
+                    if items
+                        .as_ref()
+                        .is_some_and(|items| items.iter().any(ParamType::is_arg))
+                    {
+                        Err(Simple::custom(
+                            span,
+                            "Composite components must be payload types",
+                        ))
+                    } else {
+                        Ok(items
+                            .map(ParamType::CompositeItems)
+                            .unwrap_or(ParamType::Composite))
+                    }
+                }),
+            text::keyword("Tensor")
+                .ignore_then(shape_suffix.clone().or_not())
+                .map(|shape| ParamType::Tensor(shape.unwrap_or(ParamShape::AnyRank))),
+            text::keyword("Image")
+                .ignore_then(shape_suffix.clone().or_not())
+                .map(|shape| ParamType::Image(shape.unwrap_or(ParamShape::AnyRank))),
+            text::keyword("Audio")
+                .ignore_then(shape_suffix.or_not())
+                .map(|shape| ParamType::Audio(shape.unwrap_or(ParamShape::AnyRank))),
+        ))
+    });
 
     // `accept $x` with no type is an easy slip to make.
     let bare_accept_name = just('$')

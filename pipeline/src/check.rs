@@ -1,3 +1,8 @@
+#[path = "check_coverage.rs"]
+mod coverage;
+#[cfg(test)]
+use core_types::Shape;
+pub use coverage::{ActionCoverage, ShapeCoverage};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
@@ -5,7 +10,8 @@ use std::sync::Arc;
 
 use ariadne::{Color, Label, Report, ReportKind, Source};
 use core_types::{
-    ActionArgs, DataType, Dim, PType, RString, RVec, Shape, ShapeResult, ShapeSpec, Tuple2,
+    ActionArgs, DataType, Dim, PType, RString, RVec, ShapeResult, ShapeSpec, Tuple2, ValueShape,
+    ValueShapeResult,
 };
 use parser::ast::*;
 use rich_rust::prelude::*;
@@ -35,6 +41,35 @@ fn each_rank_mismatch(loop_ptype: &PType, final_ty: &PType) -> Option<(usize, us
         }
     } else {
         None
+    }
+}
+
+/// Tensor iterations stack their body results on axis 0.
+fn each_output_type(input: &PType, body: &PType) -> PType {
+    match input {
+        PType::Tensor(spec) => {
+            let Some(body_dims) = body.spec().and_then(ShapeSpec::dims) else {
+                return PType::Tensor(ShapeSpec::AnyRank);
+            };
+            let first = spec
+                .dims()
+                .and_then(|dims| dims.first())
+                .cloned()
+                .unwrap_or(Dim::Any);
+            let mut dims = vec![first];
+            dims.extend_from_slice(body_dims);
+            PType::Tensor(ShapeSpec::Ranked { dims })
+        }
+        // Layout determines axis placement, but a known body rank gains one axis.
+        PType::Image(_) => PType::Image(
+            body.rank()
+                .map_or(ShapeSpec::AnyRank, |rank| ShapeSpec::from_rank(rank + 1)),
+        ),
+        PType::Audio(_) => PType::Audio(
+            body.rank()
+                .map_or(ShapeSpec::AnyRank, |rank| ShapeSpec::from_rank(rank + 1)),
+        ),
+        _ => unranked_like(input),
     }
 }
 
@@ -117,10 +152,9 @@ fn format_var_ref(var_ref: &VarRef) -> String {
         s.push('.');
         s.push_str(f);
     }
-    if !var_ref.slices.is_empty() {
+    for group in &var_ref.slices {
         s.push('[');
-        let slices_str: Vec<String> = var_ref
-            .slices
+        let slices_str: Vec<String> = group
             .iter()
             .map(|slice| match slice {
                 SliceItem::Index(idx) => idx.to_string(),
@@ -149,33 +183,16 @@ fn format_var_ref(var_ref: &VarRef) -> String {
     s
 }
 
-/// The concrete `Shape` fed into an action's shape function.
-///
-/// Wildcard dimensions become `0`, the engine-wide convention for "unknown":
-/// arithmetic in the shape functions keeps such dims wildcard (e.g. `0 * 2` is
-/// still `0`), and [`normalize_spec`] turns the trailing `Fixed(0)` results
-/// back into `Any` before they are compared downstream.
+/// Converts declared wildcards to explicit unknown dimensions.
+#[cfg(test)]
 fn shape_of_ptype(pt: &PType) -> Shape {
     match pt.spec() {
-        Some(ShapeSpec::AnyRank) | None => Shape::new(vec![]),
-        Some(ShapeSpec::Ranked { dims }) => Shape::new(
-            dims.iter()
-                .map(|d| match d {
-                    Dim::Any => 0,
-                    Dim::Fixed(n) => *n,
-                })
-                .collect::<Vec<usize>>(),
-        ),
+        Some(ShapeSpec::Ranked { dims }) => Shape::new(dims.iter().map(|d| match d {
+            Dim::Any => core_types::Dimension::Unknown,
+            Dim::Fixed(n) => core_types::Dimension::Known(*n),
+        })),
+        _ => Shape::scalar(),
     }
-}
-
-/// Whether a type pins its rank, i.e. has a `Ranked` shape specification.
-///
-/// An unpinned (`AnyRank`) type must flow through an action unrefined: feeding
-/// a fabricated concrete shape into a shape function would collapse unknown
-/// ranks into bogus concrete ones (e.g. an `Audio` payload becoming rank 0).
-fn has_pinned_rank(pt: &PType) -> bool {
-    matches!(pt.spec(), Some(ShapeSpec::Ranked { .. }))
 }
 
 /// The same payload kind with no rank information attached. Used for the loop
@@ -189,23 +206,10 @@ fn unranked_like(pt: &PType) -> PType {
     }
 }
 
-/// Treats a `0` reported by a shape function as an unknown/wildcard dimension.
-fn normalize_spec(mut spec: ShapeSpec) -> ShapeSpec {
-    if let ShapeSpec::Ranked { dims } = &mut spec {
-        for dim in dims.iter_mut() {
-            if let Dim::Fixed(0) = dim {
-                *dim = Dim::Any;
-            }
-        }
-    }
-    spec
-}
-
 /// The `PType` an action produces, from its declared output kind and the
 /// shape it reported for a concrete call. Mirrors `PType::with_shape`: a rank-0
 /// result of a tensor-valued action becomes a `Scalar`.
 fn refine_output(kind: DataType, spec: ShapeSpec) -> PType {
-    let spec = normalize_spec(spec);
     match PType::from_data_type(kind) {
         PType::Tensor(_) => match spec.rank() {
             Some(0) => PType::Scalar,
@@ -227,6 +231,96 @@ fn refine_result(kind: DataType, verdict: ShapeResult) -> PType {
     }
 }
 
+/// Select known Composite components before applying tensor dimensions.
+fn sliced_var_type(mut ty: PType, var_ref: &VarRef) -> Result<PType, String> {
+    for group in &var_ref.slices {
+        ty = sliced_ptype(ty, group)?;
+    }
+    Ok(ty)
+}
+
+fn sliced_ptype(mut ty: PType, slices: &[SliceItem]) -> Result<PType, String> {
+    let mut axis = 0;
+    for slice in slices {
+        ty = match ty {
+            PType::CompositeItems(items) => {
+                let SliceItem::Index(index) = slice else {
+                    return Err("Composite supports integer indexes only".into());
+                };
+                let index =
+                    usize::try_from(*index).map_err(|_| "Composite indexes must be nonnegative")?;
+                items.get(index).cloned().ok_or_else(|| {
+                    format!(
+                        "Composite index {index} out of bounds for {} components",
+                        items.len()
+                    )
+                })?
+            }
+            PType::Composite => match slice {
+                SliceItem::Index(index) if *index >= 0 => PType::Unknown,
+                SliceItem::Index(_) => return Err("Composite indexes must be nonnegative".into()),
+                _ => return Err("Composite supports integer indexes only".into()),
+            },
+            PType::Unknown => PType::Unknown,
+            PType::Tensor(ShapeSpec::Ranked { mut dims }) => {
+                if axis >= dims.len() {
+                    return Err("Tensor slice axis out of bounds".into());
+                }
+                match slice {
+                    SliceItem::Index(index) => {
+                        let index = usize::try_from(*index)
+                            .map_err(|_| "Tensor indexes must be nonnegative")?;
+                        if dims[axis].fixed().is_some_and(|n| index >= n) {
+                            return Err(format!("Tensor index {index} out of bounds"));
+                        }
+                        dims.remove(axis);
+                    }
+                    SliceItem::Full => {
+                        axis += 1;
+                    }
+                    SliceItem::Range { start, end, step } => {
+                        if [start, end, step].into_iter().flatten().any(|v| *v < 0) {
+                            return Ok(PType::Tensor(ShapeSpec::AnyRank));
+                        }
+                        dims[axis] = match dims[axis].fixed() {
+                            Some(n) => {
+                                let start = start.unwrap_or(0) as usize;
+                                let end = end.map(|n| n as usize).unwrap_or(n).min(n);
+                                if start > end {
+                                    return Err("Tensor slice start exceeds end".into());
+                                }
+                                Dim::Fixed(
+                                    (end - start).div_ceil(step.unwrap_or(1).max(1) as usize),
+                                )
+                            }
+                            None => Dim::Any,
+                        };
+                        axis += 1;
+                    }
+                    SliceItem::NamedDim { .. } => return Ok(PType::Unknown),
+                }
+                if dims.is_empty() {
+                    PType::Scalar
+                } else {
+                    PType::Tensor(ShapeSpec::Ranked { dims })
+                }
+            }
+            PType::Bytes => {
+                if !matches!(slice, SliceItem::Range { .. }) || slices.len() != 1 {
+                    return Err("Bytes support one range slice per bracket group".into());
+                }
+                PType::Bytes
+            }
+            PType::Scalar | PType::Arg(_) => {
+                return Err("Cannot index a scalar or argument value".into())
+            }
+            PType::Tensor(_) => PType::Unknown,
+            other => unranked_like(&other),
+        };
+    }
+    Ok(ty)
+}
+
 /// Whether two types carry the same payload kind (`Tensor`, `Image`, `Audio`,
 /// `Scalar`, `Bytes`, `Composite`). The unknown type matches anything.
 fn same_payload_kind(a: &PType, b: &PType) -> bool {
@@ -240,7 +334,7 @@ fn same_payload_kind(a: &PType, b: &PType) -> bool {
             | (Image(_), Image(_))
             | (Audio(_), Audio(_))
             | (Bytes, Bytes)
-            | (Composite, Composite)
+            | (Composite | CompositeItems(_), Composite | CompositeItems(_))
     )
 }
 
@@ -534,8 +628,7 @@ pub fn check_pipeline(
     }
 
     // ==========================================
-    // Phase 4: Dynamic Type Checking Dry-Run (via get_input_type, get_output_type
-    // and get_output_shape)
+    // Phase 4: Static type and shape analysis via mandatory shapecheck
     // ==========================================
     let mut var_types: HashMap<String, Option<PType>> = HashMap::new();
 
@@ -585,6 +678,35 @@ pub fn check_pipeline(
         source_desc: String,
         steps_summary: Vec<String>,
         output_desc: String,
+    }
+
+    let shape_coverage = ShapeCoverage::analyze(&ast, &loaded_actions)?;
+    console.rule(Some("Static Shape Safety"));
+    if let Some(percent) = shape_coverage.percentage() {
+        console.print(&format!(
+            "Shape safety: {:.1}% ({}/{} action calls Ready)",
+            percent,
+            shape_coverage.ready(),
+            shape_coverage.actions.len()
+        ));
+    } else {
+        console.print("Shape safety: N/A (no native action calls)");
+    }
+    console.print("Each native action call counts once, including every branch and each body. Built-ins are excluded.");
+    for action in &shape_coverage.actions {
+        console.print(&format!(
+            "{}: {} — {} — input: {}; output: {}; {}",
+            action.location,
+            action.action,
+            action.status,
+            action.input.to_ptype(),
+            action.output.to_ptype(),
+            action.reason
+        ));
+    }
+    console.print("Ready guarantees the shape contract for declared inputs and literal arguments; numerical values and encoded contents are checked during execution.");
+    if shape_coverage.has_invalid() {
+        return Err("Shape check failed: Invalid action contracts".into());
     }
 
     let mut inspected_flows: Vec<FlowInspection> = Vec::new();
@@ -669,7 +791,12 @@ pub fn check_pipeline(
                         return Err("Argument parameter flow error".into());
                     }
 
-                    curr_type = var_types.get(&var_ref.name).cloned().flatten();
+                    curr_type = var_types
+                        .get(&var_ref.name)
+                        .cloned()
+                        .flatten()
+                        .map(|ty| sliced_var_type(ty, var_ref))
+                        .transpose()?;
                     if step_idx == 0 {
                         source_desc = format_var_ref(var_ref);
                     }
@@ -691,6 +818,21 @@ pub fn check_pipeline(
                         output_desc = emit_desc;
                         continue;
                     }
+
+                    // A first positional variable supplies the input only when
+                    // there is no active stream, matching runtime argument handling.
+                    let mut effective_call = call.clone();
+                    if curr_type.is_none() {
+                        if let Some(Value::Var(var_ref)) = call.positional_args.first() {
+                            let ty =
+                                var_types.get(&var_ref.name).cloned().flatten().ok_or_else(
+                                    || format!("Variable '${}' not found", var_ref.name),
+                                )?;
+                            curr_type = Some(sliced_var_type(ty, var_ref)?);
+                            effective_call.positional_args.remove(0);
+                        }
+                    }
+                    let call = &effective_call;
 
                     let loaded = match loaded_actions.get(&call.name) {
                         Some(a) => a,
@@ -750,16 +892,18 @@ pub fn check_pipeline(
                         }
                     }
 
-                    // Shape inference: feed the source shape into the action's
-                    // get_output_shape ("0" = unknown/wildcard dim) and
-                    // refine the output type with the reported verdict. An
-                    // unpinned (AnyRank) source stays unpinned rather than
-                    // collapsing into a fabricated rank.
-                    let shape_verdict = match curr_type {
-                        Some(ref src) if has_pinned_rank(src) => {
-                            let src_shape = shape_of_ptype(src);
-                            loaded.output_result(&src_shape, &call_args(call, &ast.params))
-                        }
+                    // Static and runtime dispatch use the same mandatory callback.
+                    let value_verdict = loaded
+                        .output_value_result(
+                            &curr_type
+                                .as_ref()
+                                .map(ValueShape::from_ptype)
+                                .unwrap_or(ValueShape::Unknown),
+                            &call_args(call, &[]),
+                        )
+                        .expect("mandatory shapecheck result");
+                    let shape_verdict = match &value_verdict {
+                        ValueShapeResult::Invalid(reason) => ShapeResult::Invalid(reason.clone()),
                         _ => ShapeResult::Unknown,
                     };
 
@@ -784,7 +928,10 @@ pub fn check_pipeline(
                         .into());
                     }
 
-                    let out_ptype = refine_result(action_out, shape_verdict);
+                    let out_ptype = match value_verdict {
+                        ValueShapeResult::Ok(shape) => shape.to_ptype(),
+                        _ => refine_result(action_out, ShapeResult::Unknown),
+                    };
                     curr_type = Some(out_ptype);
                     steps_summary.push(call.name.clone());
                     prev_step_desc = call.name.clone();
@@ -796,313 +943,42 @@ pub fn check_pipeline(
                     prev_step_desc = format!("${}", var_name);
                 }
                 FlowStep::Each(each_loop) => {
-                    // E006: 'each' can only iterate payloads that carry a
-                    // sliceable tensor. Raw bytes, composites, and unknown types
-                    // have no iteration axis, so reject them before execution.
-                    if let Some(each_in) = &curr_type {
-                        let kind = each_in.data_type();
-                        let iterable = kind.intersects(DataType::Tensor)
-                            || kind.intersects(DataType::Image)
-                            || kind.intersects(DataType::Audio);
-                        if !iterable {
-                            let each_span =
-                                find_token_span(&source, &each_loop.var_name.to_string(), 0);
-                            let prev_span = find_token_span(&source, &prev_step_desc, 0);
-
-                            let report = Report::build(
-                                ReportKind::Error,
-                                (filename_str.as_str(), each_span.clone()),
-                            )
-                            .with_code("E006")
-                            .with_message(format!(
-                                "'each' cannot iterate over {}: only Tensor, Image, and Audio payloads have an iteration axis",
-                                each_in
-                            ))
-                            .with_label(
-                                Label::new((filename_str.as_str(), prev_span))
-                                    .with_message(format!("Produces {}", each_in))
-                                    .with_color(Color::Blue),
-                            )
-                            .with_label(
-                                Label::new((filename_str.as_str(), each_span))
-                                    .with_message(
-                                        "Convert it with an action such as 'to_tensor' or 'to_audio' first",
-                                    )
-                                    .with_color(Color::Red),
-                            );
-
-                            let _ = report
-                                .finish()
-                                .print((filename_str.as_str(), Source::from(&source)));
-
-                            return Err("Unsupported payload type in 'each' loop".into());
-                        }
-
-                        // E008: the loop variable type is derived from the
-                        // iterated value's rank. Rank-0 tensors, rank-<2 images,
-                        // and composites cannot be iterated. A value whose rank
-                        // is not pinned iterates with a same-kind, unpacked loop
-                        // variable, matching the runtime.
-                        let (loop_ptype, each_hint) = match each_in.each_loop_var() {
-                            Ok(pt) => (pt, each_loop_hint(each_in)),
-                            Err(reason) => match each_in.spec() {
-                                // Error says the rank is unknown, but the kind is
-                                // iterable: iterate one unranked element at a time.
-                                Some(ShapeSpec::AnyRank) | None => {
-                                    (unranked_like(each_in), each_loop_hint(each_in))
-                                }
-                                _ => {
-                                    let each_span = find_token_span(
-                                        &source,
-                                        &each_loop.var_name.to_string(),
-                                        0,
-                                    );
-                                    let report = Report::build(
-                                        ReportKind::Error,
-                                        (filename_str.as_str(), each_span.clone()),
-                                    )
-                                    .with_code("E008")
-                                    .with_message(format!("'each': {}", reason))
-                                    .with_label(
-                                        Label::new((filename_str.as_str(), each_span))
-                                            .with_message(format!(
-                                                "The iterated value has type {}",
-                                                each_in
-                                            ))
-                                            .with_color(Color::Red),
-                                    )
-                                    .with_help(
-                                        "Pin the rank of the parameter (e.g. 'accept Tensor[rank=2] $images') or reshape it first.",
-                                    );
-
-                                    let _ = report
-                                        .finish()
-                                        .print((filename_str.as_str(), Source::from(&source)));
-
-                                    console.print("");
-                                    console.print(&format!(
-                                        "[bold red]✗ Check failed:[/] Cannot iterate a value of type {} in [dim]{}[/].",
-                                        each_in,
-                                        file_path.display()
-                                    ));
-                                    return Err("Iteration rank mismatch".into());
-                                }
-                            },
-                        };
-
-                        var_types.insert(each_loop.var_name.clone(), Some(loop_ptype.clone()));
-                        let mut inner_type: Option<PType> = Some(loop_ptype.clone());
-                        let mut inner_actions = Vec::new();
-                        let mut prev_inner_desc = format!("${}", each_loop.var_name);
-
-                        for inner_stmt in &each_loop.body {
-                            let Statement::Flow(inner_chain) = inner_stmt;
-                            for sub_step in &inner_chain.steps {
-                                match sub_step {
-                                    FlowStep::Var(v) => {
-                                        inner_type = var_types.get(&v.name).cloned().flatten();
-                                        prev_inner_desc = format!("${}", v.name);
-                                    }
-                                    FlowStep::Action(call) => {
-                                        if call.name == "emit" || call.name == "resurface" {
-                                            continue;
-                                        }
-                                        inner_actions.push(call.name.clone());
-                                        if let Some(loaded) = loaded_actions.get(&call.name) {
-                                            let action_in = loaded.input_type;
-                                            let action_out = loaded.output_type;
-
-                                            if let Some(src_ty) = &inner_type {
-                                                if !are_types_compatible(
-                                                    src_ty.data_type(),
-                                                    action_in,
-                                                ) {
-                                                    let curr_span =
-                                                        find_token_span(&source, &call.name, 0);
-                                                    let prev_span = find_token_span(
-                                                        &source,
-                                                        &prev_inner_desc,
-                                                        0,
-                                                    );
-
-                                                    let report = Report::build(
-                                                        ReportKind::Error,
-                                                        (filename_str.as_str(), curr_span.clone()),
-                                                    )
-                                                    .with_code("E005")
-                                                    .with_message(format!(
-                                                        "Data type mismatch inside each loop: '{}' requires input type {}, but previous step produces {}",
-                                                        call.name, action_in, src_ty
-                                                    ))
-                                                    .with_label(
-                                                        Label::new((filename_str.as_str(), prev_span))
-                                                            .with_message(format!("Produces {}", src_ty))
-                                                            .with_color(Color::Blue),
-                                                    )
-                                                    .with_label(
-                                                        Label::new((filename_str.as_str(), curr_span))
-                                                            .with_message(format!(
-                                                                "Action '{}' get_input_type() returned {}",
-                                                                call.name, action_in
-                                                            ))
-                                                            .with_color(Color::Red),
-                                                    );
-
-                                                    let _ = report.finish().print((
-                                                        filename_str.as_str(),
-                                                        Source::from(&source),
-                                                    ));
-
-                                                    return Err("Type mismatch in loop".into());
-                                                }
-                                            }
-
-                                            let inner_verdict = match inner_type {
-                                                Some(ref src) if has_pinned_rank(src) => {
-                                                    let inner_shape = shape_of_ptype(src);
-                                                    loaded.output_result(
-                                                        &inner_shape,
-                                                        &call_args(call, &ast.params),
-                                                    )
-                                                }
-                                                _ => ShapeResult::Unknown,
-                                            };
-                                            if let ShapeResult::Invalid(reason) = &inner_verdict {
-                                                let inner_desc = inner_type
-                                                    .as_ref()
-                                                    .map(|t| t.to_string())
-                                                    .unwrap_or_default();
-                                                return Err(invalid_args_report(
-                                                    &console,
-                                                    reason,
-                                                    &inner_desc,
-                                                    &call.name,
-                                                    &prev_inner_desc,
-                                                    &source,
-                                                    filename_str.as_str(),
-                                                    file_path,
-                                                )
-                                                .into());
-                                            }
-                                            let inner_out =
-                                                refine_result(action_out, inner_verdict);
-                                            inner_type = Some(inner_out);
-                                            prev_inner_desc = call.name.clone();
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-
-                        // The loop variable type is known statically, so report
-                        // it: images and multi-channel audio iterate the channel
-                        // axis, mono audio the sample axis.
-                        if inner_actions.is_empty() {
-                            steps_summary.push(format!(
-                                "each (${}) [{} => {}]",
-                                each_loop.var_name, each_hint, loop_ptype
-                            ));
+                    let hint = curr_type
+                        .as_ref()
+                        .map(each_loop_hint)
+                        .unwrap_or_else(|| "dynamic axis".to_string());
+                    let names = collect_action_names(&each_loop.body);
+                    steps_summary.push(format!(
+                        "each (${}) [⚡ Rayon Parallel, {}] {{ {} }}",
+                        each_loop.var_name,
+                        hint,
+                        names.join(" >> ")
+                    ));
+                    curr_type = shape_coverage.outputs
+                        [&format!("Flow {}/step {}", stmt_idx + 1, step_idx + 1)]
+                        .clone();
+                }
+                FlowStep::IfElse(_) | FlowStep::Route(_) => {
+                    let mut env = var_types
+                        .iter()
+                        .filter_map(|(k, v)| v.clone().map(|v| (k.clone(), v)))
+                        .collect();
+                    curr_type = ShapeCoverage::default().branch(
+                        step,
+                        curr_type,
+                        &mut env,
+                        &loaded_actions,
+                        &format!("Flow {}", stmt_idx + 1),
+                    )?;
+                    var_types = env.into_iter().map(|(k, v)| (k, Some(v))).collect();
+                    steps_summary.push(
+                        if matches!(step, FlowStep::IfElse(_)) {
+                            "if/else"
                         } else {
-                            steps_summary.push(format!(
-                                "each (${}) [⚡ Rayon Parallel, {}] {{ {} }}",
-                                each_loop.var_name,
-                                each_hint,
-                                inner_actions.join(" >> ")
-                            ));
+                            "route"
                         }
-
-                        // E009: the body of an 'each' must keep the payload kind
-                        // of its loop variable, otherwise the loop's results
-                        // cannot be restacked into the original container.
-                        if let Some(final_ty) = &inner_type {
-                            if !same_payload_kind(final_ty, &loop_ptype) {
-                                let each_span =
-                                    find_token_span(&source, &each_loop.var_name.to_string(), 0);
-                                let report = Report::build(
-                                    ReportKind::Error,
-                                    (filename_str.as_str(), each_span.clone()),
-                                )
-                                .with_code("E009")
-                                .with_message(format!(
-                                    "'each' body changes the payload kind: the loop variable is {}, but the body produces {}",
-                                    loop_ptype, final_ty
-                                ))
-                                .with_label(
-                                    Label::new((filename_str.as_str(), each_span))
-                                        .with_message(format!(
-                                            "Body yields {}, expected {}",
-                                            final_ty, loop_ptype
-                                        ))
-                                        .with_color(Color::Red),
-                                )
-                                .with_help(
-                                    "Each iteration must yield a value of the same payload kind so the results can be restacked.",
-                                );
-
-                                let _ = report
-                                    .finish()
-                                    .print((filename_str.as_str(), Source::from(&source)));
-
-                                console.print("");
-                                console.print(&format!(
-                                    "[bold red]✗ Check failed:[/] 'each' body changes the payload kind in [dim]{}[/].",
-                                    file_path.display()
-                                ));
-                                return Err("Loop payload kind changed".into());
-                            }
-
-                            // E009 (rank): a tensor loop restacks its iterations on
-                            // axis 0, so the body must yield the same rank as the
-                            // loop variable (rank-1 input → rank-0 slices, rank-N →
-                            // rank-(N-1)). Audio/image restack constraints are runtime
-                            // layout properties and are not checked here.
-                            if let Some((loop_rank, final_rank)) =
-                                each_rank_mismatch(&loop_ptype, final_ty)
-                            {
-                                let each_span =
-                                    find_token_span(&source, &each_loop.var_name.to_string(), 0);
-                                let report = Report::build(
-                                    ReportKind::Error,
-                                    (filename_str.as_str(), each_span.clone()),
-                                )
-                                .with_code("E009")
-                                .with_message(format!(
-                                    "'each' body changes the tensor rank: the loop variable is rank {}, but the body produces rank {}",
-                                    loop_rank, final_rank
-                                ))
-                                .with_label(
-                                    Label::new((filename_str.as_str(), each_span))
-                                        .with_message(format!(
-                                            "Body yields rank {}, expected rank {}",
-                                            final_rank, loop_rank
-                                        ))
-                                        .with_color(Color::Red),
-                                )
-                                .with_help(
-                                    "Each iteration must yield a tensor of the same rank as the loop variable so the results can be restacked on axis 0.",
-                                );
-
-                                let _ = report
-                                    .finish()
-                                    .print((filename_str.as_str(), Source::from(&source)));
-
-                                console.print("");
-                                console.print(&format!(
-                                    "[bold red]✗ Check failed:[/] 'each' body changes the tensor rank in [dim]{}[/].",
-                                    file_path.display()
-                                ));
-                                return Err("Loop tensor rank changed".into());
-                            }
-                            curr_type = inner_type;
-                        }
-                    }
-                }
-                FlowStep::IfElse(_) => {
-                    steps_summary.push("if/else".to_string());
-                }
-                FlowStep::Route(_) => {
-                    steps_summary.push("route".to_string());
+                        .to_string(),
+                    );
                 }
             }
         }
@@ -1537,19 +1413,28 @@ mod tests {
     }
 
     #[test]
-    fn test_shape_of_ptype_mapswildcards_to_zero() {
+    fn test_shape_of_ptype_maps_wildcards_to_explicit_unknown() {
         let pinned = ptype_of(&parser::ast::ParamType::Tensor(
             parser::ast::ParamShape::Ranked {
                 dims: vec![parser::ast::ParamDim::Any, parser::ast::ParamDim::Fixed(3)],
             },
         ));
-        assert_eq!(shape_of_ptype(&pinned).dims(), &[0, 3]);
+        assert_eq!(
+            shape_of_ptype(&pinned).dims(),
+            &[
+                core_types::Dimension::Unknown,
+                core_types::Dimension::Known(3)
+            ]
+        );
 
         let scalar = PType::Scalar;
-        assert_eq!(shape_of_ptype(&scalar).dims(), &[] as &[usize]);
+        assert_eq!(
+            shape_of_ptype(&scalar).dims(),
+            &[] as &[core_types::Dimension]
+        );
 
         let any = PType::Tensor(ShapeSpec::AnyRank);
-        assert_eq!(shape_of_ptype(&any).dims(), &[] as &[usize]);
+        assert_eq!(shape_of_ptype(&any).dims(), &[] as &[core_types::Dimension]);
     }
 
     #[test]
@@ -1563,7 +1448,7 @@ mod tests {
         let rank0 = refine_output(DataType::Tensor, ShapeSpec::from_rank(0));
         assert!(matches!(rank0, PType::Scalar));
 
-        // Reported 0 dims are treated as wildcards, never pinned zero lengths.
+        // Reported zero dimensions remain pinned empty lengths.
         let normalized = refine_output(
             DataType::Tensor,
             ShapeSpec::Ranked {
@@ -1573,7 +1458,7 @@ mod tests {
         assert_eq!(
             normalized.spec(),
             Some(&ShapeSpec::Ranked {
-                dims: vec![Dim::Any, Dim::Fixed(4)]
+                dims: vec![Dim::Fixed(0), Dim::Fixed(4)]
             })
         );
     }

@@ -1,8 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::manual_memcpy)]
 
-use core_types::{
-    ActionArgs, DataType, GetShapeFn, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType,
-};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, ImageLayout, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -15,9 +14,10 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
-    use core_types::contract::{self, arg, Error};
-    contract::finish((|| {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
+    use core_types::contract::{self, arg};
+    let rank = input.rank();
+    let result = contract::finish((|| {
         let (h, w, c, chw) = contract::image_dims(&input)?;
         let width = arg::<usize>(&args, &["width", "w"], Some(0), None)?;
         let height = arg::<usize>(&args, &["height", "h"], Some(1), None)?;
@@ -28,47 +28,61 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         }
         let aspect = contract::value(&args, &["keep_aspect_ratio"], None)?
             .is_some_and(|s| s.eq_ignore_ascii_case("true") || s == "1");
-        if h == 0 || w == 0 {
-            return Err(Error::Unknown);
-        }
-        let scale = |n: usize, s: Option<f32>| -> core_types::contract::Result<usize> {
-            let Some(s) = s else {
-                return Ok(n);
+        let scale = |dim: core_types::Dimension,
+                     factor: Option<f32>|
+         -> core_types::contract::Result<core_types::Dimension> {
+            let (Some(n), Some(s)) = (dim.known(), factor) else {
+                return Ok(dim);
             };
             let n = (n as f32 * s).round().max(1.0);
             if !n.is_finite() || n >= usize::MAX as f32 {
                 return Err("Resized dimension overflows".into());
             }
-            Ok(n as usize)
+            Ok(core_types::Dimension::Known(n as usize))
         };
         let mut ow = match width {
-            Some(w) => w,
+            Some(n) => n.into(),
             None => scale(w, sx)?,
         };
         let mut oh = match height {
-            Some(h) => h,
+            Some(n) => n.into(),
             None => scale(h, sy)?,
         };
         if ow == 0 || oh == 0 {
             return Err("Resize dimensions must be positive".into());
         }
         if aspect {
-            let ratio = w as f32 / h as f32;
-            if ow as f32 / oh as f32 > ratio {
-                ow = (oh as f32 * ratio).round().max(1.0) as usize;
+            if let (Some(w), Some(h), Some(out_w), Some(out_h)) =
+                (w.known(), h.known(), ow.known(), oh.known())
+            {
+                let ratio = w as f32 / h as f32;
+                if out_w as f32 / out_h as f32 > ratio {
+                    ow = core_types::Dimension::Known(
+                        (out_h as f32 * ratio).round().max(1.0) as usize
+                    );
+                } else {
+                    oh = core_types::Dimension::Known(
+                        (out_w as f32 / ratio).round().max(1.0) as usize
+                    );
+                }
             } else {
-                oh = (ow as f32 / ratio).round().max(1.0) as usize;
+                ow = core_types::Dimension::Unknown;
+                oh = core_types::Dimension::Unknown;
             }
         }
+        if contract::image_layout_unknown(&input) {
+            return Ok(Shape::unknown(input.rank()));
+        }
         contract::image_shape(oh, ow, c, input.rank(), chw)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
@@ -81,16 +95,16 @@ enum ResizeFilter {
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let payload = match core_types::contract::image_input(payload, true) {
         Ok(payload) => payload,
         Err(error) => return Payload::Error(error),
     };
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut target_w: Option<usize> = None;
     let mut target_h: Option<usize> = None;
     let mut scale_x: Option<f32> = None;
@@ -104,26 +118,26 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("w"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            target_w = w_str.parse::<usize>().ok();
+            target_w = prepared.args.parse::<usize>(w_str).ok();
         }
         if let Some(h_str) = args
             .get_named("height")
             .or_else(|| args.get_named("h"))
             .or_else(|| args.positional.get(1).map(|s| s.as_str()))
         {
-            target_h = h_str.parse::<usize>().ok();
+            target_h = prepared.args.parse::<usize>(h_str).ok();
         }
         if let Some(s_str) = args.get_named("scale") {
-            if let Ok(s) = s_str.parse::<f32>() {
+            if let Ok(s) = prepared.args.parse::<f32>(s_str) {
                 scale_x = Some(s);
                 scale_y = Some(s);
             }
         }
         if let Some(sx_str) = args.get_named("scale_x") {
-            scale_x = sx_str.parse::<f32>().ok();
+            scale_x = prepared.args.parse::<f32>(sx_str).ok();
         }
         if let Some(sy_str) = args.get_named("scale_y") {
-            scale_y = sy_str.parse::<f32>().ok();
+            scale_y = prepared.args.parse::<f32>(sy_str).ok();
         }
         if let Some(f_str) = args.get_named("filter") {
             filter = match f_str.to_lowercase().as_str() {
@@ -560,9 +574,37 @@ fn cubic_weight(x: f32) -> f32 {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     #[test]

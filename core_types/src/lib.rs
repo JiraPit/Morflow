@@ -1,8 +1,15 @@
 pub mod audio;
+pub mod composite_contract;
 pub mod contract;
 pub mod image;
 pub mod shape;
+pub mod shapecheck;
+pub use shapecheck::{
+    InputDescriptor, PreparedData, PreparedValue, ShapeCheckFn, ShapeCheckResult,
+};
 pub mod tensor;
+pub mod value_shape;
+pub use value_shape::{GetValueShapeFn, ValueShape, ValueShapeResult};
 
 pub use abi_stable;
 pub use abi_stable::std_types::{RBox, RString, RVec, Tuple2};
@@ -12,7 +19,7 @@ pub use audio::{Audio, AudioChannelLayout, AudioLayout};
 pub use image::{ColorSpace, Image, ImageLayout};
 pub use shape::{
     arg_text, reducer_axis_reason, scalar_number, scalar_text, tensor_scalar_text, ArgKind, Dim,
-    GetShapeFn, PType, Shape, ShapeResult, ShapeSpec,
+    Dimension, GetComponentsFn, GetShapeFn, OutputComponent, PType, Shape, ShapeResult, ShapeSpec,
 };
 pub use tensor::{compute_c_contiguous_strides, parse_shape_str, Tensor, TensorDType};
 
@@ -570,7 +577,7 @@ fn image_tensor_of(payload: &Payload) -> Option<&Tensor> {
     }
 }
 
-pub type ProcessFn = extern "C" fn(Payload) -> Payload;
+pub type ProcessFn = extern "C" fn(Payload, PreparedData) -> Payload;
 pub type GetTypeFn = extern "C" fn() -> DataType;
 
 #[cfg(test)]

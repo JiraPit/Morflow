@@ -1,26 +1,59 @@
-use core_types::{ActionArgs, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload};
+use core_types::{Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Bytes
+    DataType::Any
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
-    DataType::Bytes
+    DataType::Any
 }
 
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, _args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, _args: A) -> ShapeResult {
+    let _args = _args.into();
     ShapeResult::Ok(input)
 }
 
-#[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub fn get_output_value_shape(
+    input: core_types::ValueShape,
+    _: PreparedArgs,
+) -> core_types::ValueShapeResult {
+    core_types::ValueShapeResult::Ok(input)
 }
 
-fn process_impl(payload: Payload) -> Payload {
+#[no_mangle]
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
+}
+
+fn process_impl(payload: Payload, _prepared: core_types::PreparedData) -> Payload {
     payload.into_unwrapped()
+}
+
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        Some(get_output_value_shape),
+    )
 }

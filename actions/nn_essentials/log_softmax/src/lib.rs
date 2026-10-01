@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -11,10 +12,13 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, axis};
     contract::finish((|| {
-        let dim = arg::<isize>(&args, &["axis", "dim"], Some(0), Some(-1))?.unwrap();
+        let dim = match arg::<isize>(&args, &["axis", "dim"], Some(0), Some(-1)) {
+            Err(core_types::contract::Error::Unknown) => return Ok(input),
+            other => other?.unwrap(),
+        };
         if input.rank() > 0 {
             let dim = if dim < 0 {
                 (input.rank() as isize).saturating_add(dim).max(0)
@@ -27,34 +31,19 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
-
-    let mut axis = -1isize;
-    if let Some(args) = &args_opt {
-        if let Some(ax_str) = args
-            .get_named("axis")
-            .or_else(|| args.get_named("dim"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(ax) = ax_str.parse::<isize>() {
-                axis = ax;
-            }
-        }
-    }
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let inner_payload = payload.into_unwrapped();
+    let axis = prepared.unsigned("axis").unwrap_or(0) as usize;
 
     match inner_payload {
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
@@ -69,28 +58,15 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
-fn compute_log_softmax(tensor: &Tensor, axis_raw: isize) -> Result<Tensor, String> {
+fn compute_log_softmax(tensor: &Tensor, ax: usize) -> Result<Tensor, String> {
     let vals = tensor.to_vec_f32();
     let r = tensor.rank();
     if r == 0 {
         return Ok(Tensor::from_f32_vec(vec![0.0], vec![]).unwrap());
     }
 
-    let ax = if axis_raw < 0 {
-        (r as isize + axis_raw).max(0) as usize
-    } else {
-        axis_raw as usize
-    };
-
-    if ax >= r {
-        return Err(format!(
-            "Axis {} out of bounds for tensor of rank {}",
-            ax, r
-        ));
-    }
-
     let axis_len = tensor.shape[ax];
-    if axis_len == 0 {
+    if axis_len == 0 || vals.is_empty() {
         return Ok(tensor.clone());
     }
     let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
@@ -125,9 +101,39 @@ fn compute_log_softmax(tensor: &Tensor, axis_raw: isize) -> Result<Tensor, Strin
     Tensor::from_f32_vec(out_vals, tensor.shape.to_vec()).map_err(|e| e.to_string())
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    let rank = input.value.shape().map(Shape::rank);
+    let result = core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    );
+    core_types::shapecheck::axis_plan(result, rank, 0, Some(-1), true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::Tensor;
 
     #[test]

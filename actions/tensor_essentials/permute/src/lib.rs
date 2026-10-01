@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -9,12 +10,13 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, Error};
-    contract::finish((|| {
+    let rank = input.rank();
+    let result = contract::finish((|| {
         let text = contract::value(&args, &["dims"], Some(0))?
             .ok_or(Error::from("permute requires 'dims'"))?;
-        let dims = parse_dims_str(text).map_err(Error::from)?;
+        let dims = args.usize_list(text).map_err(Error::from)?;
         if dims.len() != input.rank() {
             return Err("Permutation length must match input rank".into());
         }
@@ -28,44 +30,25 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
             out.push(input.dims()[d]);
         }
         contract::shape(out)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
-fn parse_dims_str(s: &str) -> Result<Vec<usize>, String> {
-    let clean = s
-        .trim()
-        .trim_start_matches('[')
-        .trim_end_matches(']')
-        .trim_start_matches('(')
-        .trim_end_matches(')');
-    if clean.is_empty() {
-        return Ok(Vec::new());
-    }
-    clean
-        .split(',')
-        .map(|p| {
-            p.trim()
-                .parse::<usize>()
-                .map_err(|e| format!("Invalid dimension '{}': {}", p, e))
-        })
-        .collect()
-}
-
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut dims_str = None;
     if let Some(args) = &args_opt {
@@ -78,9 +61,9 @@ fn process_impl(payload: Payload) -> Payload {
         return Payload::Error("permute action requires 'dims' argument".into());
     };
 
-    let dims = match parse_dims_str(d_str) {
+    let dims = match prepared.args.usize_list(d_str) {
         Ok(d) => d,
-        Err(e) => return Payload::Error(e.into()),
+        Err(e) => return Payload::Error(e),
     };
 
     match inner_payload {
@@ -94,9 +77,37 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]

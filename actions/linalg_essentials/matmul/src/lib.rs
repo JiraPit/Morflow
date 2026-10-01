@@ -1,9 +1,10 @@
+use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Composite
+    DataType::Composite | DataType::Tensor
 }
 
 #[no_mangle]
@@ -11,24 +12,36 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
 
+pub fn get_output_value_shape<A: Into<PreparedArgs>>(
+    input: core_types::ValueShape,
+    args: A,
+) -> core_types::ValueShapeResult {
+    let args = args.into();
+    core_types::composite_contract::matmul(input, args)
+}
+
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    let (inner_payload, _) = payload.take_payload_and_args();
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
 
     match inner_payload {
-        Payload::Composite(items) if items.len() >= 2 => {
+        Payload::Composite(items) if items.len() == 2 => {
             let (t1, t2) = match (&items[0], &items[1]) {
                 (Payload::Tensor(a), Payload::Tensor(b)) => (a, b),
                 _ => return Payload::Error("matmul expects 2 tensor inputs in composite".into()),
             };
-            match compute_matmul(t1, t2) {
+            match compute_matmul(t1, t2, &prepared) {
                 Ok(out) => Payload::Tensor(out),
                 Err(e) => Payload::Error(e.into()),
             }
         }
         Payload::Tensor(t) => {
             // Self-multiplication A * A
-            match compute_matmul(&t, &t) {
+            match compute_matmul(&t, &t, &prepared) {
                 Ok(out) => Payload::Tensor(out),
                 Err(e) => Payload::Error(e.into()),
             }
@@ -37,33 +50,35 @@ pub extern "C" fn process(payload: Payload) -> Payload {
     }
 }
 
-fn compute_matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
-    let r_a = a.rank();
-    let r_b = b.rank();
-
-    if r_a < 2 || r_b < 2 {
-        return Err(format!(
-            "matmul requires tensors of rank at least 2, got {} and {}",
-            r_a, r_b
-        ));
+fn compute_matmul(
+    a: &Tensor,
+    b: &Tensor,
+    prepared: &core_types::PreparedData,
+) -> Result<Tensor, String> {
+    let (r_a, r_b) = (a.rank(), b.rank());
+    let out_shape = prepared.output_dims().map_err(|e| e.to_string())?;
+    let output_len = out_shape.iter().product::<usize>();
+    if output_len == 0 {
+        return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
     }
-
-    let m = a.shape[r_a - 2];
-    let k_a = a.shape[r_a - 1];
-    let k_b = b.shape[r_b - 2];
-    let n = b.shape[r_b - 1];
-
-    if k_a != k_b {
-        return Err(format!(
-            "Matrix inner dimensions mismatch: {} vs {}",
-            k_a, k_b
-        ));
-    }
-
-    let batch_a: usize = a.shape[0..r_a - 2].iter().product();
-    let batch_b: usize = b.shape[0..r_b - 2].iter().product();
-
-    let num_batches = batch_a.max(batch_b);
+    let (m, k_a, n) = (a.shape[r_a - 2], a.shape[r_a - 1], b.shape[r_b - 1]);
+    let output_batch = &out_shape[..out_shape.len() - 2];
+    let batch_index = |mut index: usize, input_batch: &[usize]| {
+        let mut flat = 0;
+        let mut stride = 1;
+        for axis in (0..output_batch.len()).rev() {
+            let coordinate = index % output_batch[axis];
+            index /= output_batch[axis];
+            if axis + input_batch.len() >= output_batch.len() {
+                let dim = input_batch[axis + input_batch.len() - output_batch.len()];
+                if dim != 1 {
+                    flat += coordinate * stride;
+                }
+                stride *= dim;
+            }
+        }
+        flat
+    };
     let a_vals = a.to_vec_f32();
     let b_vals = b.to_vec_f32();
 
@@ -71,14 +86,14 @@ fn compute_matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
     let mat_b_size = k_a * n;
     let mat_c_size = m * n;
 
-    let mut out_vals = vec![0.0f32; num_batches * mat_c_size];
+    let mut out_vals = vec![0.0f32; output_len];
 
     out_vals
         .par_chunks_mut(mat_c_size)
         .enumerate()
         .for_each(|(batch_idx, c_mat)| {
-            let a_offset = (batch_idx % batch_a) * mat_a_size;
-            let b_offset = (batch_idx % batch_b) * mat_b_size;
+            let a_offset = batch_index(batch_idx, &a.shape[..r_a - 2]) * mat_a_size;
+            let b_offset = batch_index(batch_idx, &b.shape[..r_b - 2]) * mat_b_size;
 
             let cur_a = &a_vals[a_offset..a_offset + mat_a_size];
             let cur_b = &b_vals[b_offset..b_offset + mat_b_size];
@@ -96,20 +111,40 @@ fn compute_matmul(a: &Tensor, b: &Tensor) -> Result<Tensor, String> {
             }
         });
 
-    let mut out_shape = if r_a >= r_b {
-        a.shape[0..r_a - 2].to_vec()
-    } else {
-        b.shape[0..r_b - 2].to_vec()
-    };
-    out_shape.push(m);
-    out_shape.push(n);
-
     Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
+}
+
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        None,
+        Some(get_output_value_shape),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{RVec, Tensor};
 
     #[test]

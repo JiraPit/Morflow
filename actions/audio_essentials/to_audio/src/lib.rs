@@ -1,8 +1,9 @@
 #![allow(clippy::needless_range_loop)]
 
+use core_types::shapecheck::PreparedArgs;
 use core_types::{
-    ActionArgs, Audio, AudioChannelLayout, AudioLayout, DataType, GetShapeFn, Payload, Shape,
-    ShapeResult, Tensor, TensorDType,
+    Audio, AudioChannelLayout, AudioLayout, DataType, Payload, Shape, ShapeResult, Tensor,
+    TensorDType,
 };
 use rayon::prelude::*;
 
@@ -16,25 +17,82 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Audio
 }
 
-fn shape_impl(_input: Shape, _args: ActionArgs) -> ShapeResult {
+fn shape_impl(_input: Shape, _args: PreparedArgs) -> ShapeResult {
     ShapeResult::Unknown
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
-#[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+/// Tensor conversion determines rank without inspecting encoded audio contents.
+pub fn get_output_value_shape<A: Into<PreparedArgs>>(
+    input: core_types::ValueShape,
+    args: A,
+) -> core_types::ValueShapeResult {
+    let args = args.into();
+    use core_types::{Dimension, ValueShape, ValueShapeResult};
+    let ValueShape::Leaf { kind, shape } = input else {
+        return ValueShapeResult::Unknown;
+    };
+    if kind != DataType::Tensor {
+        return ValueShapeResult::Unknown;
+    }
+    let Some(shape) = shape.into_option() else {
+        return ValueShapeResult::Unknown;
+    };
+    let count = match core_types::composite_contract::elements(&shape) {
+        Ok(count) => count,
+        Err(error) => return core_types::composite_contract::finish(Err(error)),
+    };
+    let dims = if shape.rank() != 2 {
+        vec![count]
+    } else {
+        let channels = match core_types::contract::arg::<usize>(
+            &args,
+            &["channels", "channel_count"],
+            None,
+            None,
+        ) {
+            Ok(value) => value.map(Dimension::Known).unwrap_or(shape.dims()[0]),
+            Err(core_types::contract::Error::Unknown) => return ValueShapeResult::Unknown,
+            Err(core_types::contract::Error::Invalid(reason)) => {
+                return ValueShapeResult::Invalid(reason)
+            }
+        };
+        match channels.known() {
+            None => return ValueShapeResult::Unknown,
+            Some(0) => return ValueShapeResult::Invalid("Audio channels must be positive".into()),
+            Some(1) => vec![count],
+            Some(channels) => {
+                if count.known().is_some_and(|n| !n.is_multiple_of(channels)) {
+                    return ValueShapeResult::Invalid(
+                        "Tensor element count must be divisible by audio channels".into(),
+                    );
+                }
+                vec![
+                    channels.into(),
+                    count
+                        .known()
+                        .map_or(Dimension::Unknown, |n| (n / channels).into()),
+                ]
+            }
+        }
+    };
+    ValueShapeResult::Ok(ValueShape::Leaf {
+        kind: DataType::Audio,
+        shape: Some(Shape::new(dims)).into(),
+    })
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+#[no_mangle]
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
     let mut target_sample_rate: Option<u32> = None;
     let mut target_channels: Option<usize> = None;
     let mut target_dtype = "i16";
@@ -47,7 +105,7 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("rate"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(sr) = sr_str.parse::<u32>() {
+            if let Ok(sr) = prepared.args.parse::<u32>(sr_str) {
                 target_sample_rate = Some(sr);
             }
         }
@@ -55,7 +113,7 @@ fn process_impl(payload: Payload) -> Payload {
             .get_named("channels")
             .or_else(|| args.get_named("channel_count"))
         {
-            if let Ok(ch) = ch_str.parse::<usize>() {
+            if let Ok(ch) = prepared.args.parse::<usize>(ch_str) {
                 target_channels = Some(ch);
             }
         }
@@ -128,7 +186,7 @@ fn process_impl(payload: Payload) -> Payload {
                     let f32_vec = tensor_to_f32_vec(&tensor, normalize);
                     if c == shape[0] {
                         (c, f32_vec)
-                    } else if shape[1] <= 8 && c == shape[1] {
+                    } else if shape[0] > 0 && shape[1] <= 8 && c == shape[1] {
                         // Tensor was [samples, channels], de-interleave to planar [channels, samples]
                         let num_samples = shape[0];
                         let num_channels = shape[1];
@@ -621,9 +679,37 @@ fn decode_raw_pcm_to_planar_f32(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        Some(get_output_value_shape),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tuple2};
 
     fn make_test_wav_16bit(channels: u16, sample_rate: u32, samples: &[i16]) -> Vec<u8> {

@@ -1,0 +1,7 @@
+# First component is the left matrix; second is the right matrix.
+import linalg_essentials/latest
+accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
+
+$matrices >> matmul >> emit("product")
+$matrices[0] >> emit("left")
+$matrices[1] >> emit("right")

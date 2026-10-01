@@ -2,7 +2,7 @@
 //!
 //! Three related concepts live here:
 //!
-//! * [`Shape`] — a fully resolved shape, as returned by an action's
+//! * [`Shape`] — a known-rank, possibly partial shape, as returned by an action's
 //!   `get_output_shape` across the FFI boundary.
 //! * [`ShapeSpec`] — what a user can write in a pipeline, i.e. a shape with
 //!   wildcards (`Tensor[*,*,3]`, `Tensor[rank=2]`).
@@ -13,57 +13,135 @@
 use crate::{ActionArgs, AudioLayout, DataType, ImageLayout, Payload, RString, RVec, StableAbi};
 use std::fmt;
 
-/// A fully resolved shape, with a concrete length for every dimension.
+pub const SHAPE_CONTRACT_ABI_VERSION: u32 = 2;
+
+/// An explicit dimension in a native shape contract. Zero is a real length.
+#[repr(C)]
+#[derive(StableAbi, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Dimension {
+    Known(usize),
+    Unknown,
+}
+impl Dimension {
+    pub fn known(self) -> Option<usize> {
+        match self {
+            Self::Known(n) => Some(n),
+            Self::Unknown => None,
+        }
+    }
+    pub fn is_unknown(self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+    pub fn matches(self, actual: usize) -> bool {
+        self.known().is_none_or(|n| n == actual)
+    }
+    pub fn compatible(self, other: Self) -> bool {
+        self.is_unknown() || other.is_unknown() || self == other
+    }
+    pub fn checked_add(self, other: impl Into<Self>) -> Option<Self> {
+        match (self, other.into()) {
+            (Self::Known(a), Self::Known(b)) => a.checked_add(b).map(Self::Known),
+            _ => Some(Self::Unknown),
+        }
+    }
+    pub fn checked_mul(self, other: impl Into<Self>) -> Option<Self> {
+        match (self, other.into()) {
+            (Self::Known(0), _) | (_, Self::Known(0)) => Some(Self::Known(0)),
+            (Self::Known(a), Self::Known(b)) => a.checked_mul(b).map(Self::Known),
+            _ => Some(Self::Unknown),
+        }
+    }
+    pub fn saturating_sub(self, other: usize) -> Self {
+        self.known()
+            .map_or(Self::Unknown, |n| Self::Known(n.saturating_sub(other)))
+    }
+    pub fn min(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::Known(0), _) | (_, Self::Known(0)) => Self::Known(0),
+            (Self::Known(a), Self::Known(b)) => Self::Known(a.min(b)),
+            _ => Self::Unknown,
+        }
+    }
+}
+impl From<usize> for Dimension {
+    fn from(n: usize) -> Self {
+        Self::Known(n)
+    }
+}
+impl PartialEq<usize> for Dimension {
+    fn eq(&self, n: &usize) -> bool {
+        *self == Self::Known(*n)
+    }
+}
+impl PartialOrd<usize> for Dimension {
+    fn partial_cmp(&self, n: &usize) -> Option<std::cmp::Ordering> {
+        self.known().map(|a| a.cmp(n))
+    }
+}
+impl fmt::Display for Dimension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Known(n) => write!(f, "{n}"),
+            Self::Unknown => write!(f, "*"),
+        }
+    }
+}
+
+/// A known-rank shape whose dimensions may be concrete or unknown.
 #[repr(C)]
 #[derive(StableAbi, Debug, Clone, PartialEq, Eq, Default)]
 pub struct Shape {
-    pub dims: RVec<usize>,
+    pub dims: RVec<Dimension>,
 }
-
 impl Shape {
-    /// Builds a shape from concrete dimension lengths.
-    pub fn new(dims: impl IntoIterator<Item = usize>) -> Self {
+    pub fn new<D: Into<Dimension>>(dims: impl IntoIterator<Item = D>) -> Self {
         Self {
-            dims: dims.into_iter().collect(),
+            dims: dims.into_iter().map(Into::into).collect(),
         }
     }
-
-    /// The rank-0 shape carried by scalar values.
+    pub fn unknown(rank: usize) -> Self {
+        Self::new(vec![Dimension::Unknown; rank])
+    }
     pub fn scalar() -> Self {
         Self { dims: RVec::new() }
     }
-
-    /// Number of dimensions.
     pub fn rank(&self) -> usize {
         self.dims.len()
     }
-
-    /// Whether this shape is rank 0.
     pub fn is_scalar(&self) -> bool {
         self.dims.is_empty()
     }
-
-    /// Concrete dimension lengths.
-    pub fn dims(&self) -> &[usize] {
+    pub fn dims(&self) -> &[Dimension] {
         self.dims.as_slice()
     }
-
-    /// Total element count (1 for a rank-0 shape).
-    pub fn element_count(&self) -> usize {
-        self.dims.iter().product()
+    /// Returns concrete lengths only when every dimension is known.
+    pub fn known_dims(&self) -> Option<Vec<usize>> {
+        self.dims.iter().map(|d| d.known()).collect()
+    }
+    pub fn element_count(&self) -> Option<usize> {
+        let count = self
+            .dims
+            .iter()
+            .try_fold(Dimension::Known(1), |n, d| n.checked_mul(*d))?;
+        count.known()
     }
 }
-
 impl From<Shape> for ShapeSpec {
-    /// A concrete shape is a specification with every dimension pinned.
     fn from(shape: Shape) -> ShapeSpec {
-        ShapeSpec::from_lengths(shape.dims())
+        Self::from_dimensions(shape.dims())
     }
 }
-
 impl fmt::Display for Shape {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}]", join_usize(self.dims.as_slice()))
+        write!(
+            f,
+            "[{}]",
+            self.dims
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 
@@ -131,6 +209,18 @@ impl ShapeSpec {
     pub fn from_lengths(lengths: &[usize]) -> Self {
         ShapeSpec::Ranked {
             dims: lengths.iter().map(|n| Dim::Fixed(*n)).collect(),
+        }
+    }
+
+    pub fn from_dimensions(dims: &[Dimension]) -> Self {
+        Self::Ranked {
+            dims: dims
+                .iter()
+                .map(|d| match d {
+                    Dimension::Known(n) => Dim::Fixed(*n),
+                    Dimension::Unknown => Dim::Any,
+                })
+                .collect(),
         }
     }
 
@@ -329,6 +419,8 @@ pub enum PType {
     Audio(ShapeSpec),
     /// A tuple of payloads.
     Composite,
+    /// Composite with known component types, in payload order.
+    CompositeItems(Vec<PType>),
 }
 
 impl PType {
@@ -398,7 +490,7 @@ impl PType {
             PType::Tensor(_) => DataType::Tensor,
             PType::Image(_) => DataType::Image,
             PType::Audio(_) => DataType::Audio,
-            PType::Composite => DataType::Composite,
+            PType::Composite | PType::CompositeItems(_) => DataType::Composite,
         }
     }
 
@@ -412,11 +504,11 @@ impl PType {
                 if shape.is_scalar() {
                     PType::Scalar
                 } else {
-                    PType::Tensor(ShapeSpec::from_lengths(shape.dims()))
+                    PType::Tensor(ShapeSpec::from_dimensions(shape.dims()))
                 }
             }
-            PType::Image(_) => PType::Image(ShapeSpec::from_lengths(shape.dims())),
-            PType::Audio(_) => PType::Audio(ShapeSpec::from_lengths(shape.dims())),
+            PType::Image(_) => PType::Image(ShapeSpec::from_dimensions(shape.dims())),
+            PType::Audio(_) => PType::Audio(ShapeSpec::from_dimensions(shape.dims())),
             other => other,
         }
     }
@@ -434,7 +526,7 @@ impl PType {
                     self
                 )),
                 Some(1) => Ok(PType::Scalar),
-                Some(rank) => Ok(PType::Tensor(ShapeSpec::from_rank(rank - 1))),
+                Some(_) => Ok(PType::Tensor(spec.without_axis(0))),
                 None => Err(format!(
                     "cannot iterate {}: its rank is not known, so the type of the loop variable is ambiguous",
                     self
@@ -541,6 +633,21 @@ impl PType {
                 }
                 other => Err(kind_mismatch(self, other)),
             },
+            PType::CompositeItems(types) => match inner {
+                Payload::Composite(items) if items.len() == types.len() => {
+                    for (index, (ty, item)) in types.iter().zip(items).enumerate() {
+                        ty.verify_payload(item)
+                            .map_err(|e| format!("Composite component {index}: {e}"))?;
+                    }
+                    Ok(())
+                }
+                Payload::Composite(items) => Err(format!(
+                    "Composite expects {} components, got {}",
+                    types.len(),
+                    items.len()
+                )),
+                other => Err(kind_mismatch(self, other)),
+            },
             PType::Composite => match inner {
                 Payload::Composite(_) => Ok(()),
                 other => Err(kind_mismatch(self, other)),
@@ -560,6 +667,15 @@ impl fmt::Display for PType {
             PType::Image(spec) => write!(f, "Image{}", spec),
             PType::Audio(spec) => write!(f, "Audio{}", spec),
             PType::Composite => write!(f, "Composite"),
+            PType::CompositeItems(items) => write!(
+                f,
+                "Composite[{}]",
+                items
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         }
     }
 }
@@ -582,8 +698,16 @@ impl From<Shape> for ShapeResult {
     }
 }
 
-/// Signature of an action's `get_output_shape` export: the shape its
-/// arguments would produce, or why it rejects them.
+/// Optional component contract exported by Composite-producing actions.
+#[repr(C)]
+#[derive(StableAbi, Debug, Clone)]
+pub struct OutputComponent {
+    pub kind: DataType,
+    pub shape: ShapeResult,
+}
+pub type GetComponentsFn = extern "C" fn(input: Shape, args: ActionArgs) -> RVec<OutputComponent>;
+
+/// Signature of an action's `get_output_shape` export.
 pub type GetShapeFn = extern "C" fn(input: Shape, args: ActionArgs) -> ShapeResult;
 
 /// The reason a reducer's `axis` argument misses `rank` dimensions, matching
@@ -941,8 +1065,8 @@ mod tests {
 
     #[test]
     fn shapes_define_element_count() {
-        assert_eq!(Shape::scalar().element_count(), 1);
-        assert_eq!(Shape::new(vec![2, 3, 4]).element_count(), 24);
+        assert_eq!(Shape::scalar().element_count(), Some(1));
+        assert_eq!(Shape::new(vec![2, 3, 4]).element_count(), Some(24));
         assert!(Shape::scalar().is_scalar());
         assert_eq!(Shape::new(vec![5]).to_string(), "[5]");
     }

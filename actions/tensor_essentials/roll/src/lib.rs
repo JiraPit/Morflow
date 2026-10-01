@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -9,11 +10,18 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg, axis};
     contract::finish((|| {
-        let _shift = arg::<isize>(&args, &["shift", "shifts"], Some(0), Some(0))?;
-        let dim = arg::<isize>(&args, &["axis", "dim"], Some(1), Some(0))?.unwrap();
+        if let Err(error @ core_types::contract::Error::Invalid(_)) =
+            arg::<isize>(&args, &["shift", "shifts"], Some(0), Some(0))
+        {
+            return Err(error);
+        }
+        let dim = match arg::<isize>(&args, &["axis", "dim"], Some(1), Some(0)) {
+            Err(core_types::contract::Error::Unknown) => return Ok(input),
+            other => other?.unwrap(),
+        };
         if input.rank() > 0 {
             axis(dim, input.rank(), false)?;
         }
@@ -21,24 +29,21 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
     })())
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
     let mut shift = 0isize;
-    let mut axis = 0isize;
+    let axis = prepared.unsigned("axis").unwrap_or(0) as usize;
 
     if let Some(args) = &args_opt {
         if let Some(sh_str) = args
@@ -46,17 +51,8 @@ fn process_impl(payload: Payload) -> Payload {
             .or_else(|| args.get_named("shifts"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            if let Ok(sh) = sh_str.parse::<isize>() {
+            if let Ok(sh) = prepared.args.parse::<isize>(sh_str) {
                 shift = sh;
-            }
-        }
-        if let Some(ax_str) = args
-            .get_named("axis")
-            .or_else(|| args.get_named("dim"))
-            .or_else(|| args.positional.get(1).map(|s| s.as_str()))
-        {
-            if let Ok(ax) = ax_str.parse::<isize>() {
-                axis = ax;
             }
         }
     }
@@ -74,23 +70,11 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
-fn roll_tensor(tensor: &Tensor, shift: isize, raw_ax: isize) -> Result<Tensor, String> {
+fn roll_tensor(tensor: &Tensor, shift: isize, axis: usize) -> Result<Tensor, String> {
     let r = tensor.rank();
     if r == 0 {
         return Ok(tensor.clone());
     }
-    let axis_idx = if raw_ax < 0 {
-        raw_ax + r as isize
-    } else {
-        raw_ax
-    };
-    if axis_idx < 0 || axis_idx as usize >= r {
-        return Err(format!(
-            "Axis {} out of bounds for tensor of rank {}",
-            raw_ax, r
-        ));
-    }
-    let axis = axis_idx as usize;
     let dim_len = tensor.shape[axis];
     if dim_len == 0 {
         return Ok(tensor.clone());
@@ -112,9 +96,39 @@ fn roll_tensor(tensor: &Tensor, shift: isize, raw_ax: isize) -> Result<Tensor, S
     Tensor::concat(&[part1, part2], axis as isize).map_err(|e| e.to_string())
 }
 
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    let rank = input.value.shape().map(Shape::rank);
+    let result = core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    );
+    core_types::shapecheck::axis_plan(result, rank, 1, Some(0), false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
     #[test]
@@ -141,7 +155,14 @@ mod tests {
 
     #[test]
     fn test_roll_accepts_a_scalar_value() {
-        let res = process(Payload::scalar_f32(2.0));
+        let payload = Payload::scalar_f32(2.0);
+        let core_types::ShapeCheckResult::Ready { prepared, .. } = shapecheck(
+            core_types::InputDescriptor::from_payload(&payload),
+            core_types::ActionArgs::default(),
+        ) else {
+            panic!("expected ready")
+        };
+        let res = crate::process(payload, prepared);
         match res {
             Payload::Scalar(out) => {
                 assert_eq!(out.as_f32_slice().unwrap(), &[2.0]);

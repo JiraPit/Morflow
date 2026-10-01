@@ -1,4 +1,5 @@
-use core_types::{ActionArgs, DataType, GetShapeFn, Payload, Shape, ShapeResult, Tensor};
+use core_types::shapecheck::PreparedArgs;
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -11,9 +12,10 @@ pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
+fn shape_impl(input: Shape, args: PreparedArgs) -> ShapeResult {
     use core_types::contract::{self, arg};
-    contract::finish((|| {
+    let rank = input.rank();
+    let result = contract::finish((|| {
         if input.rank() < 2 {
             return Err("pool2d requires rank at least 2".into());
         }
@@ -26,60 +28,56 @@ fn shape_impl(input: Shape, args: ActionArgs) -> ShapeResult {
         let mut out = input.dims().to_vec();
         let rank = out.len();
         for d in &mut out[rank - 2..] {
-            if *d == 0 {
+            if d.is_unknown() {
                 continue;
             }
             if *d < kernel {
                 return Err("Pooling kernel exceeds input spatial dimension".into());
             }
-            *d = (*d - kernel) / stride + 1;
+            *d = ((*d).known().unwrap() - kernel)
+                .checked_div(stride)
+                .unwrap()
+                .checked_add(1)
+                .unwrap()
+                .into();
         }
         contract::shape(out)
-    })())
+    })());
+    match result {
+        ShapeResult::Unknown => ShapeResult::Ok(Shape::unknown(rank)),
+        other => other,
+    }
 }
 
-// Compile-time check that get_output_shape matches the core_types ABI.
-const _: GetShapeFn = get_output_shape;
-
-#[no_mangle]
-pub extern "C" fn get_output_shape(input: Shape, args: ActionArgs) -> ShapeResult {
+pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+    let args = args.into();
     shape_impl(input, args)
 }
 
 #[no_mangle]
-pub extern "C" fn process(payload: Payload) -> Payload {
-    core_types::contract::run(payload, get_output_shape, process_impl)
+pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload) -> Payload {
-    let (inner_payload, args_opt) = payload.take_payload_and_args();
-
-    let mut kernel_size = 2usize;
-    let mut stride = 2usize;
-
-    if let Some(args) = &args_opt {
-        if let Some(k_str) = args
-            .get_named("kernel_size")
-            .or_else(|| args.get_named("kernel"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(k) = k_str.parse::<usize>() {
-                kernel_size = k.max(1);
-            }
-        }
-        if let Some(s_str) = args
-            .get_named("stride")
-            .or_else(|| args.positional.get(1).map(|s| s.as_str()))
-        {
-            if let Ok(s) = s_str.parse::<usize>() {
-                stride = s.max(1);
-            }
-        }
-    }
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let inner_payload = payload.into_unwrapped();
+    let kernel_size = prepared
+        .unsigned("kernel")
+        .expect("shapecheck prepared kernel") as usize;
+    let stride = prepared
+        .unsigned("stride")
+        .expect("shapecheck prepared stride") as usize;
 
     match inner_payload {
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            match avg_pool2d_tensor(&tensor, kernel_size, stride) {
+            match avg_pool2d_tensor(
+                &tensor,
+                kernel_size,
+                stride,
+                prepared
+                    .output_dims()
+                    .expect("shapecheck prepared dimensions"),
+            ) {
                 Ok(t) => Payload::from_tensor(t),
                 Err(e) => Payload::Error(e.into()),
             }
@@ -90,24 +88,18 @@ fn process_impl(payload: Payload) -> Payload {
     }
 }
 
-fn avg_pool2d_tensor(tensor: &Tensor, k: usize, s: usize) -> Result<Tensor, String> {
+fn avg_pool2d_tensor(
+    tensor: &Tensor,
+    k: usize,
+    s: usize,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
     let r = tensor.rank();
-    if r < 2 {
-        return Err("avg_pool2d requires tensor of rank at least 2 [H, W]".into());
-    }
-
     let h = tensor.shape[r - 2];
     let w = tensor.shape[r - 1];
 
-    let out_h = if h >= k { (h - k) / s + 1 } else { 0 };
-    let out_w = if w >= k { (w - k) / s + 1 } else { 0 };
-
-    if out_h == 0 || out_w == 0 {
-        return Err(format!(
-            "Output spatial dimensions {}x{} are zero for input {}x{} with kernel {}",
-            out_h, out_w, h, w, k
-        ));
-    }
+    let out_h = out_shape[r - 2];
+    let out_w = out_shape[r - 1];
 
     let batch_size: usize = tensor.shape[0..r - 2].iter().product();
     let vals = tensor.to_vec_f32();
@@ -143,16 +135,41 @@ fn avg_pool2d_tensor(tensor: &Tensor, k: usize, s: usize) -> Result<Tensor, Stri
             }
         });
 
-    let mut out_shape = tensor.shape[0..r - 2].to_vec();
-    out_shape.push(out_h);
-    out_shape.push(out_w);
-
     Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
+}
+
+#[no_mangle]
+pub extern "C" fn get_action_abi_version() -> u32 {
+    core_types::shapecheck::ACTION_ABI_VERSION
+}
+#[no_mangle]
+pub extern "C" fn get_action_abi_layout() -> *const core_types::abi_stable::type_layout::TypeLayout
+{
+    <core_types::shapecheck::ActionAbiLayout as core_types::StableAbi>::LAYOUT
+}
+#[no_mangle]
+pub extern "C" fn shapecheck(
+    input: core_types::InputDescriptor,
+    args: core_types::ActionArgs,
+) -> core_types::ShapeCheckResult {
+    let result = core_types::shapecheck::analyze(
+        input,
+        args,
+        env!("CARGO_PKG_NAME"),
+        get_input_type(),
+        get_output_type(),
+        Some(get_output_shape),
+        None,
+    );
+    core_types::shapecheck::pool2d_plan(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn process(payload: Payload) -> Payload {
+        core_types::shapecheck::execute(env!("CARGO_PKG_NAME"), shapecheck, super::process, payload)
+    }
     use core_types::Tensor;
 
     #[test]
