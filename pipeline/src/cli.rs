@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
     name = "morflow",
     version,
     about = "Morflow - Data Processing & Tensor Transformation Engine",
-    after_help = "Plugin workflow:\n  Declare plugin name/version in your .morf file, then run morflow prep <file>.\n  Preparation installs and verifies the declared actions and plugins.\n  Install compatible external shared libraries on the machine that runs the pipeline.\n\nExample:\n  morflow search-plugin opencv\n  morflow prep pipeline.morf\n  morflow plugins list\n  morflow check pipeline.morf"
+    after_help = "Plugin workflow:\n  Declare plugin name/version in your .morf file, then run morflow prep <file>.\n  Preparation installs and verifies the declared actions and plugins.\n  Install compatible external shared libraries on the machine that runs the pipeline.\n\nExample:\n  morflow plugins search opencv\n  morflow prep pipeline.morf\n  morflow plugins list\n  morflow check pipeline.morf"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -18,36 +18,9 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Search known runtime plugins by name
-    #[command(
-        long_about = "Search the shipped plugin catalog by name. Search works offline and prints installable paths with explicit latest versions.",
-        after_help = "Example: morflow search-plugin opencv --limit 5"
-    )]
-    SearchPlugin {
-        /// Name or part of a name (e.g. opencv or bridge)
-        query: String,
-        /// Maximum number of results
-        #[arg(short, long, default_value_t = 5)]
-        limit: usize,
-    },
-    /// Install a runtime plugin with an explicit version or latest
-    #[command(
-        long_about = "Download a plugin for this platform and verify its published checksum. Supply name/version or name/latest; versions are never inferred. This installs the Morflow plugin, while external libraries such as OpenCV must be installed separately. Use prep to install all dependencies declared in a pipeline.",
-        after_help = "Examples:\n  morflow install-plugin opencv-bridge/0.1.0\n  morflow install-plugin opencv-bridge/latest --path ./plugins_cache"
-    )]
-    InstallPlugin {
-        /// Plugin name and explicit version (e.g. opencv-bridge/0.1.0)
-        plugin: String,
-        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
-        #[arg(short, long)]
-        path: Option<PathBuf>,
-        /// Download again even if cached bytes match the published checksum
-        #[arg(short, long)]
-        force: bool,
-    },
     /// Manage installed runtime plugins
     #[command(
-        after_help = "Discover plugins with morflow search-plugin <query>.\nInstall all pipeline dependencies with morflow prep <file>.\nPlugins are separate from actions and external system libraries."
+        after_help = "Discover plugins with morflow plugins search <query>.\nInstall all pipeline dependencies with morflow prep <file>.\nPlugins are separate from actions and external system libraries."
     )]
     Plugins {
         #[command(subcommand)]
@@ -138,25 +111,39 @@ enum Commands {
 
 #[derive(Subcommand, Debug)]
 enum PluginCommands {
+    /// Search known runtime plugins by name
+    #[command(
+        long_about = "Search the shipped plugin catalog by name. Search works offline and prints installable paths with explicit latest versions.",
+        after_help = "Example: morflow plugins search opencv --limit 5"
+    )]
+    Search {
+        /// Name or part of a name (e.g. opencv or bridge)
+        query: String,
+        /// Maximum number of results
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+    },
+    /// Install a runtime plugin with an explicit version or latest
+    #[command(
+        long_about = "Download a plugin for this platform and verify its published checksum. Supply name/version or name/latest; versions are never inferred. This installs the Morflow plugin, while external libraries such as OpenCV must be installed separately. Use prep to install all dependencies declared in a pipeline.",
+        after_help = "Examples:\n  morflow plugins install opencv-bridge/0.1.0\n  morflow plugins install opencv-bridge/latest --path ./plugins_cache"
+    )]
+    Install {
+        /// Plugin name and explicit version (e.g. opencv-bridge/0.1.0)
+        plugin: String,
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+        /// Download again even if cached bytes match the published checksum
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// List verified installed plugin versions
     List {
         /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(long)]
         path: Option<PathBuf>,
-    },
-    /// Install name/version or name/latest
-    #[command(
-        long_about = "Install a plugin with an explicit version and verify its checksum. Uses the same installer as morflow install-plugin. External shared libraries must be installed separately on the execution machine."
-    )]
-    Install {
-        /// Plugin name and explicit version (e.g. opencv-bridge/latest)
-        plugin: String,
-        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
-        #[arg(long)]
-        path: Option<PathBuf>,
-        /// Download again even when the cached checksum matches
-        #[arg(long)]
-        force: bool,
     },
     /// Remove cached plugins and catalogs; loaded pipelines keep their handles
     Clean {
@@ -404,22 +391,6 @@ fn report_install(
 }
 fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
     match command {
-        Commands::SearchPlugin { query, limit } => {
-            for name in search_plugins(&query, limit) {
-                println!("{name}/latest");
-            }
-        }
-        Commands::InstallPlugin {
-            plugin,
-            path,
-            force,
-        } => {
-            run_plugin_command(PluginCommands::Install {
-                plugin,
-                path,
-                force,
-            })?;
-        }
         Commands::Plugins { command } => run_plugin_command(command)?,
         Commands::Check {
             file,
@@ -689,6 +660,11 @@ fn search_plugins(query: &str, limit: usize) -> Vec<&'static str> {
 fn run_plugin_command(command: PluginCommands) -> Result<(), Box<dyn std::error::Error>> {
     use crate::plugins::{PluginIdentity, PluginReceipt};
     match command {
+        PluginCommands::Search { query, limit } => {
+            for name in search_plugins(&query, limit) {
+                println!("{name}/latest");
+            }
+        }
         PluginCommands::Install {
             plugin,
             path,
@@ -788,15 +764,19 @@ mod tests {
     }
 
     #[test]
-    fn parses_top_level_plugin_commands() {
-        let cli = Cli::try_parse_from(["morflow", "search-plugin", "opencv", "-l", "1"]).unwrap();
+    fn parses_grouped_plugin_commands() {
+        let cli =
+            Cli::try_parse_from(["morflow", "plugins", "search", "opencv", "-l", "1"]).unwrap();
         assert!(matches!(
             cli.command,
-            Commands::SearchPlugin { limit: 1, .. }
+            Commands::Plugins {
+                command: PluginCommands::Search { limit: 1, .. }
+            }
         ));
         let cli = Cli::try_parse_from([
             "morflow",
-            "install-plugin",
+            "plugins",
+            "install",
             "opencv-bridge/latest",
             "-p",
             "cache",
@@ -805,13 +785,19 @@ mod tests {
         .unwrap();
         assert!(matches!(
             cli.command,
-            Commands::InstallPlugin {
-                force: true,
-                path: Some(_),
-                ..
+            Commands::Plugins {
+                command: PluginCommands::Install {
+                    force: true,
+                    path: Some(_),
+                    ..
+                }
             }
         ));
-        assert!(Cli::try_parse_from(["morflow", "install-plugin"]).is_err());
+        assert!(Cli::try_parse_from(["morflow", "plugins", "install"]).is_err());
+        assert!(Cli::try_parse_from(["morflow", "search-plugin", "opencv"]).is_err());
+        assert!(
+            Cli::try_parse_from(["morflow", "install-plugin", "opencv-bridge/latest"]).is_err()
+        );
     }
     #[test]
     fn parses_exact_versions_without_splitting_semver_dots() {
