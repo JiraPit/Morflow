@@ -67,11 +67,11 @@ jobs:
       - name: Install shared OpenCV build dependencies (macOS)
         if: runner.os == 'macOS' && matrix.plugin.name == 'opencv-bridge'
         run: |
-          brew install opencv llvm pkg-config
-          opencv_prefix="$(brew --prefix opencv)"
+          brew install opencv@4 llvm pkg-config
+          opencv_prefix="$(brew --prefix opencv@4)"
           llvm_prefix="$(brew --prefix llvm)"
           pkg_config_path="$opencv_prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-          PKG_CONFIG_PATH="$pkg_config_path" pkg-config --exists opencv4
+          PKG_CONFIG_PATH="$pkg_config_path" pkg-config --modversion opencv4
           echo "PKG_CONFIG_PATH=$pkg_config_path" >> "$GITHUB_ENV"
           echo "LLVM_CONFIG_PATH=$llvm_prefix/bin/llvm-config" >> "$GITHUB_ENV"
           echo "LIBCLANG_PATH=$llvm_prefix/lib" >> "$GITHUB_ENV"

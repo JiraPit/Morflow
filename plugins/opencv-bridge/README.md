@@ -4,7 +4,7 @@ This prebuilt Rust plugin connects `image_opencv` actions to shared system OpenC
 
 Declare `plugin opencv-bridge/0.1.2` in the pipeline and run `morflow prep`. Users install the compatible OpenCV shared libraries through their system package manager; users do not compile the adapter when a prebuilt artifact is available.
 
-Published Linux artifacts are built on Ubuntu 24.04 against its OpenCV development package. macOS artifacts use Homebrew OpenCV. Windows artifacts use shared OpenCV from vcpkg's `x64-windows` triplet. The execution environment must provide the corresponding shared-library ABI and a compatible C++ runtime.
+Published Linux artifacts are built on Ubuntu 24.04 against its OpenCV development package. macOS artifacts use Homebrew `opencv@4` (`brew install opencv@4`). Windows artifacts use shared OpenCV from vcpkg's `x64-windows` triplet. The execution environment must provide the corresponding shared-library ABI and a compatible C++ runtime.
 
 For local development, install OpenCV development headers, shared libraries, Clang, a C++17 compiler and pkg-config, then run:
 
