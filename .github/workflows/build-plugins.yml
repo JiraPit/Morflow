@@ -68,7 +68,13 @@ jobs:
         if: runner.os == 'macOS' && matrix.plugin.name == 'opencv-bridge'
         run: |
           brew install opencv llvm pkg-config
-          echo "LIBCLANG_PATH=$(brew --prefix llvm)/lib" >> "$GITHUB_ENV"
+          opencv_prefix="$(brew --prefix opencv)"
+          llvm_prefix="$(brew --prefix llvm)"
+          pkg_config_path="$opencv_prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+          PKG_CONFIG_PATH="$pkg_config_path" pkg-config --exists opencv4
+          echo "PKG_CONFIG_PATH=$pkg_config_path" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG_PATH=$llvm_prefix/bin/llvm-config" >> "$GITHUB_ENV"
+          echo "LIBCLANG_PATH=$llvm_prefix/lib" >> "$GITHUB_ENV"
       - name: Install shared OpenCV build dependencies (Windows)
         if: runner.os == 'Windows' && matrix.plugin.name == 'opencv-bridge'
         shell: pwsh
