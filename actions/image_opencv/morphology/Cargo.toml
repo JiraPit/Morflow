@@ -1,6 +1,6 @@
 [package]
 name = "image_opencv_morphology"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 
 [package.metadata.morflow]
@@ -11,7 +11,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 core_types = { path = "../../../core_types" }
-morflow-opencv = { path = "../../../backends/opencv" }
 
 [[package.metadata.morflow.plugins]]
 name = "opencv-bridge"

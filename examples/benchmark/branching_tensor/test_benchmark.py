@@ -87,7 +87,7 @@ class TensorBenchmarkTests(unittest.TestCase):
         blas = tensor.PIPELINES["morf-blas"].read_text()
         self.assertEqual(basic.split("accept", 1)[1], blas.split("accept", 1)[1])
         self.assertIn("from tensor_basics/0.3.1 import roll, transpose", basic)
-        self.assertIn("from tensor_blas/0.1.0 import roll", blas)
+        self.assertIn("from tensor_blas/0.1.2 import roll", blas)
         self.assertIn("from tensor_basics/0.3.1 import transpose", blas)
 
     def test_parallel_numpy_matches_serial_and_preserves_input(self):

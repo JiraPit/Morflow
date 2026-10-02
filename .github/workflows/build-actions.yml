@@ -6,7 +6,7 @@ on:
     paths:
       - 'actions/**'
       - 'core_types/**'
-      - 'backends/**'
+      - 'plugins/*/src/interface.rs'
       - 'scripts/package_action.py'
       - 'scripts/detect_changed_actions.py'
       - 'scripts/merge_release_assets.py'
@@ -59,6 +59,7 @@ jobs:
         id: detector
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_BASE_SHA: ${{ github.event.before }}
         run: |
           python3 scripts/detect_changed_actions.py \
             --event "${{ github.event_name }}" \

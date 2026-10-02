@@ -1,8 +1,8 @@
-plugin opencv-bridge/0.1.0
+plugin opencv-bridge/0.1.2
 
 from base/0.3.1 import to_tensor
 from image_basics/0.3.1 import crop, flip
-from image_opencv/0.1.0 import resize
+from image_opencv/0.1.2 import resize
 
 accept Image $image
 accept IntArg $crop_x

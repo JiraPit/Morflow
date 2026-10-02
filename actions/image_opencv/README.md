@@ -1,6 +1,6 @@
 # Shared OpenCV image actions
 
-`image_opencv/0.1.0` accelerates six spatial operations using the execution machine's shared OpenCV `core` and `imgproc` libraries:
+`image_opencv/0.1.2` accelerates six spatial operations using the execution machine's shared OpenCV `core` and `imgproc` libraries:
 
 | Action | OpenCV implementation |
 | --- | --- |
@@ -18,14 +18,14 @@ Keep `crop`, `pad`, `flip`, `to_image`, `blend`, `color_adjust` and `threshold` 
 Declare the plugin alongside the action imports:
 
 ```perl
-plugin opencv-bridge/0.1.0
-from image_opencv/0.1.0 import resize
+plugin opencv-bridge/0.1.2
+from image_opencv/0.1.2 import resize
 ```
 
 ```sh
-morflow prep examples/opencv/pipeline.morf
+morflow prep examples/python/opencv/pipeline.morf
 morflow plugins list
-morflow check examples/opencv/pipeline.morf
+morflow check examples/python/opencv/pipeline.morf
 ```
 
 Preparation installs a prebuilt plugin. Install its compatible shared OpenCV libraries through the execution machine's package manager. Users do not compile the bridge. OpenCV and its C++ runtime must be discoverable by the system loader.
@@ -35,7 +35,7 @@ For development builds, install shared OpenCV development libraries, Clang, a C+
 ```sh
 bash scripts/build-plugins.sh opencv-bridge
 bash scripts/build-actions.sh image_opencv
-MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" morflow check examples/opencv/pipeline.morf
+MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" morflow check examples/python/opencv/pipeline.morf
 ```
 
 The plugin uses the Rust `opencv` crate to generate bindings during its build. Only the adapter is packaged; OpenCV remains dynamically linked. Building actions requires neither OpenCV headers nor libraries. See [the plugin guide](../../plugins/README.md) for versions, cache configuration and custom plugin development, and [the OpenCV plugin guide](../../plugins/opencv-bridge/README.md) for its system dependencies.

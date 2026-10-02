@@ -142,10 +142,16 @@ fn action(registry: &ActionRegistry, pack: &str, name: &str) -> std::sync::Arc<L
         std::sync::OnceLock::new();
     let plugins = PLUGINS.get_or_init(|| {
         pipeline::plugins::PluginSet::prepare(
-            &[parser::ast::PluginDecl {
-                name: "opencv-bridge".into(),
-                version: "0.1.0".into(),
-            }],
+            &[
+                parser::ast::PluginDecl {
+                    name: "opencv-bridge".into(),
+                    version: "0.1.2".into(),
+                },
+                parser::ast::PluginDecl {
+                    name: "openblas".into(),
+                    version: "0.1.1".into(),
+                },
+            ],
             &pipeline::plugins::search_paths(),
         )
         .unwrap()

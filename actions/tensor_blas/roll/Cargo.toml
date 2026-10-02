@@ -1,6 +1,6 @@
 [package]
 name = "tensor_blas_roll"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 
 [package.metadata.morflow]
@@ -11,4 +11,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 core_types = { path = "../../../core_types" }
-morflow-openblas = { path = "../../../backends/openblas" }
+
+[[package.metadata.morflow.plugins]]
+name = "openblas"
+version = "^0.1.0"
+
+[dev-dependencies]
+openblas-plugin = { package = "morflow-plugin-openblas", path = "../../../plugins/openblas" }

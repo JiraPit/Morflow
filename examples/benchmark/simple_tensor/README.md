@@ -42,3 +42,5 @@ Use `--iterations`, `--samples`, `--warmup`, and `--seed` to control the run. Re
 MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" OPENBLAS_NUM_THREADS=1 \
   python3 -m unittest discover -s examples/benchmark/simple_tensor -t examples/benchmark
 ```
+
+The BLAS pipeline declares `plugin openblas/0.1.1`. Prepare it with `morflow prep`, or build locally with `bash scripts/build-plugins.sh openblas` and set `MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins"`. Shared system OpenBLAS is needed for execution.

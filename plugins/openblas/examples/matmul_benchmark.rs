@@ -1,4 +1,4 @@
-//! cargo run --release -p morflow-openblas --example matmul_benchmark
+//! cargo run --release -p morflow-plugin-openblas --example matmul_benchmark
 use core_types::{ActionArgs, InputDescriptor, Payload, RVec, ShapeCheckResult, Tensor};
 use std::{hint::black_box, time::Instant};
 fn measure(mut run: impl FnMut(), iterations: usize) -> f64 {
@@ -34,7 +34,8 @@ fn main() {
         let blas = measure(
             || {
                 black_box(
-                    morflow_openblas::matmul(black_box(&a), black_box(&b), &prepared).unwrap(),
+                    morflow_openblas_plugin::matmul(black_box(&a), black_box(&b), &prepared)
+                        .unwrap(),
                 );
             },
             10,

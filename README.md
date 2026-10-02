@@ -56,7 +56,7 @@ cargo add morflow
 <dependency>
     <groupId>org.morflow</groupId>
     <artifactId>morflow</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.5</version>
 </dependency>
 ```
 
@@ -117,13 +117,13 @@ The first matrix is the left operand and the second is the right operand; this p
 
 ### OpenBLAS action packs
 
-Use `linalg_blas/0.1.0` for `matmul`, `dot`, `outer`, `inv`, `det`, `qr`, and `cholesky`. Use `tensor_blas/0.1.0` for `concat`, `repeat`, and `roll`. View operations such as `reshape` and `transpose` stay in `tensor_basics`.
+Use `linalg_blas/0.1.2` for `matmul`, `dot`, `outer`, `inv`, `det`, `qr`, and `cholesky`. Use `tensor_blas/0.1.2` for `concat`, `repeat`, and `roll`. View operations such as `reshape` and `transpose` stay in `tensor_basics`.
 
 These packs load the host's **shared OpenBLAS library during execution**; OpenBLAS is not bundled in each action. Checking and loading a pipeline works without OpenBLAS installed. Running an action requires an LP64 OpenBLAS installation; the factorization actions also require its LAPACKE interface. Set `MORFLOW_OPENBLAS_LIBRARY` to select a specific shared library. A missing dependency produces an execution error.
 
-See [OpenBLAS setup and behavior](backends/openblas/README.md) for installation, threading, numerical behavior, and local build instructions.
+Declare `plugin openblas/0.1.1` and run `morflow prep` to prepare the shared numerical plugin alongside the actions. See [OpenBLAS setup and behavior](plugins/openblas/README.md) for installation, threading, numerical behavior, and local build instructions.
 
-The optional `image_opencv` pack provides spatial image filtering and resampling through host-installed shared OpenCV. Declare `plugin opencv-bridge/0.1.0` and run `morflow prep` to install its prebuilt plugin; OpenCV is not included in action binaries. See [the OpenCV backend guide](backends/opencv/README.md) and [plugin installation and development](plugins/README.md).
+The optional `image_opencv` pack provides spatial image filtering and resampling through host-installed shared OpenCV. Declare `plugin opencv-bridge/0.1.2` and run `morflow prep` to install its prebuilt plugin; OpenCV is not included in action binaries. See [the OpenCV action guide](actions/image_opencv/README.md) and [plugin installation and development](plugins/README.md).
 
 ### Action versions and cache
 

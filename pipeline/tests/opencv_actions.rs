@@ -11,7 +11,7 @@ fn plugins() -> std::sync::Arc<pipeline::plugins::PluginSet> {
             pipeline::plugins::PluginSet::prepare(
                 &[parser::ast::PluginDecl {
                     name: "opencv-bridge".into(),
-                    version: "0.1.0".into(),
+                    version: "0.1.2".into(),
                 }],
                 &pipeline::plugins::search_paths(),
             )
@@ -42,7 +42,7 @@ fn execute(
                 if pack == "image_basics" {
                     "latest"
                 } else {
-                    "0.1.0"
+                    "0.1.2"
                 },
                 name,
             )
@@ -213,7 +213,7 @@ fn invalid_arguments_and_dimensions_fail_during_shapecheck() {
         ("resize", args(&[("width", "2147483648")])),
     ] {
         let action = registry
-            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.0", name).unwrap())
+            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.2", name).unwrap())
             .unwrap();
         let descriptor = InputDescriptor::from_payload(&Payload::Tensor(
             Tensor::from_f32_vec(vec![0.; 36], vec![6, 6]).unwrap(),
@@ -231,12 +231,12 @@ fn missing_system_library_is_deferred_until_execution() {
     const FLAG: &str = "MORFLOW_PLUGIN_TEST_CHILD";
     if std::env::var_os(FLAG).is_none() {
         let root = tempfile::tempdir().unwrap();
-        let id = PluginIdentity::new("opencv-bridge", "0.1.0").unwrap();
+        let id = PluginIdentity::new("opencv-bridge", "0.1.2").unwrap();
         let bytes = b"verified plugin fixture that cannot be dynamically loaded";
         atomic_write(&id.path(root.path()), bytes).unwrap();
         let receipt = PluginReceipt {
             identity: id.clone(),
-            concrete_version: "0.1.0".into(),
+            concrete_version: "0.1.2".into(),
             repository: "test".into(),
             sha256: digest(bytes),
         };
@@ -263,7 +263,7 @@ fn missing_system_library_is_deferred_until_execution() {
         );
         return;
     }
-    let source="plugin opencv-bridge/0.1.0\nfrom image_opencv/0.1.0 import gaussian_blur\naccept Tensor[6,8,3] $x\n$x >> gaussian_blur >> emit";
+    let source="plugin opencv-bridge/0.1.2\nfrom image_opencv/0.1.2 import gaussian_blur\naccept Tensor[6,8,3] $x\n$x >> gaussian_blur >> emit";
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("offline.morf");
     std::fs::write(&path, source).unwrap();
@@ -285,7 +285,7 @@ fn mixed_pack_example_loads_once_and_runs_repeatedly() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap();
-    let mut pipeline = Morflow::load(root.join("examples/opencv/pipeline.morf")).unwrap();
+    let mut pipeline = Morflow::load(root.join("examples/python/opencv/pipeline.morf")).unwrap();
     let tensor = Tensor::from_f32_vec(vec![0.5; 480 * 640 * 3], vec![480, 640, 3]).unwrap();
     for _ in 0..3 {
         let result = pipeline.run(Payload::Tensor(tensor.clone())).unwrap();
@@ -307,7 +307,7 @@ fn dynamic_shapes_and_arguments_remain_deferred() {
         "resize",
     ] {
         let action = registry
-            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.0", name).unwrap())
+            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.2", name).unwrap())
             .unwrap();
         let mut descriptor = InputDescriptor::from_payload(&Payload::Tensor(
             Tensor::from_f32_vec(vec![0.; 144], vec![6, 8, 3]).unwrap(),
@@ -327,7 +327,7 @@ fn dynamic_shapes_and_arguments_remain_deferred() {
         ));
     }
     let action = registry
-        .get_or_load(&ActionIdentity::new("image_opencv", "0.1.0", "gaussian_blur").unwrap())
+        .get_or_load(&ActionIdentity::new("image_opencv", "0.1.2", "gaussian_blur").unwrap())
         .unwrap();
     let descriptor = InputDescriptor::from_payload(&Payload::Tensor(
         Tensor::from_f32_vec(vec![0.; 36], vec![6, 6]).unwrap(),
@@ -405,7 +405,7 @@ fn native_dimension_and_channel_limits_are_checked_without_allocating_images() {
         ("resize", vec![6, 8, 5], ActionArgs::default()),
     ] {
         let action = registry
-            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.0", name).unwrap())
+            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.2", name).unwrap())
             .unwrap();
         let descriptor = InputDescriptor {
             value: core_types::ValueShape::Leaf {
@@ -652,10 +652,10 @@ fn pipeline_reload_selects_refreshed_plugin_and_existing_pipeline_retains_old_on
         )
         .unwrap();
     };
-    let source="plugin opencv-bridge/latest\nfrom image_opencv/0.1.0 import gaussian_blur\naccept Tensor[6,8,3] $x\n$x >> gaussian_blur >> emit\n";
+    let source="plugin opencv-bridge/latest\nfrom image_opencv/0.1.2 import gaussian_blur\naccept Tensor[6,8,3] $x\n$x >> gaussian_blur >> emit\n";
     publish(1, "0.1.0");
     let mut old = Morflow::from_str(source).unwrap();
-    publish(2, "0.1.1");
+    publish(2, "0.1.2");
     let mut new = Morflow::from_str(source).unwrap();
     let run = |pipeline: &mut pipeline::MorflowPipeline| {
         pipeline
@@ -678,9 +678,74 @@ fn pipeline_reload_selects_refreshed_plugin_and_existing_pipeline_retains_old_on
 #[test]
 fn plugin_actions_require_a_declaration_before_execution() {
     let source =
-        "from image_opencv/0.1.0 import resize\naccept Tensor[6,8,3] $x\n$x >> resize(4,3) >> emit";
+        "from image_opencv/0.1.2 import resize\naccept Tensor[6,8,3] $x\n$x >> resize(4,3) >> emit";
     match Morflow::from_str(source) {
         Err(error) => assert!(error.to_string().contains("undeclared"), "{error}"),
         Ok(_) => panic!("Missing plugin declaration must be rejected at load time"),
+    }
+}
+
+#[test]
+fn action_plans_only_contain_their_own_parameters() {
+    let registry = ActionRegistry::default();
+    let tensor = Tensor::from_f32_vec(vec![0.; 6 * 8 * 3], vec![6, 8, 3]).unwrap();
+    for (name, keys) in [
+        ("resize", vec!["mode"]),
+        ("gaussian_blur", vec!["mode", "radius", "sigma"]),
+        ("morphology", vec!["mode", "radius", "iterations", "shape"]),
+        ("edge_detect", vec!["mode", "strength"]),
+        ("sharpen", vec!["radius", "sigma", "strength"]),
+        ("rotate", vec!["angle", "fill"]),
+    ] {
+        let action = registry
+            .get_or_load(&ActionIdentity::new("image_opencv", "0.1.2", name).unwrap())
+            .unwrap();
+        let descriptor = InputDescriptor::from_payload(&Payload::Tensor(tensor.clone()));
+        let ShapeCheckResult::Ready { prepared, .. } =
+            action.shapecheck(descriptor, ActionArgs::default())
+        else {
+            panic!("{name} did not check");
+        };
+        for key in &keys {
+            assert!(
+                prepared
+                    .fields
+                    .iter()
+                    .any(|Tuple2(k, _)| k.as_str() == *key),
+                "{name}: missing {key}"
+            );
+        }
+        let mut actual_keys: Vec<_> = prepared
+            .fields
+            .iter()
+            .map(|Tuple2(k, _)| k.as_str())
+            .collect();
+        let mut expected_keys = keys;
+        actual_keys.sort_unstable();
+        expected_keys.sort_unstable();
+        assert_eq!(
+            actual_keys, expected_keys,
+            "{name} contains unrelated parameters"
+        );
+        let unrelated = match name {
+            "gaussian_blur" => "strength",
+            "sharpen" => "angle",
+            _ => "sigma",
+        };
+        let descriptor = InputDescriptor::from_payload(&Payload::Tensor(tensor.clone()));
+        assert!(
+            matches!(
+                action.shapecheck(descriptor, args(&[(unrelated, "NaN")])),
+                ShapeCheckResult::Ready { .. }
+            ),
+            "{name} parsed unrelated {unrelated}"
+        );
+        assert!(!prepared.fields.iter().any(|Tuple2(k, _)| k == "operation"));
+        if name == "resize" {
+            assert!(!prepared
+                .fields
+                .iter()
+                .any(|Tuple2(k, _)| k == "sigma" || k == "radius"));
+        }
     }
 }

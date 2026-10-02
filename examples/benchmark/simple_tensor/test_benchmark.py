@@ -82,7 +82,7 @@ class TensorBenchmarkTests(unittest.TestCase):
         blas = tensor.PIPELINES["morf-blas"].read_text()
         self.assertEqual(basic.split("accept", 1)[1], blas.split("accept", 1)[1])
         self.assertIn("from linalg_basics/0.3.1 import inv, cholesky", basic)
-        self.assertIn("from linalg_blas/0.1.0 import inv, cholesky", blas)
+        self.assertIn("from linalg_blas/0.1.2 import inv, cholesky", blas)
         self.assertEqual(basic.count(" >> inv"), tensor.INVERSION_COUNT)
         self.assertEqual(basic.count("emit("), 1)
 

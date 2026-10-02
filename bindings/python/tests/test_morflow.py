@@ -253,7 +253,7 @@ def test_qr_composite_component_selection():
 def test_blas_packs_mix_with_basic_views_and_reuse_loaded_pipeline():
     from pathlib import Path
 
-    path = Path(__file__).resolve().parents[3] / "examples/blas/qr.morf"
+    path = Path(__file__).resolve().parents[3] / "examples/python/blas/qr.morf"
     pipeline = morflow.load(str(path))
     matrix = np.array([[1., 2.], [3., 4.], [5., 6.]], dtype=np.float32)
     original = matrix.copy()
@@ -269,7 +269,7 @@ def test_blas_pipeline_loads_without_openblas_but_execution_reports_it():
     import subprocess
     import sys
 
-    path = Path(__file__).resolve().parents[3] / "examples/blas/qr.morf"
+    path = Path(__file__).resolve().parents[3] / "examples/python/blas/qr.morf"
     code = """
 import sys
 import numpy as np
@@ -293,8 +293,8 @@ def test_plugin_file_and_string_loading(tmp_path):
 
     if not os.environ.get("MORFLOW_PLUGINS_PATH"):
         pytest.skip("Requires prepared OpenCV plugin and its runtime libraries")
-    source = """plugin opencv-bridge/0.1.0
-from image_opencv/0.1.0 import resize
+    source = """plugin opencv-bridge/0.1.2
+from image_opencv/0.1.2 import resize
 accept Tensor[6,8,3] $image
 $image >> resize(4,3,filter="nearest") >> emit
 """

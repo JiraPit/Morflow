@@ -41,8 +41,9 @@ fn all_blas_contracts_match_basics_and_runtime_outputs_match_the_predictions() {
                 )
                 .unwrap();
             let blas = registry
-                .get_or_load(&ActionIdentity::new(&format!("{pack}_blas"), "0.1.0", name).unwrap())
+                .get_or_load(&ActionIdentity::new(&format!("{pack}_blas"), "0.1.2", name).unwrap())
                 .unwrap();
+            let blas = blas.with_plugins(plugins()).unwrap();
             let (input, args) = action_input(name);
             let describe = || InputDescriptor::from_payload(&input);
             let ShapeCheckResult::Ready {
@@ -71,7 +72,7 @@ fn file_and_string_loads_reuse_mixed_pack_pipeline_and_preserve_input() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap();
-    let path = root.join("examples/blas/pipeline.morf");
+    let path = root.join("pipeline/tests/fixtures/blas.morf");
     let source = std::fs::read_to_string(&path).unwrap();
     let mut file = Morflow::load(&path).unwrap();
     let mut string = Morflow::from_str(&source).unwrap();
@@ -127,7 +128,7 @@ fn missing_openblas_allows_offline_check_and_both_load_signatures_then_fails_on_
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap();
-    let path = root.join("examples/blas/pipeline.morf");
+    let path = root.join("pipeline/tests/fixtures/blas.morf");
     let source = std::fs::read_to_string(&path).unwrap();
     pipeline::check::check_pipeline(&path, None).unwrap();
     let mut file = Morflow::load(&path).unwrap();
@@ -143,7 +144,7 @@ fn missing_openblas_allows_offline_check_and_both_load_signatures_then_fails_on_
 
 #[test]
 fn aliased_basics_and_blas_matmul_coexist_in_one_pipeline() {
-    let mut pipeline=Morflow::from_str("import linalg_basics/latest as basic\nimport linalg_blas/0.1.0 as accelerated\naccept Tensor[2,2] $matrix\n$matrix >> basic/matmul >> emit(\"basic\")\n$matrix >> accelerated/matmul >> emit(\"blas\")").unwrap();
+    let mut pipeline=Morflow::from_str("plugin openblas/0.1.1\nimport linalg_basics/latest as basic\nimport linalg_blas/0.1.2 as accelerated\naccept Tensor[2,2] $matrix\n$matrix >> basic/matmul >> emit(\"basic\")\n$matrix >> accelerated/matmul >> emit(\"blas\")").unwrap();
     let result = pipeline.run(matrix()).unwrap();
     let Payload::Tensor(basic) = result.get("basic").unwrap() else {
         panic!("Expected tensor")
@@ -153,4 +154,40 @@ fn aliased_basics_and_blas_matmul_coexist_in_one_pipeline() {
     };
     assert_eq!(basic.to_vec_f32(), vec![17., 7., 7., 10.]);
     assert_eq!(basic.to_vec_f32(), blas.to_vec_f32());
+}
+
+fn plugins() -> std::sync::Arc<pipeline::plugins::PluginSet> {
+    pipeline::plugins::PluginSet::prepare(
+        &[parser::ast::PluginDecl {
+            name: "openblas".into(),
+            version: "0.1.1".into(),
+        }],
+        &pipeline::plugins::search_paths(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn blas_actions_require_a_plugin_declaration() {
+    for (pack, name) in [
+        ("linalg_blas", "matmul"),
+        ("linalg_blas", "dot"),
+        ("linalg_blas", "outer"),
+        ("linalg_blas", "inv"),
+        ("linalg_blas", "det"),
+        ("linalg_blas", "qr"),
+        ("linalg_blas", "cholesky"),
+        ("tensor_blas", "concat"),
+        ("tensor_blas", "repeat"),
+        ("tensor_blas", "roll"),
+    ] {
+        let source = format!(
+            "from {pack}/0.1.1 import {name}\naccept Tensor[2,2] $x\n$x >> {name} >> emit\n"
+        );
+        let error = Morflow::from_str(&source).err().unwrap().to_string();
+        assert!(
+            error.contains("openblas") && error.contains("undeclared"),
+            "{pack}/{name}: {error}"
+        );
+    }
 }

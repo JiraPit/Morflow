@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'plugins/**'
-      - 'backends/opencv/**'
+      - 'actions/image_opencv/**'
       - 'core_types/**'
       - 'scripts/build-plugins.sh'
       - 'scripts/package_plugin.py'
@@ -54,15 +54,15 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install shared OpenCV build dependencies (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.plugin.name == 'opencv-bridge'
         run: sudo apt-get update && sudo apt-get install -y libopencv-dev clang pkg-config
       - name: Install shared OpenCV build dependencies (macOS)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && matrix.plugin.name == 'opencv-bridge'
         run: |
           brew install opencv llvm pkg-config
           echo "LIBCLANG_PATH=$(brew --prefix llvm)/lib" >> "$GITHUB_ENV"
       - name: Install shared OpenCV build dependencies (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.plugin.name == 'opencv-bridge'
         shell: pwsh
         run: |
           & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install opencv4:x64-windows

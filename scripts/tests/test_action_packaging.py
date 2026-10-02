@@ -13,6 +13,52 @@ import detect_changed_actions
 
 
 class PackagingTests(unittest.TestCase):
+    def test_interface_detection_covers_every_commit_in_a_push(self):
+        from subprocess import CompletedProcess
+        with patch.dict("os.environ", {"GITHUB_BASE_SHA": "abc123"}), \
+             patch.object(detect_changed_actions.subprocess, "run", side_effect=[
+                 CompletedProcess([], 0, "abc123", ""),
+                 CompletedProcess([], 0, "plugins/openblas/src/interface.rs\n", ""),
+             ]) as run:
+            self.assertEqual(detect_changed_actions.get_git_changed_files(),
+                             ["plugins/openblas/src/interface.rs"])
+        self.assertEqual(run.call_args.args[0],
+                         ["git", "diff", "--name-only", "abc123", "HEAD"])
+
+    def test_published_consumer_cannot_silently_skip_interface_change(self):
+        action = {"pack": "linalg_blas", "name": "matmul", "version": "0.1.1",
+                  "path": "actions/linalg_blas/matmul"}
+        assets = {f"matmul_action-0.1.1-{platform}.{extension}"
+                  for platform, extension in detect_changed_actions.TARGET_PLATFORMS}
+        with patch.object(sys, "argv", ["detect"]), \
+             patch.object(detect_changed_actions, "discover_all_actions", return_value=[action]), \
+             patch.object(detect_changed_actions, "get_release_assets", return_value=assets), \
+             patch.object(detect_changed_actions, "get_git_changed_files", return_value=["plugins/openblas/src/interface.rs"]):
+            with self.assertRaisesRegex(RuntimeError, "Bump the action version"):
+                detect_changed_actions.main()
+
+    def test_plugin_interface_changes_identify_consumers(self):
+        changed = detect_changed_actions.changed_plugin_interfaces([
+            "plugins/openblas/src/interface.rs",
+            "plugins/opencv-bridge/src/interface.rs",
+            "plugins/openblas/src/numerical.rs",
+            "actions/image_opencv/resize/src/lib.rs",
+        ])
+        self.assertEqual(changed, {"openblas", "opencv-bridge"})
+        root = Path(__file__).resolve().parents[2]
+        self.assertEqual(
+            detect_changed_actions.interface_dependencies(
+                root / "actions/linalg_blas/matmul/Cargo.toml"
+            ),
+            {"openblas"},
+        )
+        self.assertEqual(
+            detect_changed_actions.interface_dependencies(
+                root / "actions/image_opencv/resize/Cargo.toml"
+            ),
+            {"opencv-bridge"},
+        )
+
     def test_versioned_files_receipts_catalogs_and_latest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

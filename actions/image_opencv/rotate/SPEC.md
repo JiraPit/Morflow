@@ -21,4 +21,4 @@
 - Uses shared OpenCV rotate for quarter turns and warpAffine otherwise. Interpolation and boundary pixels can differ from basics; CHW input retains CHW output.
 
 ## Installation
-See `backends/opencv/README.md`. OpenCV is loaded only during execution.
+See `actions/image_opencv/README.md`. OpenCV is loaded only during execution.

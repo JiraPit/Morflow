@@ -1,4 +1,5 @@
 //! Runtime-only OpenBLAS loading. No OpenBLAS code or link dependency is bundled.
+pub mod interface;
 use core_types::{RString, RVec, Tensor, TensorDType};
 use libloading::Library;
 use std::ffi::{c_char, CStr, OsString};
@@ -261,7 +262,7 @@ pub fn concat(tensors: &[Tensor], axis: isize) -> Result<Tensor, RString> {
 }
 
 mod numerical;
-pub use numerical::{cholesky, det, dimension_limits, dot, inv, matmul, outer, qr};
+pub use numerical::{cholesky, det, dot, inv, matmul, outer, qr};
 
 /// Tile in one output allocation; avoid successively concatenating each axis.
 pub fn repeat(tensor: &Tensor, repeats: &[usize]) -> Result<Tensor, RString> {
@@ -451,3 +452,61 @@ mod tests {
         );
     }
 }
+
+mod operations;
+
+/// Execute an operation using validated inputs and prepared data from an action.
+/// The shared SDK owns the payload storage; the returned payload owns its result.
+#[no_mangle]
+pub extern "C" fn morflow_openblas_process(
+    operation: u32,
+    payload: core_types::Payload,
+    prepared: core_types::PreparedData,
+) -> core_types::Payload {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        operations::dispatch(operation, payload, prepared)
+    }))
+    .unwrap_or_else(|_| core_types::Payload::Error("OpenBLAS plugin processing panicked".into()))
+}
+
+#[cfg(test)]
+mod interface_tests {
+    use super::*;
+    #[test]
+    fn operation_identifiers_are_explicit() {
+        assert_eq!(
+            [
+                interface::operation!(cholesky),
+                interface::operation!(det),
+                interface::operation!(dot),
+                interface::operation!(inv),
+                interface::operation!(matmul),
+                interface::operation!(outer),
+                interface::operation!(qr),
+                interface::operation!(concat),
+                interface::operation!(repeat),
+                interface::operation!(roll)
+            ],
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        );
+    }
+    #[test]
+    fn unknown_operation_returns_an_error_without_loading_openblas() {
+        let prepared = core_types::PreparedData {
+            output: core_types::ValueShape::tensor(core_types::Shape::new([0])),
+            args: core_types::ActionArgs::default().into(),
+            fields: Default::default(),
+            runtime: None.into(),
+        };
+        let output = morflow_openblas_process(
+            u32::MAX,
+            core_types::Payload::Tensor(core_types::Tensor::from_f32_slice(&[])),
+            prepared,
+        );
+        assert!(
+            matches!(output, core_types::Payload::Error(error) if error.contains("Unknown OpenBLAS operation"))
+        );
+    }
+}
+
+const _: interface::NativeProcess = morflow_openblas_process;

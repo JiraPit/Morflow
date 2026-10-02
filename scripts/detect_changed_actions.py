@@ -29,17 +29,19 @@ def parse_cargo_toml(path: Path) -> dict:
 
 
 def get_git_changed_files() -> list:
-    """Retrieves changed files in the latest commit using git diff."""
+    """Inspect the full push range, or the latest commit for local/manual runs."""
+    push_base = os.environ.get("GITHUB_BASE_SHA", "")
+    base = push_base if push_base and set(push_base) != {"0"} else "HEAD~1"
     try:
         res = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD~1"],
+            ["git", "rev-parse", "--verify", base],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
         if res.returncode == 0:
             diff_res = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+                ["git", "diff", "--name-only", base, "HEAD"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -81,6 +83,24 @@ def discover_all_actions(repo_root: Path) -> list:
                         "library": meta["library"],
                     })
     return actions
+
+
+def changed_plugin_interfaces(changed_files: list[str]) -> set[str]:
+    """Plugin-owned interfaces are compile-time dependencies of consuming actions."""
+    return {
+        Path(path).parts[1]
+        for path in changed_files
+        if len(Path(path).parts) == 4
+        and Path(path).parts[0] == "plugins"
+        and Path(path).parts[2:] == ("src", "interface.rs")
+    }
+
+
+def interface_dependencies(action_manifest: Path) -> set[str]:
+    return {
+        requirement["name"]
+        for requirement in parse_cargo_toml(action_manifest)["plugins"]
+    }
 
 
 def get_release_assets(repo: str, tag: str, token: str = None) -> set:
@@ -137,6 +157,7 @@ def main():
     force_build = args.force.lower() in ("true", "1", "yes")
 
     all_actions = discover_all_actions(repo_root)
+    changed_interfaces = changed_plugin_interfaces(get_git_changed_files())
 
     # 1. Filter by requested pack / action
     candidates = []
@@ -168,6 +189,13 @@ def main():
 
         assets = release_cache[tag]
         if is_action_fully_released(act, assets):
+            dependencies = interface_dependencies(repo_root / act["path"] / "Cargo.toml")
+            if dependencies & changed_interfaces:
+                raise RuntimeError(
+                    f"{act['pack']}/{act['name']} consumes a changed plugin interface, "
+                    f"but version {version} is already published. Bump the action version "
+                    "so its binary is rebuilt with the updated interface."
+                )
             already_released_count += 1
         else:
             unbuilt_actions.append(act)

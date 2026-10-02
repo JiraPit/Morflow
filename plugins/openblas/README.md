@@ -1,26 +1,27 @@
-# OpenBLAS action packs
+# OpenBLAS plugin
 
-These packs use a shared OpenBLAS library installed on the machine running the pipeline. Action binaries contain only the Rust wrapper and Morflow types. They do not embed OpenBLAS or link to it at build time.
+The `openblas` plugin contains the shared numerical implementation used by the `linalg_blas` and `tensor_blas` actions. It loads the execution machine’s shared OpenBLAS library only when processing needs it. The actions contain their own shape checks and a small call to this plugin; they do not include its numerical implementation or a bundled OpenBLAS library.
 
 | Pack | Actions | OpenBLAS operations |
 | --- | --- | --- |
-| `linalg_blas/0.1.0` | `matmul`, `dot`, `outer` | SGEMM, SDOT, SGER |
-| `linalg_blas/0.1.0` | `inv`, `det`, `qr`, `cholesky` | LAPACKE LU, inversion, Householder QR, Cholesky |
-| `tensor_blas/0.1.0` | `concat`, `repeat`, `roll` | Floating-point block copies with SCOPY and DCOPY |
+| `linalg_blas/0.1.2` | `matmul`, `dot`, `outer` | SGEMM, SDOT, SGER |
+| `linalg_blas/0.1.2` | `inv`, `det`, `qr`, `cholesky` | LAPACKE LU, inversion, Householder QR, Cholesky |
+| `tensor_blas/0.1.2` | `concat`, `repeat`, `roll` | Floating-point block copies with SCOPY and DCOPY |
 
 Use `tensor_basics` for reshape, transpose, permute, squeeze, unsqueeze, flatten, and cast. Those operations either create tensor views or have no corresponding BLAS operation.
 
 ## Using the packs
 
 ```morf
-from linalg_blas/0.1.0 import matmul
+plugin openblas/0.1.1
+from linalg_blas/0.1.2 import matmul
 from tensor_basics/0.3.1 import transpose
 accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
 
 $matrices >> matmul >> transpose >> emit("transposed_product")
 ```
 
-`morflow prep` downloads action binaries as usual. `morflow check` and pipeline loading use the same type and shape rules as the corresponding basics actions, with additional checks for the numerical backend's LP64 integer limits. Neither step loads OpenBLAS. Each action checks the runtime dependency inside `process`, after the engine's runtime shapecheck.
+`morflow prep` prepares the declared plugin and imported action binaries and checks their version compatibility. `morflow check` and pipeline loading use the same type and shape rules as the corresponding basics actions, with additional checks for the numerical backend's LP64 integer limits. Neither step loads OpenBLAS. The engine supplies the selected plugin to each action’s `process` function. The plugin checks the system OpenBLAS dependency during processing.
 
 The first successful execution loads OpenBLAS and retains its handle and function pointers. Subsequent calls reuse them. A missing library or required symbol produces `Payload::Error`; there is no substitution with a basics action. A failed library load is not cached, so a later run can retry after installation or configuration.
 
@@ -65,6 +66,8 @@ For a pipeline dominated by one large matrix multiplication, compare larger thre
 Building does not require OpenBLAS headers, a static archive, or an installed shared library:
 
 ```bash
+bash scripts/build-plugins.sh openblas
+export MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins"
 bash scripts/build-actions.sh linalg_blas
 bash scripts/build-actions.sh tensor_blas
 ```
@@ -78,10 +81,25 @@ Action tests require a shared OpenBLAS installation to exercise numerical execut
 Two local measurement tools compare execution against basics; inputs and validation plans are created once and reused:
 
 ```bash
-cargo run --release -p morflow-openblas --example matmul_benchmark
-cargo run --release -p morflow-openblas --example copy_benchmark
+cargo run --release -p morflow-plugin-openblas --example matmul_benchmark
+cargo run --release -p morflow-plugin-openblas --example copy_benchmark
 ```
 
 These measurements exclude pipeline loading and measure steady-state execution. They are implementation checks, not a portable speed guarantee. The benchmark prints the actual timings and speed ratio for each size.
 
 Interface reference: [OpenBLAS CBLAS declarations](https://github.com/OpenMathLib/OpenBLAS/blob/develop/cblas.h) and [LAPACKE declarations](https://github.com/OpenMathLib/OpenBLAS/blob/develop/lapack-netlib/LAPACKE/include/lapacke.h).
+
+## Action–plugin interface
+
+The plugin exports `morflow_openblas_process(operation, payload, prepared) -> Payload` using the shared `core_types` SDK. The operation is a `u32` discriminator: 0 = Cholesky, 1 = determinant, 2 = dot, 3 = inverse, 4 = matmul, 5 = outer, 6 = QR, 7 = concat, 8 = repeat, 9 = roll. Unknown values return an error. Using a numeric discriminator avoids allocating an operation-name string on every call. The operation’s action performs the shape check first; the plugin consumes the input payload and returns an owning output payload or `Payload::Error`. Composite inputs and outputs preserve their action-defined order.
+
+Tensor storage is shared through the SDK’s owning handles. Contiguous views remain borrowed through those handles when possible; writable outputs and numerical scratch buffers are allocated by the plugin. Runtime context handles retain the engine-selected libraries while calls run. Native panics are caught at the exported processing boundary and become errors.
+
+Action requirements use `openblas` with version range `^0.1.0`, recorded in both Cargo metadata and `get_required_plugins`. Pipeline declarations must choose an explicit compatible version. No unversioned helper crate or action fallback is used.
+
+## Interface maintenance
+
+`src/interface.rs` defines this plugin's native interface. The plugin and its actions
+compile that same source file; it contains declarations rather than processing code.
+Changes to the interface require rebuilding its consuming actions. If their current
+versions are already published, bump those action versions before releasing the change.

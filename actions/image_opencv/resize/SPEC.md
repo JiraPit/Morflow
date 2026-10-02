@@ -25,4 +25,4 @@ Spatial image resampling using interpolation algorithms (Nearest Neighbor, Bilin
 - Preserves F32 range; saturates U8 outputs. OpenCV interpolation may produce different pixels from basics.
 
 ## OpenCV backend
-Uses shared OpenCV through the versioned `opencv-bridge` plugin. Declare `plugin opencv-bridge/0.1.0` in the pipeline and run `morflow prep`. Shape checking does not load OpenCV. See `backends/opencv/README.md` for installation, layout rules and numerical differences.
+Uses shared OpenCV through the versioned `opencv-bridge` plugin. Declare `plugin opencv-bridge/0.1.2` in the pipeline and run `morflow prep`. Shape checking does not load OpenCV. See `actions/image_opencv/README.md` for installation, layout rules and numerical differences.

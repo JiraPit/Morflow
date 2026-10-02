@@ -1,5 +1,14 @@
+mod interface {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../plugins/openblas/src/interface.rs"
+    ));
+}
+
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{DataType, Payload, Shape, ShapeResult};
+
+const OPERATION: u32 = interface::operation!(det);
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -33,26 +42,7 @@ pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeRe
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    process_impl(payload, prepared)
-}
-
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    if let Err(error) = morflow_openblas::require() {
-        return Payload::Error(error);
-    }
-    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
-
-    match inner_payload {
-        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match compute_det(&tensor) {
-            Ok(t) => Payload::from_tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
-        other => other,
-    }
-}
-
-fn compute_det(tensor: &Tensor) -> Result<Tensor, String> {
-    morflow_openblas::det(tensor)
+    call_plugin(OPERATION, payload, prepared)
 }
 
 #[no_mangle]
@@ -60,7 +50,7 @@ pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,
 ) -> core_types::ShapeCheckResult {
-    if let Err(reason) = morflow_openblas::dimension_limits(&input, "det") {
+    if let Err(reason) = dimension_limits(&input, "det") {
         return core_types::ShapeCheckResult::Invalid { reason };
     }
     core_types::shapecheck::analyze(
@@ -74,11 +64,97 @@ pub extern "C" fn shapecheck(
     )
 }
 
+/// Validate the backend's integer ABI from shapes alone, without loading it.
+fn dimension_limits(
+    input: &core_types::InputDescriptor,
+    action: &str,
+) -> Result<(), core_types::RString> {
+    fn check(value: &core_types::ValueShape, action: &str) -> Result<(), core_types::RString> {
+        if let Some(parts) = value.components() {
+            for part in parts {
+                check(part, action)?;
+            }
+        } else if let Some(shape) = value.shape() {
+            let too_large = if matches!(action, "dot" | "outer") {
+                shape
+                    .known_dims()
+                    .and_then(|dims| dims.iter().try_fold(1usize, |n, d| n.checked_mul(*d)))
+                    .is_some_and(|n| n > i32::MAX as usize)
+            } else {
+                shape
+                    .dims()
+                    .iter()
+                    .rev()
+                    .take(2)
+                    .filter_map(|d| d.known())
+                    .any(|n| n > i32::MAX as usize)
+            };
+            if too_large {
+                return Err(format!(
+                    "{action} dimensions exceed the signed 32-bit LP64 OpenBLAS limit"
+                )
+                .into());
+            }
+        }
+        Ok(())
+    }
+    check(&input.value, action)
+}
+
+fn call_plugin(operation: u32, payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let Some(runtime) = prepared.runtime.as_ref().into_option() else {
+        return Payload::Error("OpenBLAS action requires an engine-provided plugin context".into());
+    };
+    let address = match runtime.symbol(interface::PLUGIN_NAME, interface::PROCESS_SYMBOL) {
+        Ok(address) => address,
+        Err(error) => return Payload::Error(error),
+    };
+    // The openblas plugin defines this exact ABI. All values use the shared SDK.
+    let process = unsafe { std::mem::transmute::<usize, interface::NativeProcess>(address) };
+    process(operation, payload, prepared)
+}
+
+#[no_mangle]
+pub extern "C" fn get_required_plugins() -> core_types::RVec<core_types::plugins::PluginRequirement>
+{
+    vec![core_types::plugins::PluginRequirement {
+        name: interface::PLUGIN_NAME.into(),
+        version: interface::PLUGIN_VERSION.into(),
+    }]
+    .into()
+}
+
+#[cfg(test)]
+fn test_context() -> core_types::plugins::RuntimeContext {
+    extern "C" fn release(_: usize) {}
+    extern "C" fn resolve(
+        _: usize,
+        plugin: core_types::RString,
+        symbol: core_types::RString,
+    ) -> core_types::abi_stable::std_types::RResult<usize, core_types::RString> {
+        if plugin == interface::PLUGIN_NAME && symbol == interface::PROCESS_SYMBOL {
+            core_types::abi_stable::std_types::RResult::ROk(
+                openblas_plugin::morflow_openblas_process as *const () as usize,
+            )
+        } else {
+            core_types::abi_stable::std_types::RResult::RErr("Unexpected plugin symbol".into())
+        }
+    }
+    // Test-only context calls the real plugin export with the same native interface.
+    unsafe { core_types::plugins::RuntimeContext::new(0, release, resolve) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn process(payload: Payload) -> Payload {
-        core_types::shapecheck::execute("det", shapecheck, super::process, payload)
+        core_types::shapecheck::execute_with_context(
+            "det",
+            shapecheck,
+            super::process,
+            payload,
+            Some(test_context()),
+        )
     }
     use core_types::Tensor;
 
@@ -108,7 +184,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../../../backends/openblas/tests/action_contract.rs"]
-mod backend_contract;

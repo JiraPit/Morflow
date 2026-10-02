@@ -1,6 +1,6 @@
-plugin opencv-bridge/0.1.0
+plugin opencv-bridge/0.1.2
 
-from image_opencv/0.1.0 import resize, gaussian_blur, sharpen, edge_detect, morphology, rotate
+from image_opencv/0.1.2 import resize, gaussian_blur, sharpen, edge_detect, morphology, rotate
 
 accept Tensor[480,640,3] $image
 $image >> resize(width=320, height=240, filter="area") >> gaussian_blur(sigma=1.0) >> sharpen(strength=0.5) >> edge_detect(mode="sobel") >> rotate(angle=90) >> morphology(op="close", kernel_size=3) >> emit

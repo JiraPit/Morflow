@@ -5,7 +5,7 @@ Compare **NumPy**, **morf-basic**, and **morf-blas** on the same fixed graph: a 
 A shared producer scales and offsets the input. Independent branches roll, multiply, add, and clamp it. Each branch feeds two downstream flows: one transposes and rolls its matrix; the other sums its rows.
 
 - [`morf-basic.morf`](morf-basic.morf) uses the existing basics actions.
-- [`morf-blas.morf`](morf-blas.morf) replaces `roll` with `tensor_blas/0.1.0`. Transpose, arithmetic, and reductions keep their existing actions. This graph does not contain linear algebra operations, so it does not use `linalg_blas`.
+- [`morf-blas.morf`](morf-blas.morf) replaces `roll` with `tensor_blas/0.1.2`. Transpose, arithmetic, and reductions keep their existing actions. This graph does not contain linear algebra operations, so it does not use `linalg_blas`.
 
 The two Morflow graphs perform identical operations in the same order. This comparison measures the OpenBLAS-backed roll implementation within the existing many-flow workload.
 
@@ -30,7 +30,7 @@ morflow prep examples/benchmark/branching_tensor/morf-basic.morf
 morflow prep examples/benchmark/branching_tensor/morf-blas.morf
 ```
 
-`morf-blas` execution requires a shared LP64 OpenBLAS library. See [OpenBLAS setup](../../../backends/openblas/README.md). Set `MORFLOW_OPENBLAS_LIBRARY` before starting the benchmark to select a specific installation.
+`morf-blas` execution requires a shared LP64 OpenBLAS library. See [OpenBLAS setup](../../../plugins/openblas/README.md). Set `MORFLOW_OPENBLAS_LIBRARY` before starting the benchmark to select a specific installation.
 
 ## Run
 
@@ -81,3 +81,5 @@ MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" \
 ```
 
 Tests verify one load per selected pipeline across repeated runs, identical graph bodies, backend selection, NumPy threading, JSON metadata, native output agreement, and input preservation.
+
+The BLAS pipeline declares `plugin openblas/0.1.1`. Prepare it with `morflow prep`, or build locally with `bash scripts/build-plugins.sh openblas` and set `MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins"`. Shared system OpenBLAS is needed for execution.

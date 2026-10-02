@@ -1,4 +1,4 @@
-//! cargo run --release -p morflow-openblas --example copy_benchmark
+//! cargo run --release -p morflow-plugin-openblas --example copy_benchmark
 use core_types::Tensor;
 use std::{hint::black_box, time::Instant};
 fn measure(mut run: impl FnMut(), iterations: usize) -> f64 {
@@ -12,7 +12,7 @@ fn measure(mut run: impl FnMut(), iterations: usize) -> f64 {
     begin.elapsed().as_secs_f64() * 1000. / iterations as f64
 }
 fn main() {
-    let blas = morflow_openblas::require().unwrap();
+    let blas = morflow_openblas_plugin::require().unwrap();
     for side in [64, 512, 2048] {
         let input = Tensor::from_f32_vec(vec![1.; side * side], vec![side, side]).unwrap();
         let basic_repeat = measure(
@@ -24,7 +24,7 @@ fn main() {
         );
         let blas_repeat = measure(
             || {
-                black_box(morflow_openblas::repeat(black_box(&input), &[2, 2]).unwrap());
+                black_box(morflow_openblas_plugin::repeat(black_box(&input), &[2, 2]).unwrap());
             },
             20,
         );

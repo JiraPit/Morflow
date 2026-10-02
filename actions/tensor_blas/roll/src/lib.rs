@@ -1,5 +1,14 @@
+mod interface {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../plugins/openblas/src/interface.rs"
+    ));
+}
+
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{DataType, Payload, Shape, ShapeResult};
+
+const OPERATION: u32 = interface::operation!(roll);
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
@@ -36,67 +45,7 @@ pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeRe
 
 #[no_mangle]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    process_impl(payload, prepared)
-}
-
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    if let Err(error) = morflow_openblas::require() {
-        return Payload::Error(error);
-    }
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
-
-    let mut shift = 0isize;
-    let axis = prepared.unsigned("axis").unwrap_or(0) as usize;
-
-    if let Some(args) = &args_opt {
-        if let Some(sh_str) = args
-            .get_named("shift")
-            .or_else(|| args.get_named("shifts"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(sh) = prepared.args.parse::<isize>(sh_str) {
-                shift = sh;
-            }
-        }
-    }
-
-    match inner_payload {
-        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            match roll_tensor(&tensor, shift, axis) {
-                Ok(t) => Payload::from_tensor(t),
-                Err(e) => Payload::Error(e.into()),
-            }
-        }
-        _ => Payload::Error(core_types::RString::from(
-            "Action \'roll\' requires a tensor or scalar value",
-        )),
-    }
-}
-
-fn roll_tensor(tensor: &Tensor, shift: isize, axis: usize) -> Result<Tensor, String> {
-    let r = tensor.rank();
-    if r == 0 {
-        return Ok(tensor.clone());
-    }
-    let dim_len = tensor.shape[axis];
-    if dim_len == 0 {
-        return Ok(tensor.clone());
-    }
-
-    let shift_norm = ((shift % dim_len as isize) + dim_len as isize) as usize % dim_len;
-    if shift_norm == 0 {
-        return Ok(tensor.clone());
-    }
-
-    let split_idx = dim_len - shift_norm;
-    let part1 = tensor
-        .slice_range(axis, split_idx, dim_len, 1)
-        .map_err(|e| e.to_string())?;
-    let part2 = tensor
-        .slice_range(axis, 0, split_idx, 1)
-        .map_err(|e| e.to_string())?;
-
-    morflow_openblas::concat(&[part1, part2], axis as isize).map_err(|e| e.to_string())
+    call_plugin(OPERATION, payload, prepared)
 }
 
 #[no_mangle]
@@ -117,11 +66,60 @@ pub extern "C" fn shapecheck(
     core_types::shapecheck::axis_plan(result, rank, 1, Some(0), false)
 }
 
+fn call_plugin(operation: u32, payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let Some(runtime) = prepared.runtime.as_ref().into_option() else {
+        return Payload::Error("OpenBLAS action requires an engine-provided plugin context".into());
+    };
+    let address = match runtime.symbol(interface::PLUGIN_NAME, interface::PROCESS_SYMBOL) {
+        Ok(address) => address,
+        Err(error) => return Payload::Error(error),
+    };
+    // The openblas plugin defines this exact ABI. All values use the shared SDK.
+    let process = unsafe { std::mem::transmute::<usize, interface::NativeProcess>(address) };
+    process(operation, payload, prepared)
+}
+
+#[no_mangle]
+pub extern "C" fn get_required_plugins() -> core_types::RVec<core_types::plugins::PluginRequirement>
+{
+    vec![core_types::plugins::PluginRequirement {
+        name: interface::PLUGIN_NAME.into(),
+        version: interface::PLUGIN_VERSION.into(),
+    }]
+    .into()
+}
+
+#[cfg(test)]
+fn test_context() -> core_types::plugins::RuntimeContext {
+    extern "C" fn release(_: usize) {}
+    extern "C" fn resolve(
+        _: usize,
+        plugin: core_types::RString,
+        symbol: core_types::RString,
+    ) -> core_types::abi_stable::std_types::RResult<usize, core_types::RString> {
+        if plugin == interface::PLUGIN_NAME && symbol == interface::PROCESS_SYMBOL {
+            core_types::abi_stable::std_types::RResult::ROk(
+                openblas_plugin::morflow_openblas_process as *const () as usize,
+            )
+        } else {
+            core_types::abi_stable::std_types::RResult::RErr("Unexpected plugin symbol".into())
+        }
+    }
+    // Test-only context calls the real plugin export with the same native interface.
+    unsafe { core_types::plugins::RuntimeContext::new(0, release, resolve) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn process(payload: Payload) -> Payload {
-        core_types::shapecheck::execute("roll", shapecheck, super::process, payload)
+        core_types::shapecheck::execute_with_context(
+            "roll",
+            shapecheck,
+            super::process,
+            payload,
+            Some(test_context()),
+        )
     }
     use core_types::{ActionArgs, RBox, RString, Tensor, Tuple2};
 
@@ -156,6 +154,8 @@ mod tests {
         ) else {
             panic!("expected ready")
         };
+        let mut prepared = prepared;
+        prepared.runtime = Some(test_context()).into();
         let res = crate::process(payload, prepared);
         match res {
             Payload::Scalar(out) => {
@@ -168,7 +168,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../../../backends/openblas/tests/action_contract.rs"]
-mod backend_contract;

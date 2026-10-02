@@ -636,7 +636,7 @@ fn installed_receipts(root: &Path) -> Result<Vec<ArtifactReceipt>, String> {
 }
 
 // Like action search, plugin search uses the shipped catalog and works offline.
-const KNOWN_PLUGINS: &[&str] = &["opencv-bridge"];
+const KNOWN_PLUGINS: &[&str] = &["openblas", "opencv-bridge"];
 
 fn search_plugins(query: &str, limit: usize) -> Vec<&'static str> {
     let query = query.to_lowercase();

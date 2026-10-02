@@ -1371,50 +1371,44 @@ dependencies = [
 
 [[package]]
 name = "image_opencv_edge_detect"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
 name = "image_opencv_gaussian_blur"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
 name = "image_opencv_morphology"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
 name = "image_opencv_resize"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
 name = "image_opencv_rotate"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
 name = "image_opencv_sharpen"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-opencv",
 ]
 
 [[package]]
@@ -1618,58 +1612,58 @@ dependencies = [
 
 [[package]]
 name = "linalg_blas_cholesky"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_det"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_dot"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_inv"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_matmul"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_outer"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "linalg_blas_qr"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
@@ -1848,7 +1842,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1858,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1869,8 +1863,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "morflow-openblas"
-version = "0.1.0"
+name = "morflow-plugin-openblas"
+version = "0.1.1"
 dependencies = [
  "core_types",
  "libloading 0.8.9",
@@ -1878,24 +1872,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "morflow-opencv"
-version = "0.1.0"
-dependencies = [
- "core_types",
-]
-
-[[package]]
 name = "morflow-plugin-opencv-bridge"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
- "morflow-opencv",
  "opencv",
  "pkg-config",
 ]
 
 [[package]]
 name = "morflow-py"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -2328,7 +2314,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "chumsky",
  "serde",
@@ -2368,7 +2354,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pipeline"
-version = "0.2.3"
+version = "0.2.5"
 dependencies = [
  "abi_stable",
  "ariadne",
@@ -3400,26 +3386,26 @@ dependencies = [
 
 [[package]]
 name = "tensor_blas_concat"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "tensor_blas_repeat"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]
 name = "tensor_blas_roll"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "core_types",
- "morflow-openblas",
+ "morflow-plugin-openblas",
 ]
 
 [[package]]

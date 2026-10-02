@@ -1,11 +1,20 @@
 //! Prebuilt adapter to shared system OpenCV. No OpenCV code is vendored.
-use morflow_opencv::Options;
+pub mod interface;
+use interface::*;
+
 use opencv::{
     core::{self, Mat, Point, Scalar, Size},
     imgproc,
     prelude::*,
 };
 use std::ffi::{c_char, c_void};
+
+const RESIZE: i32 = interface::operation!(resize);
+const GAUSSIAN_BLUR: i32 = interface::operation!(gaussian_blur);
+const MORPHOLOGY: i32 = interface::operation!(morphology);
+const EDGE_DETECT: i32 = interface::operation!(edge_detect);
+const SHARPEN: i32 = interface::operation!(sharpen);
+const ROTATE: i32 = interface::operation!(rotate);
 
 fn invalid(message: &str) -> opencv::Error {
     opencv::Error::new(core::StsBadArg, message)
@@ -44,7 +53,10 @@ pub unsafe extern "C" fn morflow_opencv_process(
             return Err(invalid("Invalid image buffer descriptor"));
         }
         let o = &*options;
-        if o.operation != 0 && o.operation != 5 && (height != out_height || width != out_width) {
+        if o.operation != RESIZE
+            && o.operation != ROTATE
+            && (height != out_height || width != out_width)
+        {
             return Err(invalid(
                 "Shape-preserving operation has mismatched dimensions",
             ));
@@ -70,9 +82,9 @@ pub unsafe extern "C" fn morflow_opencv_process(
             Mat::new_rows_cols_with_data_unsafe_def(out_height, out_width, src.typ(), output)?;
         let size = Size::new(out_width, out_height);
         let anchor = Point::new(-1, -1);
-        if o.operation == 0 {
+        if o.operation == RESIZE {
             imgproc::resize(&src, &mut dst, size, 0., 0., o.mode)?;
-        } else if o.operation == 5 {
+        } else if o.operation == ROTATE {
             let rotation = if (o.angle - 90.).abs() < 1e-3 {
                 Some(core::ROTATE_90_CLOCKWISE)
             } else if (o.angle - 180.).abs() < 1e-3 {
@@ -110,7 +122,7 @@ pub unsafe extern "C" fn morflow_opencv_process(
                     Scalar::all(o.fill),
                 )?;
             }
-        } else if o.operation == 2 {
+        } else if o.operation == MORPHOLOGY {
             if o.radius == 0 {
                 src.copy_to(&mut dst)?;
             } else {
@@ -159,8 +171,8 @@ pub unsafe extern "C" fn morflow_opencv_process(
                 Mat::default()
             };
             let side = Size::new(2 * o.radius + 1, 2 * o.radius + 1);
-            if o.operation == 1 || o.operation == 4 {
-                let mut blurred = if o.operation == 1 && depth == core::CV_32F {
+            if o.operation == GAUSSIAN_BLUR || o.operation == SHARPEN {
+                let mut blurred = if o.operation == GAUSSIAN_BLUR && depth == core::CV_32F {
                     Mat::new_rows_cols_with_data_unsafe_def(
                         out_height,
                         out_width,
@@ -170,7 +182,7 @@ pub unsafe extern "C" fn morflow_opencv_process(
                 } else {
                     Mat::default()
                 };
-                if o.operation == 1 && o.mode == 1 {
+                if o.operation == GAUSSIAN_BLUR && o.mode == 1 {
                     imgproc::blur(values, &mut blurred, side, anchor, core::BORDER_REPLICATE)?;
                 } else {
                     #[cfg(opencv_gaussian_hint)]
@@ -193,7 +205,7 @@ pub unsafe extern "C" fn morflow_opencv_process(
                         core::BORDER_REPLICATE,
                     )?;
                 }
-                if o.operation == 4 {
+                if o.operation == SHARPEN {
                     core::add_weighted(
                         values,
                         1. + o.strength,
@@ -206,7 +218,7 @@ pub unsafe extern "C" fn morflow_opencv_process(
                 } else {
                     blurred.copy_to(&mut result)?;
                 }
-            } else if o.operation == 3 {
+            } else if o.operation == EDGE_DETECT {
                 if o.mode == 3 || o.mode == 1 || o.mode == 2 {
                     let mut derivative = Mat::default();
                     if o.mode == 3 {
@@ -317,4 +329,31 @@ pub unsafe extern "C" fn morflow_opencv_process(
         *error.add(count) = 0;
     }
     1
+}
+
+// Compile-time verification that the export implements the shared interface.
+const _: interface::NativeProcess = morflow_opencv_process;
+
+#[cfg(test)]
+mod interface_tests {
+    use super::*;
+    #[test]
+    fn native_parameter_layout_and_operation_identifiers_are_explicit() {
+        assert_eq!(std::mem::size_of::<Options>(), 56);
+        assert_eq!(std::mem::align_of::<Options>(), 8);
+        assert_eq!(std::mem::offset_of!(Options, operation), 0);
+        assert_eq!(std::mem::offset_of!(Options, sigma), 24);
+        assert_eq!(std::mem::offset_of!(Options, fill), 48);
+        assert_eq!(
+            [
+                RESIZE,
+                GAUSSIAN_BLUR,
+                MORPHOLOGY,
+                EDGE_DETECT,
+                SHARPEN,
+                ROTATE
+            ],
+            [0, 1, 2, 3, 4, 5]
+        );
+    }
 }
