@@ -74,7 +74,7 @@ pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,
 ) -> core_types::ShapeCheckResult {
-    if let Err(reason) = dimension_limits(&input, "qr") {
+    if let Err(reason) = dimension_limits(&input) {
         return core_types::ShapeCheckResult::Invalid { reason };
     }
     core_types::shapecheck::analyze(
@@ -88,41 +88,21 @@ pub extern "C" fn shapecheck(
     )
 }
 
-/// Validate the backend's integer ABI from shapes alone, without loading it.
-fn dimension_limits(
-    input: &core_types::InputDescriptor,
-    action: &str,
-) -> Result<(), core_types::RString> {
-    fn check(value: &core_types::ValueShape, action: &str) -> Result<(), core_types::RString> {
-        if let Some(parts) = value.components() {
-            for part in parts {
-                check(part, action)?;
-            }
-        } else if let Some(shape) = value.shape() {
-            let too_large = if matches!(action, "dot" | "outer") {
-                shape
-                    .known_dims()
-                    .and_then(|dims| dims.iter().try_fold(1usize, |n, d| n.checked_mul(*d)))
-                    .is_some_and(|n| n > i32::MAX as usize)
-            } else {
-                shape
-                    .dims()
-                    .iter()
-                    .rev()
-                    .take(2)
-                    .filter_map(|d| d.known())
-                    .any(|n| n > i32::MAX as usize)
-            };
-            if too_large {
-                return Err(format!(
-                    "{action} dimensions exceed the signed 32-bit LP64 OpenBLAS limit"
-                )
-                .into());
-            }
+/// Check this action's LP64 integer limits using shapes alone.
+fn dimension_limits(input: &core_types::InputDescriptor) -> Result<(), core_types::RString> {
+    if let Some(shape) = input.value.shape() {
+        if shape
+            .dims()
+            .iter()
+            .rev()
+            .take(2)
+            .filter_map(|d| d.known())
+            .any(|n| n > i32::MAX as usize)
+        {
+            return Err("qr dimensions exceed the signed 32-bit LP64 OpenBLAS limit".into());
         }
-        Ok(())
     }
-    check(&input.value, action)
+    Ok(())
 }
 
 fn call_plugin(operation: u32, payload: Payload, prepared: core_types::PreparedData) -> Payload {
