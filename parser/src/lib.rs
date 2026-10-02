@@ -485,3 +485,29 @@ mod tests {
         assert_eq!(pipeline.statements.len(), 1);
     }
 }
+
+#[cfg(test)]
+mod plugin_tests {
+    #[test]
+    fn plugin_versions_are_explicit() {
+        for version in ["0.1.0", "latest"] {
+            let ast = super::parse(&format!(
+                "plugin opencv-bridge/{version}\naccept Tensor $x\n$x >> emit\n"
+            ))
+            .unwrap();
+            assert_eq!(ast.plugins[0].name, "opencv-bridge");
+            assert_eq!(ast.plugins[0].version, version);
+        }
+        let errors =
+            super::parse("plugin opencv-bridge\naccept Tensor $x\n$x >> emit\n").unwrap_err();
+        assert!(errors
+            .iter()
+            .map(super::format_error)
+            .any(|message| message.contains("Plugin version is required")));
+        assert!(super::parse("import image_opencv\naccept Tensor $x\n$x >> emit\n").is_err());
+        assert!(
+            super::parse("from image_opencv import resize\naccept Tensor $x\n$x >> emit\n")
+                .is_err()
+        );
+    }
+}

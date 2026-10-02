@@ -1,5 +1,14 @@
 [workspace]
 members = [
+    "plugins/opencv-bridge",
+    "backends/opencv",
+    "actions/image_opencv/rotate",
+    "actions/image_opencv/resize",
+    "actions/image_opencv/gaussian_blur",
+    "actions/image_opencv/morphology",
+    "actions/image_opencv/edge_detect",
+    "actions/image_opencv/sharpen",
+
     "backends/openblas",
     "actions/tensor_blas/concat",
     "actions/tensor_blas/repeat",

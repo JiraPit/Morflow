@@ -25,3 +25,7 @@ serde_json = "1"
 sha2 = "0.10"
 semver = "1"
 tempfile = "3"
+
+[dev-dependencies]
+identity = { path = "../actions/base/identity" }
+neg = { path = "../actions/math_basics/neg" }

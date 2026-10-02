@@ -1,9 +1,6 @@
 use crate::artifact::*;
-use crate::engine::collect_action_names;
 use crate::release::{spec_path, PreparedRelease, ReleaseClient};
-use crate::resolver::ActionResolver;
 use clap::{Parser, Subcommand};
-use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -20,7 +17,27 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Pre-downloads all actions required by a .morf pipeline ahead of time for offline execution
+    /// Search known runtime plugins by name
+    SearchPlugin {
+        query: String,
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+    },
+    /// Install a runtime plugin with an explicit version or latest
+    InstallPlugin {
+        plugin: String,
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+        #[arg(short, long)]
+        force: bool,
+    },
+    /// Manage installed runtime plugins
+    Plugins {
+        #[command(subcommand)]
+        command: PluginCommands,
+    },
+
+    /// Pre-downloads all actions and plugins required by a .morf pipeline ahead of time for offline execution
     Prep {
         /// Path to the .morf pipeline definition file
         file: PathBuf,
@@ -28,6 +45,10 @@ enum Commands {
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long)]
         path: Option<PathBuf>,
+
+        /// Custom plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
+        #[arg(long)]
+        plugins_path: Option<PathBuf>,
 
         /// Force re-download even if action is already cached locally
         #[arg(short, long)]
@@ -86,6 +107,31 @@ enum Commands {
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long)]
         path: Option<PathBuf>,
+        /// Custom plugin cache directory
+        #[arg(long)]
+        plugins_path: Option<PathBuf>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum PluginCommands {
+    /// List verified installed plugin versions
+    List {
+        #[arg(long)]
+        path: Option<PathBuf>,
+    },
+    /// Install name/version or name/latest
+    Install {
+        plugin: String,
+        #[arg(long)]
+        path: Option<PathBuf>,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Remove cached plugins and catalogs; loaded pipelines keep their handles
+    Clean {
+        #[arg(long)]
+        path: Option<PathBuf>,
     },
 }
 
@@ -116,6 +162,12 @@ pub(crate) const KNOWN_ACTIONS: &[(&str, &str)] = &[
     ("audio_basics", "resample"),
     ("audio_basics", "stft"),
     ("audio_basics", "delay"),
+    ("image_opencv", "resize"),
+    ("image_opencv", "rotate"),
+    ("image_opencv", "gaussian_blur"),
+    ("image_opencv", "morphology"),
+    ("image_opencv", "edge_detect"),
+    ("image_opencv", "sharpen"),
     ("image_basics", "to_image"),
     ("image_basics", "resize"),
     ("image_basics", "crop"),
@@ -300,18 +352,6 @@ where
         }
     }
 }
-fn prepared<'a>(
-    client: &ReleaseClient,
-    releases: &'a mut HashMap<(String, String), PreparedRelease>,
-    pack: &str,
-    version: &str,
-) -> Result<&'a PreparedRelease, String> {
-    let key = (pack.to_owned(), version.to_owned());
-    if !releases.contains_key(&key) {
-        releases.insert(key.clone(), client.resolve(pack, version)?);
-    }
-    Ok(&releases[&key])
-}
 fn report_install(
     client: &ReleaseClient,
     root: &Path,
@@ -333,8 +373,38 @@ fn report_install(
 }
 fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
     match command {
-        Commands::Check { file, path } => crate::check::check_pipeline(&file, path.as_deref())?,
-        Commands::Prep { file, path, force } => {
+        Commands::SearchPlugin { query, limit } => {
+            for name in search_plugins(&query, limit) {
+                println!("{name}/latest");
+            }
+        }
+        Commands::InstallPlugin {
+            plugin,
+            path,
+            force,
+        } => {
+            run_plugin_command(PluginCommands::Install {
+                plugin,
+                path,
+                force,
+            })?;
+        }
+        Commands::Plugins { command } => run_plugin_command(command)?,
+        Commands::Check {
+            file,
+            path,
+            plugins_path,
+        } => crate::check::check_pipeline_with_plugins(
+            &file,
+            path.as_deref(),
+            plugins_path.as_deref(),
+        )?,
+        Commands::Prep {
+            file,
+            path,
+            plugins_path,
+            force,
+        } => {
             let source = fs::read_to_string(&file)?;
             let ast = parser::parse(&source).map_err(|errors| {
                 errors
@@ -343,44 +413,18 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     .collect::<Vec<_>>()
                     .join("\n")
             })?;
-            crate::validator::validate_pipeline(&ast)?;
-            let resolver = ActionResolver::from_imports(&ast.imports)?;
             let client = ReleaseClient::new(resolve_repo())?;
             let root = resolve_action_cache_dir(path);
-            let mut releases = HashMap::new();
-            // Resolve every action before touching the cache: ambiguous and
-            // undeclared names must not result in partial downloads.
-            let mut identities = HashSet::new();
-            for name in collect_action_names(&ast.statements) {
-                let id = resolver.resolve(&name, |p, v| {
-                    Ok(prepared(&client, &mut releases, p, v)?
-                        .catalog
-                        .actions(get_host_platform().0))
-                })?;
-                prepared(&client, &mut releases, &id.pack, &id.version)?;
-                identities.insert(id);
-            }
-            let mut identities: Vec<_> = identities.into_iter().collect();
-            identities.sort_by_key(ToString::to_string);
-            for id in &identities {
-                report_install(
-                    &client,
-                    &root,
-                    id,
-                    &releases[&(id.pack.clone(), id.version.clone())],
-                    force,
-                )?;
-            }
-            // Cache imported catalogs, including packs with no required action,
-            // so offline ambiguity checks see the same imported namespaces.
-            for release in releases.values() {
-                release.catalog.write(&root)?;
-            }
+            let plugin_root = crate::plugins::cache_dir(plugins_path);
+            let result = crate::preparation::prepare(&ast, &client, &root, &plugin_root, force)?;
             println!(
-                "Pipeline ready: {} verified action(s) in {}",
-                identities.len(),
-                root.display()
+                "Pipeline ready: {} verified action(s), {} verified plugin(s)",
+                result.actions, result.plugins
             );
+            println!("Actions: {}", root.display());
+            if result.plugins > 0 {
+                println!("Plugins: {}", plugin_root.display());
+            }
         }
         Commands::Install {
             action,
@@ -590,9 +634,154 @@ fn installed_receipts(root: &Path) -> Result<Vec<ArtifactReceipt>, String> {
     Ok(receipts)
 }
 
+// Like action search, plugin search uses the shipped catalog and works offline.
+const KNOWN_PLUGINS: &[&str] = &["opencv-bridge"];
+
+fn search_plugins(query: &str, limit: usize) -> Vec<&'static str> {
+    let query = query.to_lowercase();
+    let mut matches: Vec<_> = KNOWN_PLUGINS
+        .iter()
+        .filter_map(|&name| name.find(&query).map(|position| (name, position)))
+        .collect();
+    matches.sort_by(|a, b| {
+        a.1.cmp(&b.1)
+            .then(a.0.len().cmp(&b.0.len()))
+            .then(a.0.cmp(b.0))
+    });
+    matches
+        .into_iter()
+        .take(limit)
+        .map(|(name, _)| name)
+        .collect()
+}
+
+fn run_plugin_command(command: PluginCommands) -> Result<(), Box<dyn std::error::Error>> {
+    use crate::plugins::{PluginIdentity, PluginReceipt};
+    match command {
+        PluginCommands::Install {
+            plugin,
+            path,
+            force,
+        } => {
+            let (name, version) = plugin
+                .split_once('/')
+                .ok_or("Plugin version is required; use name/version or name/latest")?;
+            let id = PluginIdentity::new(name, version)?;
+            let client = ReleaseClient::new(resolve_repo())?;
+            let release = client.resolve_plugin(name, &id.version)?;
+            let changed =
+                client.install_plugin(&crate::plugins::cache_dir(path), &id, &release, force)?;
+            println!(
+                "{id} -> {}: {}",
+                release.catalog.concrete_version,
+                if changed {
+                    "downloaded and verified"
+                } else {
+                    "checksum verified"
+                }
+            );
+        }
+        PluginCommands::List { path } => {
+            let root = crate::plugins::cache_dir(path);
+            let _maintenance = CacheGuard::shared(&root, "maintenance")?;
+            let mut rows = Vec::new();
+            if root.exists() {
+                for directory in fs::read_dir(&root)? {
+                    let directory = directory?.path();
+                    if !directory.is_dir()
+                        || directory
+                            .file_name()
+                            .is_some_and(|n| n.to_string_lossy().starts_with('.'))
+                    {
+                        continue;
+                    }
+                    for file in fs::read_dir(directory)? {
+                        let path = file?.path();
+                        if !path.file_name().is_some_and(|n| {
+                            n.to_string_lossy().contains("_plugin-")
+                                && n.to_string_lossy().ends_with(".json")
+                        }) {
+                            continue;
+                        }
+                        let receipt: PluginReceipt = read_json(&path)?;
+                        if receipt_path(&receipt.identity.path(&root)) != path {
+                            return Err("Plugin receipt is stored under the wrong identity".into());
+                        }
+                        let _guard = CacheGuard::acquire(&root, &receipt.identity.to_string())?;
+                        let (receipt, _) = crate::plugins::read_verified(&root, &receipt.identity)?;
+                        rows.push(format!(
+                            "{} -> {} [{}]",
+                            receipt.identity, receipt.concrete_version, receipt.repository
+                        ));
+                    }
+                }
+            }
+            rows.sort();
+            if rows.is_empty() {
+                println!("No plugins installed in {}", root.display());
+            } else {
+                for row in rows {
+                    println!("{row}");
+                }
+            }
+        }
+        PluginCommands::Clean { path } => {
+            let root = crate::plugins::cache_dir(path);
+            let _guard = CacheGuard::acquire(&root, "maintenance")?;
+            if root.exists() {
+                for entry in fs::read_dir(&root)? {
+                    let path = entry?.path();
+                    if path.is_dir()
+                        && path
+                            .file_name()
+                            .is_some_and(|n| !n.to_string_lossy().starts_with('.'))
+                    {
+                        fs::remove_dir_all(path)?;
+                    }
+                }
+            }
+            println!("Removed cached plugins from {}", root.display());
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn plugin_search_matches_case_insensitively_and_obeys_limit() {
+        assert_eq!(search_plugins("OpenCV", 5), vec!["opencv-bridge"]);
+        assert!(search_plugins("unavailable", 5).is_empty());
+        assert!(search_plugins("opencv", 0).is_empty());
+    }
+
+    #[test]
+    fn parses_top_level_plugin_commands() {
+        let cli = Cli::try_parse_from(["morflow", "search-plugin", "opencv", "-l", "1"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::SearchPlugin { limit: 1, .. }
+        ));
+        let cli = Cli::try_parse_from([
+            "morflow",
+            "install-plugin",
+            "opencv-bridge/latest",
+            "-p",
+            "cache",
+            "-f",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::InstallPlugin {
+                force: true,
+                path: Some(_),
+                ..
+            }
+        ));
+        assert!(Cli::try_parse_from(["morflow", "install-plugin"]).is_err());
+    }
     #[test]
     fn parses_exact_versions_without_splitting_semver_dots() {
         for target in [

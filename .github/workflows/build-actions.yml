@@ -6,6 +6,7 @@ on:
     paths:
       - 'actions/**'
       - 'core_types/**'
+      - 'backends/**'
       - 'scripts/package_action.py'
       - 'scripts/detect_changed_actions.py'
       - 'scripts/merge_release_assets.py'
@@ -120,6 +121,7 @@ jobs:
           DEST_FILE="dist/${{ matrix.action.name }}_action-${{ matrix.action.version }}-${{ matrix.target.platform }}.${EXT}"
           cp "$SRC_FILE" "$DEST_FILE"
           echo "Built artifact: $DEST_FILE"
+          python3 -c 'import json,sys,tomllib; from pathlib import Path; cargo=tomllib.loads(Path(sys.argv[1]).read_text()); Path(sys.argv[2]).write_text(json.dumps({"plugins":cargo["package"].get("metadata",{}).get("morflow",{}).get("plugins",[])},indent=2))' "${{ matrix.action.path }}/Cargo.toml" "dist/${{ matrix.action.name }}_METADATA.json"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4

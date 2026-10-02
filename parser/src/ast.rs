@@ -3,8 +3,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Pipeline {
     pub imports: Vec<ImportStmt>,
+    pub plugins: Vec<PluginDecl>,
     pub params: Vec<PipelineParam>,
     pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginDecl {
+    pub name: String,
+    pub version: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

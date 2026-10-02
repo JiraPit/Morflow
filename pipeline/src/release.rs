@@ -67,6 +67,17 @@ impl<T: Transport> ReleaseClient<T> {
         format!("https://api.github.com/repos/{}", self.repository)
     }
     pub fn resolve(&self, pack: &str, requested: &str) -> Result<PreparedRelease, String> {
+        self.resolve_namespace("action_packs", pack, requested)
+    }
+    pub fn resolve_plugin(&self, name: &str, requested: &str) -> Result<PreparedRelease, String> {
+        self.resolve_namespace("plugins", name, requested)
+    }
+    fn resolve_namespace(
+        &self,
+        namespace: &str,
+        pack: &str,
+        requested: &str,
+    ) -> Result<PreparedRelease, String> {
         component(pack)?;
         let requested = normalize_version(requested)?;
         let release = if requested == "latest" {
@@ -82,7 +93,7 @@ impl<T: Transport> ReleaseClient<T> {
                     }
                     if let Some(raw) = release
                         .tag_name
-                        .strip_prefix(&format!("action_packs/{pack}/v"))
+                        .strip_prefix(&format!("{namespace}/{pack}/v"))
                     {
                         if let Ok(version) = Version::parse(raw) {
                             if version.pre.is_empty()
@@ -102,21 +113,22 @@ impl<T: Transport> ReleaseClient<T> {
                 .1
         } else {
             let url = format!(
-                "{}/releases/tags/action_packs%2F{}%2Fv{}",
+                "{}/releases/tags/{}%2F{}%2Fv{}",
                 self.api(),
+                namespace,
                 pack,
                 requested.replace('+', "%2B")
             );
             let release: Release =
                 serde_json::from_slice(&self.transport.get(&url)?).map_err(|e| e.to_string())?;
-            if release.draft || release.tag_name != format!("action_packs/{pack}/v{requested}") {
+            if release.draft || release.tag_name != format!("{namespace}/{pack}/v{requested}") {
                 return Err(format!("Release does not match {pack}/{requested}"));
             }
             release
         };
         let concrete = release
             .tag_name
-            .strip_prefix(&format!("action_packs/{pack}/v"))
+            .strip_prefix(&format!("{namespace}/{pack}/v"))
             .ok_or("Invalid release tag")?
             .to_owned();
         let urls: HashMap<_, _> = release
@@ -218,7 +230,9 @@ impl<T: Transport> ReleaseClient<T> {
         } else {
             None
         };
+        let plugins = self.action_requirements(release, &identity.action)?;
         let receipt = ArtifactReceipt {
+            plugins,
             identity: identity.clone(),
             concrete_version: catalog.concrete_version.clone(),
             repository: self.repository.clone(),
@@ -231,6 +245,103 @@ impl<T: Transport> ReleaseClient<T> {
         }
         if let Some(spec) = spec {
             atomic_write(&spec_path(&path), &spec)?;
+        }
+        atomic_write(
+            &receipt_path(&path),
+            &serde_json::to_vec_pretty(&receipt).map_err(|e| e.to_string())?,
+        )?;
+        catalog.write(root)?;
+        Ok(downloaded)
+    }
+    pub fn action_requirements(
+        &self,
+        release: &PreparedRelease,
+        action: &str,
+    ) -> Result<Vec<crate::plugins::Requirement>, String> {
+        component(action)?;
+        let filename = format!("{action}_METADATA.json");
+        let hash = release.catalog.checksums.get(&filename).ok_or_else(|| {
+            format!("Release {}/{} is missing required checksummed metadata {filename}; rebuild and publish the action with the current SDK", release.catalog.pack, release.catalog.concrete_version)
+        })?;
+        let bytes = self.transport.get(
+            release
+                .urls
+                .get(&filename)
+                .ok_or("Missing action metadata asset")?,
+        )?;
+        if digest(&bytes) != *hash {
+            return Err(format!("Action metadata checksum mismatch for {action}"));
+        }
+        #[derive(Deserialize)]
+        struct Metadata {
+            plugins: Vec<crate::plugins::Requirement>,
+        }
+        let metadata: Metadata = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        for req in &metadata.plugins {
+            req.validate()?;
+        }
+        Ok(metadata.plugins)
+    }
+    pub fn install_plugin(
+        &self,
+        root: &Path,
+        id: &crate::plugins::PluginIdentity,
+        release: &PreparedRelease,
+        force: bool,
+    ) -> Result<bool, String> {
+        use crate::plugins::{PluginIdentity, PluginReceipt};
+        let catalog = &release.catalog;
+        if id.name != catalog.pack
+            || id.version != catalog.requested_version
+            || catalog.repository != self.repository
+            || catalog.concrete_version == "latest"
+            || normalize_version(&catalog.concrete_version)? != catalog.concrete_version
+            || (id.version != "latest" && id.version != catalog.concrete_version)
+        {
+            return Err("Plugin installation identity/release mismatch".into());
+        }
+        let remote = PluginIdentity {
+            name: id.name.clone(),
+            version: catalog.concrete_version.clone(),
+            platform: id.platform.clone(),
+        };
+        let filename = remote.filename();
+        let hash = catalog
+            .checksums
+            .get(&filename)
+            .ok_or_else(|| format!("Plugin asset {filename} is missing"))?;
+        let url = release
+            .urls
+            .get(&filename)
+            .ok_or_else(|| format!("Plugin asset {filename} is missing"))?;
+        let _maintenance = CacheGuard::shared(root, "maintenance")?;
+        let _guard = CacheGuard::acquire(root, &id.to_string())?;
+        let path = id.path(root);
+        let cached = if force {
+            None
+        } else {
+            fs::read(&path).ok().filter(|bytes| digest(bytes) == *hash)
+        };
+        let downloaded = cached.is_none();
+        let bytes = match cached {
+            Some(bytes) => bytes,
+            None => self.transport.get(url)?,
+        };
+        if digest(&bytes) != *hash {
+            return Err(format!(
+                "Plugin checksum mismatch for {id}; cached artifact was preserved"
+            ));
+        }
+        let receipt = PluginReceipt {
+            identity: id.clone(),
+            concrete_version: catalog.concrete_version.clone(),
+            repository: self.repository.clone(),
+            sha256: hash.clone(),
+        };
+        receipt.validate(id, &bytes)?;
+        crate::plugins::snapshot(root, id, &bytes, hash)?;
+        if downloaded {
+            atomic_write(&path, &bytes)?;
         }
         atomic_write(
             &receipt_path(&path),
@@ -313,15 +424,25 @@ mod tests {
             .lock()
             .unwrap()
             .insert(url.clone(), bytes.to_vec());
+        let metadata = br#"{"plugins":[]}"#;
+        let metadata_name = "identity_METADATA.json".to_owned();
+        let metadata_url = format!("test://{version}/metadata");
+        fake.data
+            .lock()
+            .unwrap()
+            .insert(metadata_url.clone(), metadata.to_vec());
         PreparedRelease {
             catalog: ReleaseCatalog {
                 pack: "base".into(),
                 requested_version: requested.into(),
                 concrete_version: version.into(),
                 repository: "owner/repo".into(),
-                checksums: BTreeMap::from([(id.filename(), digest(bytes))]),
+                checksums: BTreeMap::from([
+                    (id.filename(), digest(bytes)),
+                    (metadata_name.clone(), digest(metadata)),
+                ]),
             },
-            urls: HashMap::from([(id.filename(), url)]),
+            urls: HashMap::from([(id.filename(), url), (metadata_name, metadata_url)]),
         }
     }
     #[test]
@@ -336,7 +457,15 @@ mod tests {
         let old = fixture(&fake, "0.1.0", b"old", "latest");
         assert!(client.install(root.path(), &latest, &old, false).unwrap());
         assert!(!client.install(root.path(), &latest, &old, false).unwrap());
-        assert_eq!(fake.requests.lock().unwrap().len(), 1);
+        assert_eq!(
+            fake.requests
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|url| url.ends_with("/binary"))
+                .count(),
+            1
+        );
         let exact = ActionIdentity::new("base", "0.1.0", "identity").unwrap();
         client
             .install(
@@ -506,6 +635,140 @@ mod tests {
                     let _guard = CacheGuard::acquire(root.path(), &id.to_string()).unwrap();
                     let (r, bytes) = read_verified(root.path(), &id).unwrap();
                     r.validate(&id, &bytes).unwrap();
+                }
+            });
+        });
+    }
+    #[test]
+    fn plugin_latest_follows_pagination_and_ignores_action_pack_releases() {
+        let fake = Fake::default();
+        let first: Vec<_> = (0..100)
+            .map(|_| serde_json::json!({"tag_name":"action_packs/fixture/v99.0.0","assets":[]}))
+            .collect();
+        let id = crate::plugins::PluginIdentity::new("fixture", "0.10.0").unwrap();
+        let second = serde_json::json!([
+            {"tag_name":"plugins/fixture/v0.9.0","assets":[]},
+            {"tag_name":"plugins/fixture/v9.0.0","draft":true,"assets":[]},
+            {"tag_name":"plugins/fixture/v10.0.0-rc.1","assets":[]},
+            {"tag_name":"plugins/fixture/v0.10.0","assets":[{"name":"checksums.txt","browser_download_url":"test://plugin-checksums"}]}
+        ]);
+        fake.data.lock().unwrap().extend([
+            (
+                "https://api.github.com/repos/owner/repo/releases?per_page=100&page=1".into(),
+                serde_json::to_vec(&first).unwrap(),
+            ),
+            (
+                "https://api.github.com/repos/owner/repo/releases?per_page=100&page=2".into(),
+                serde_json::to_vec(&second).unwrap(),
+            ),
+            (
+                "test://plugin-checksums".into(),
+                format!("{}  {}\n", digest(b"plugin"), id.filename()).into_bytes(),
+            ),
+        ]);
+        let client = ReleaseClient {
+            repository: "owner/repo".into(),
+            transport: fake,
+        };
+        assert_eq!(
+            client
+                .resolve_plugin("fixture", "latest")
+                .unwrap()
+                .catalog
+                .concrete_version,
+            "0.10.0"
+        );
+    }
+    #[test]
+    fn plugin_latest_refreshes_receipt_reuses_identical_bytes_and_keeps_exact() {
+        use crate::plugins::{read_verified, PluginIdentity};
+        let root = tempfile::tempdir().unwrap();
+        let fake = Fake::default();
+        let client = ReleaseClient {
+            repository: "owner/repo".into(),
+            transport: fake.clone(),
+        };
+        let make = |version: &str, requested: &str, bytes: &[u8]| {
+            let filename = PluginIdentity::new("fixture", version).unwrap().filename();
+            let url = format!("test://plugin/{version}");
+            fake.data
+                .lock()
+                .unwrap()
+                .insert(url.clone(), bytes.to_vec());
+            PreparedRelease {
+                catalog: ReleaseCatalog {
+                    pack: "fixture".into(),
+                    requested_version: requested.into(),
+                    concrete_version: version.into(),
+                    repository: "owner/repo".into(),
+                    checksums: BTreeMap::from([(filename.clone(), digest(bytes))]),
+                },
+                urls: HashMap::from([(filename, url)]),
+            }
+        };
+        let latest = PluginIdentity::new("fixture", "latest").unwrap();
+        let exact = PluginIdentity::new("fixture", "0.1.0").unwrap();
+        client
+            .install_plugin(
+                root.path(),
+                &latest,
+                &make("0.1.0", "latest", b"old"),
+                false,
+            )
+            .unwrap();
+        client
+            .install_plugin(root.path(), &exact, &make("0.1.0", "0.1.0", b"old"), false)
+            .unwrap();
+        client
+            .install_plugin(
+                root.path(),
+                &latest,
+                &make("0.2.0", "latest", b"new"),
+                false,
+            )
+            .unwrap();
+        assert!(!client
+            .install_plugin(
+                root.path(),
+                &latest,
+                &make("0.3.0", "latest", b"new"),
+                false
+            )
+            .unwrap());
+        assert_eq!(
+            read_verified(root.path(), &latest)
+                .unwrap()
+                .0
+                .concrete_version,
+            "0.3.0"
+        );
+        assert_eq!(read_verified(root.path(), &exact).unwrap().1, b"old");
+        let missing = PluginIdentity::new("missing", "0.1.0").unwrap();
+        assert!(client
+            .install_plugin(
+                root.path(),
+                &missing,
+                &make("0.1.0", "0.1.0", b"old"),
+                false
+            )
+            .is_err());
+        let first = make("0.4.0", "latest", b"first");
+        let second = make("0.5.0", "latest", b"second");
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                for _ in 0..20 {
+                    client
+                        .install_plugin(root.path(), &latest, &first, true)
+                        .unwrap();
+                    client
+                        .install_plugin(root.path(), &latest, &second, true)
+                        .unwrap();
+                }
+            });
+            scope.spawn(|| {
+                for _ in 0..40 {
+                    let _guard = CacheGuard::acquire(root.path(), &latest.to_string()).unwrap();
+                    read_verified(root.path(), &latest).unwrap();
                 }
             });
         });

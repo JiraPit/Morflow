@@ -1,0 +1,7 @@
+[package]
+name = "morflow-opencv"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_types = { path = "../../core_types" }

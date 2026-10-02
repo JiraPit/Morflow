@@ -87,6 +87,7 @@ impl std::fmt::Display for ActionIdentity {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArtifactReceipt {
+    pub plugins: Vec<crate::plugins::Requirement>,
     #[serde(flatten)]
     pub identity: ActionIdentity,
     pub concrete_version: String,
@@ -95,6 +96,9 @@ pub struct ArtifactReceipt {
 }
 impl ArtifactReceipt {
     pub fn validate(&self, identity: &ActionIdentity, bytes: &[u8]) -> Result<(), String> {
+        for requirement in &self.plugins {
+            requirement.validate()?;
+        }
         let canonical = ActionIdentity::for_platform(
             &identity.pack,
             &identity.version,
@@ -289,6 +293,7 @@ mod tests {
     fn rejects_wrong_identity_hash_and_exact_version() {
         let id = ActionIdentity::new("base", "0.2.0", "identity").unwrap();
         let mut r = ArtifactReceipt {
+            plugins: Vec::new(),
             identity: id.clone(),
             concrete_version: "0.2.0".into(),
             repository: "owner/repo".into(),

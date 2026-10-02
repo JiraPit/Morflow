@@ -98,6 +98,9 @@ impl MorflowPipeline {
 
     /// Preloads all actions declared across all steps in this pipeline into memory.
     fn preload_actions(&mut self) -> Result<(), MorflowError> {
+        let plugins =
+            crate::plugins::PluginSet::prepare(&self.ast.plugins, &crate::plugins::search_paths())
+                .map_err(MorflowError::Action)?;
         let resolver = crate::resolver::ActionResolver::from_imports(&self.ast.imports)
             .map_err(MorflowError::Compile)?;
         for name in collect_action_names(&self.ast.statements) {
@@ -107,6 +110,9 @@ impl MorflowPipeline {
             let action = self
                 .registry
                 .get_or_load(&identity)
+                .map_err(MorflowError::Action)?;
+            let action = action
+                .with_plugins(plugins.clone())
                 .map_err(MorflowError::Action)?;
             self.actions.insert(name, action);
         }
@@ -203,14 +209,15 @@ mod version_tests {
     fn publish(root: &Path, version: &str, concrete: &str, library: &str) {
         let id = ActionIdentity::new("fixture", version, "transform").unwrap();
         let deps = std::env::current_exe().unwrap();
-        let debug = deps.parent().unwrap().parent().unwrap();
+        let fixtures = deps.parent().unwrap();
         let prefix = if cfg!(windows) { "" } else { "lib" };
-        let bytes = fs::read(debug.join(format!(
+        let bytes = fs::read(fixtures.join(format!(
             "{prefix}{library}.{}",
             std::env::consts::DLL_EXTENSION
         )))
-        .expect("Build native action fixtures first with cargo build --workspace");
+        .expect("Cargo must build the native action dev-dependencies for these tests");
         let receipt = ArtifactReceipt {
+            plugins: Vec::new(),
             identity: id.clone(),
             concrete_version: concrete.into(),
             repository: "test/fixture".into(),

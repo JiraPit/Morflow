@@ -132,10 +132,27 @@ fn compare(loaded: &LoadedAction, input: Payload, parameters: ActionArgs) {
     }
 }
 fn action(registry: &ActionRegistry, pack: &str, name: &str) -> std::sync::Arc<LoadedAction> {
-    registry
+    let action = registry
         .get_or_load(&ActionIdentity::new(pack, "latest", name).unwrap())
+        .unwrap();
+    if action.receipt.plugins.is_empty() {
+        return action;
+    }
+    static PLUGINS: std::sync::OnceLock<std::sync::Arc<pipeline::plugins::PluginSet>> =
+        std::sync::OnceLock::new();
+    let plugins = PLUGINS.get_or_init(|| {
+        pipeline::plugins::PluginSet::prepare(
+            &[parser::ast::PluginDecl {
+                name: "opencv-bridge".into(),
+                version: "0.1.0".into(),
+            }],
+            &pipeline::plugins::search_paths(),
+        )
         .unwrap()
+    });
+    action.with_plugins(plugins.clone()).unwrap()
 }
+
 #[test]
 fn every_native_action_has_a_sound_complete_and_partial_prediction() {
     let registry = ActionRegistry::default();
@@ -180,7 +197,7 @@ fn every_native_action_has_a_sound_complete_and_partial_prediction() {
             count += 1;
         }
     }
-    assert_eq!(count, 86);
+    assert_eq!(count, 102);
 }
 #[test]
 fn reduction_empty_and_singleton_shapes_and_dynamic_axes_match_execution() {
@@ -219,7 +236,7 @@ fn reduction_empty_and_singleton_shapes_and_dynamic_axes_match_execution() {
     }
 }
 #[test]
-fn empty_matrices_and_shape_preserving_kernels_match_execution() {
+fn empty_matrices_and_shape_preserving_actions_match_execution() {
     let registry = ActionRegistry::default();
     for pack in ["math_basics", "nn_basics", "linalg_basics"] {
         let names: &[&str] = match pack {

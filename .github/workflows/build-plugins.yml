@@ -1,0 +1,124 @@
+name: Build and Release Plugins
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'
+      - 'backends/opencv/**'
+      - 'core_types/**'
+      - 'scripts/build-plugins.sh'
+      - 'scripts/package_plugin.py'
+      - 'scripts/package_action.py'
+      - '.github/workflows/build-plugins.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plugin-publishing
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      plugins: ${{ steps.matrix.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from package_plugin import plugin_metadata
+          plugins = [plugin_metadata(p) for p in sorted(Path('plugins').glob('*/Cargo.toml'))]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('plugins=' + json.dumps(plugins) + '\n')
+          PY
+
+  build:
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install shared OpenCV build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libopencv-dev clang pkg-config
+      - name: Install shared OpenCV build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install opencv llvm pkg-config
+          echo "LIBCLANG_PATH=$(brew --prefix llvm)/lib" >> "$GITHUB_ENV"
+      - name: Install shared OpenCV build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install opencv4:x64-windows
+          $root = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows"
+          $header = Get-ChildItem "$root/include" -Filter imgproc.hpp -Recurse | Where-Object { $_.Directory.Name -eq 'opencv2' } | Select-Object -First 1
+          if (-not $header) { throw 'OpenCV headers missing' }
+          "OPENCV_INCLUDE_PATHS=$($header.Directory.Parent.FullName)" >> $env:GITHUB_ENV
+          "OPENCV_LINK_PATHS=$root/lib" >> $env:GITHUB_ENV
+          $libraries = foreach ($component in @('core','imgproc')) {
+            $library = Get-ChildItem "$root/lib" -Filter "opencv_${component}*.lib" | Select-Object -First 1
+            if (-not $library) { throw "OpenCV $component import library missing" }
+            "dylib=$($library.BaseName)"
+          }
+          "MORFLOW_OPENCV_LINK_LIBS=$($libraries -join ',')" >> $env:GITHUB_ENV
+          "$root/bin" >> $env:GITHUB_PATH
+      - name: Build and package plugin
+        shell: bash
+        run: |
+          bash scripts/build-plugins.sh "${{ matrix.plugin.name }}"
+          mkdir -p dist
+          cp target/release/plugins/${{ matrix.plugin.name }}/*_plugin-* dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-${{ matrix.plugin.name }}-${{ matrix.plugin.version }}-${{ runner.os }}
+          path: dist/*
+          retention-days: 1
+
+  publish:
+    needs: [discover, build]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: plugin-${{ matrix.plugin.name }}-${{ matrix.plugin.version }}-*
+          path: release_assets
+          merge-multiple: true
+      - name: Publish versioned plugin release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="plugins/${{ matrix.plugin.name }}/v${{ matrix.plugin.version }}"
+          # Local receipts are recreated with published provenance by prep.
+          find release_assets -name '*.json' -delete
+          cp "plugins/${{ matrix.plugin.name }}/README.md" release_assets/README.md
+          if gh release view "$tag" >/dev/null 2>&1; then
+            mkdir -p previous_assets
+            gh release download "$tag" --dir previous_assets
+            python3 scripts/merge_release_assets.py previous_assets release_assets
+          fi
+          (cd release_assets && find . -maxdepth 1 -type f ! -name checksums.txt -printf '%f\n' | sort | xargs sha256sum > checksums.txt)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release_assets/* --clobber
+          else
+            gh release create "$tag" release_assets/* --title "Plugin: ${{ matrix.plugin.name }} v${{ matrix.plugin.version }}" --notes-file "plugins/${{ matrix.plugin.name }}/README.md"
+          fi

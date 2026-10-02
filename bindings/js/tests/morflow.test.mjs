@@ -342,3 +342,28 @@ test('Morflow - select QR Composite components', () => {
     assert.ok(Math.abs(q[row * 2] * r[col] + q[row * 2 + 1] * r[2 + col] - data[i]) < 1e-5);
   }
 });
+
+
+test('Morflow - declared plugin works through file and string APIs', {skip: !process.env.MORFLOW_PLUGINS_PATH}, async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'morflow-plugin-'));
+  const source = `plugin opencv-bridge/0.1.0
+from image_opencv/0.1.0 import resize
+accept Tensor[6,8,3] $image
+$image >> resize(4,3,filter="nearest") >> emit`;
+  const file = path.join(directory, 'plugin.morf');
+  fs.writeFileSync(file, source);
+  try {
+    const values = new Float32Array(6 * 8 * 3).fill(0.5);
+    const input = {data: Buffer.from(values.buffer), shape: [6,8,3], dtype: 'f32'};
+    for (const pipeline of [morflow.load(file), morflow.fromStr(source)]) {
+      for (const output of [pipeline.runSync(input), ...await Promise.all([pipeline.run(input), pipeline.run(input)])]) {
+        assert.deepEqual(output.shape, [3,4,3]);
+        assert.ok(Array.from(output.toFloat32Array()).every(value => value === 0.5));
+      }
+    }
+  } finally {
+    fs.rmSync(directory, {recursive: true, force: true});
+  }
+});

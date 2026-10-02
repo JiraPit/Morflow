@@ -13,7 +13,9 @@ use core_types::{
 use libloading::{Library, Symbol};
 
 /// A compiled, dynamically loaded action kept warm in memory.
+#[derive(Clone)]
 pub struct LoadedAction {
+    runtime: Option<core_types::plugins::RuntimeContext>,
     pub name: String,
     pub identity: ActionIdentity,
     pub receipt: ArtifactReceipt,
@@ -31,6 +33,19 @@ unsafe impl Send for LoadedAction {}
 unsafe impl Sync for LoadedAction {}
 
 impl LoadedAction {
+    pub fn with_plugins(
+        &self,
+        plugins: Arc<crate::plugins::PluginSet>,
+    ) -> Result<Arc<Self>, String> {
+        plugins.require(&self.receipt.plugins)?;
+        let mut action = self.clone();
+        action.runtime = if self.receipt.plugins.is_empty() {
+            None
+        } else {
+            Some(plugins.context())
+        };
+        Ok(Arc::new(action))
+    }
     pub fn shapecheck(
         &self,
         input: core_types::InputDescriptor,
@@ -40,7 +55,13 @@ impl LoadedAction {
     }
     /// The only runtime dispatch path: mandatory preparation and verification.
     pub fn process(&self, payload: Payload) -> Payload {
-        core_types::shapecheck::execute(&self.name, self.shapecheck_fn, self.process_fn, payload)
+        core_types::shapecheck::execute_with_context(
+            &self.name,
+            self.shapecheck_fn,
+            self.process_fn,
+            payload,
+            self.runtime.clone(),
+        )
     }
 
     pub fn output_value_result(
@@ -223,7 +244,7 @@ impl ActionRegistry {
     ) -> Result<LoadedAction, String> {
         let action_name = &identity.action;
         unsafe {
-            let lib = Library::new(path).map_err(|e| {
+            let lib = crate::native::library(path).map_err(|e| {
                 format!(
                     "Failed to dlopen '{}' ({}): {}",
                     action_name,
@@ -256,7 +277,18 @@ impl ActionRegistry {
             let input_type = (*get_in_sym)();
             let output_type = (*get_out_sym)();
             let process_fn = *process_sym;
+            let declared =
+                match lib.get::<core_types::plugins::GetPluginsFn>(b"get_required_plugins") {
+                    Ok(get) => crate::plugins::native_requirements(get()),
+                    Err(_) => Vec::new(),
+                };
+            if declared != receipt.plugins {
+                return Err(format!(
+                    "Plugin metadata does not match action {identity}; rebuild or run morflow prep"
+                ));
+            }
             Ok(LoadedAction {
+                runtime: None,
                 name: action_name.to_string(),
                 identity: identity.clone(),
                 receipt,
@@ -265,7 +297,7 @@ impl ActionRegistry {
                 output_type,
                 process_fn,
                 shapecheck_fn,
-                _library: Arc::new(lib),
+                _library: lib,
             })
         }
     }

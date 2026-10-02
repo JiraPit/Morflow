@@ -82,7 +82,7 @@ $img_in
 
 ### 3. Prepare Actions
 
-Pre-downloads all actions required by your `.morf` file ahead of time, ensuring the runtime executes completely offline with zero dynamic downloads:
+Pre-downloads all actions and declared plugins required by your `.morf` file ahead of time, ensuring the runtime executes completely offline with zero dynamic downloads:
 
 ```bash
 morflow prep pipeline.morf
@@ -122,6 +122,8 @@ Use `linalg_blas/0.1.0` for `matmul`, `dot`, `outer`, `inv`, `det`, `qr`, and `c
 These packs load the host's **shared OpenBLAS library during execution**; OpenBLAS is not bundled in each action. Checking and loading a pipeline works without OpenBLAS installed. Running an action requires an LP64 OpenBLAS installation; the factorization actions also require its LAPACKE interface. Set `MORFLOW_OPENBLAS_LIBRARY` to select a specific shared library. A missing dependency produces an execution error.
 
 See [OpenBLAS setup and behavior](backends/openblas/README.md) for installation, threading, numerical behavior, and local build instructions.
+
+The optional `image_opencv` pack provides spatial image filtering and resampling through host-installed shared OpenCV. Declare `plugin opencv-bridge/0.1.0` and run `morflow prep` to install its prebuilt plugin; OpenCV is not included in action binaries. See [the OpenCV backend guide](backends/opencv/README.md) and [plugin installation and development](plugins/README.md).
 
 ### Action versions and cache
 

@@ -1,120 +1,106 @@
 # Image transformation benchmark
 
-Compare an image-to-tensor pipeline implemented with **Pillow (PIL) + NumPy** and **Morflow's Python binding**. Each call starts with the same RGB image and performs:
+Compare **PIL/NumPy**, **morf-basic**, and **morf-opencv** using the same in-memory RGB image. Each execution performs:
 
-1. Center crop to 75% of the input width and height (rounded down, minimum one pixel).
+1. Center crop to 75% of the input width and height.
 2. Horizontal flip.
-3. Nearest-neighbor resize to the requested output dimensions.
-4. Convert to a float32 HWC tensor with RGB values normalized to `[0, 1]`.
+3. Nearest-neighbor resize to the requested output size.
+4. Convert to a float32 HWC tensor normalized to `[0,1]`.
 
-The benchmark checks output shape, dtype, and pixel values against the PIL/NumPy reference before measuring performance. Differences beyond an absolute tolerance of `1e-6` fail the run; a failed run does not write a results file.
+`morf-basic.morf` uses `image_basics` for crop, flip and resize. `morf-opencv.morf` uses the same crop and flip actions and replaces resize with `image_opencv/0.1.0`. Both use `base/0.3.1` for tensor conversion. This workload compares OpenCV resize within the existing pipeline; it does not measure the pack's blur, rotation, morphology, edge detection or sharpening actions.
 
 ## Setup
 
-Use Python 3.9 or newer. From the repository root:
+From the repository root:
 
 ```sh
-python -m pip install -r examples/benchmark/image/requirements.txt
-```
-
-The PIL-only benchmark does not need Morflow. For Morflow, install the current Python binding and prepare the exact action versions imported by `pipeline.morf`:
-
-```sh
-python -m pip install ./bindings/python
-morflow prep examples/benchmark/image/pipeline.morf
-```
-
-For a local development checkout whose versions have not been released, build and package the release actions instead:
-
-```sh
+python3 -m pip install -r examples/benchmark/image/requirements.txt
+python3 -m pip install ./bindings/python
 bash scripts/build-actions.sh
-python scripts/prepare_test_actions.py --profile release
 ```
 
-If your Python binding is installed in editable mode, refresh its native extension too:
+For the OpenCV backend, install OpenCV 4 development headers and shared core/imgproc libraries, a C++17 compiler and pkg-config, then build the plugin for local development:
+
+```sh
+bash scripts/build-plugins.sh opencv-bridge
+export MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins"
+```
+
+For published artifacts, `morflow prep examples/benchmark/image/morf-opencv.morf` installs the prebuilt plugin; only compatible runtime OpenCV libraries are needed. OpenCV remains a shared system dependency; it is not bundled into the actions. See [the backend guide](../../../backends/opencv/README.md) for other platforms and library discovery. Python's C++ runtime must be compatible with the installed OpenCV, particularly when mixing Conda and system libraries. An error mentioning `GLIBCXX` indicates an incompatible runtime; use compatible installations rather than silently substituting a backend.
+
+Use `--actions-path target/release/actions` for locally built, prepared actions. For published versions, `morflow prep` can prepare either pipeline file instead. The PIL-only run does not require Morflow or OpenCV.
+
+If the installed binding predates your checkout's engine interface, rebuild it:
 
 ```sh
 maturin develop --release --manifest-path bindings/python/Cargo.toml
 ```
 
-Building with `scripts/build-engine.sh` produces libraries in `target/release/`; it does not replace an older extension already installed in the Python package. Reinstalling the binding is required after engine/interface changes.
-
-Then pass `--actions-path target/release/actions` when benchmarking. Use release builds when comparing speed. The pipeline imports `base/0.3.1` and `image_basics/0.3.1`; the binding and actions must come from a compatible checkout.
-
 ## Run
 
-Commands work from any directory when you provide the script's path. These examples run from the repository root:
-
 ```sh
-# Both backends (default)
-python examples/benchmark/image/benchmark.py
+# All three backends; no selection flags means all.
+python3 examples/benchmark/image/benchmark.py --actions-path target/release/actions
 
-# Choose one backend
-python examples/benchmark/image/benchmark.py --pil
-python examples/benchmark/image/benchmark.py --morflow --actions-path target/release/actions
+# Select one or any combination.
+python3 examples/benchmark/image/benchmark.py --pil
+python3 examples/benchmark/image/benchmark.py --morf-basic --actions-path target/release/actions
+python3 examples/benchmark/image/benchmark.py --morf-opencv --actions-path target/release/actions
 
-# Explicitly choose both, supply a photo, and set the result path
-python examples/benchmark/image/benchmark.py --pil --morflow \
+# Compare both Morflow variants using a photo.
+python3 examples/benchmark/image/benchmark.py --morf-basic --morf-opencv \
   --image photo.png --iterations 100 --samples 7 --warmup 10 \
-  --output results/image-benchmark.json
+  --actions-path target/release/actions --output results/image-benchmark.json
 
-# Control generated input dimensions, output dimensions, and Morflow workers
-python examples/benchmark/image/benchmark.py --morflow \
+# Change input/output sizes and Morflow workers.
+python3 examples/benchmark/image/benchmark.py --pil --morf-basic --morf-opencv \
   --width 1920 --height 1080 --output-width 512 --output-height 512 \
   --threads 4 --actions-path target/release/actions
 ```
 
-Without `--image`, the script generates deterministic RGB pixels using `--seed` (default `0`). Input defaults to 1920×1080, output to 512×512. With `--image`, the file's dimensions take precedence over `--width` and `--height`.
+Input defaults to seeded RGB pixels at 1920×1080; output defaults to 512×512. `--seed` controls generation. With `--image`, file dimensions take precedence over generated dimensions. Defaults are five warmup calls, five samples and fifty transformations per sample. Backend order alternates between samples.
 
-Defaults are five warmup calls per backend, five timing samples, and 50 transformations per sample. Samples alternate backend order. `--threads` sets `RAYON_NUM_THREADS` before loading Morflow; without it, the existing environment or Rayon defaults apply. Pillow and NumPy use their own implementations; this is not a comparison with identical threading.
-
-## What is timed
-
-Timing uses `perf_counter_ns`. It measures complete transformation calls, including Python/native call overhead, Morflow's input conversion, output allocation/materialization, and output release. The pipeline and reusable source objects are prepared once. Image decoding, image generation, dependency loading, correctness checks, and warmup calls are excluded.
-
-The result is a practical comparison of these two Python-callable implementations. It is not a measurement of isolated native action execution. Morflow runs its normal runtime shape checks and output verification.
-
-The nearest resize uses `floor(output_index × input_size / output_size)` with float32 coordinates. The PIL backend uses Pillow for crop/flip and NumPy for this resize and normalization. Pillow's built-in nearest resize uses a different pixel-center convention, so substituting it would change the workload's output. This benchmark does not cover bilinear resize, color adjustment, or blur.
-
-## JSON results
-
-By default, each run writes a timestamped file under `examples/benchmark/image/results/` (ignored by Git). `--output` selects another location and replaces that file after a successful run. Files are written atomically.
-
-The report contains:
-
-- `schema_version`, UTC start time, input source/seed, dimensions, crop, transformation steps, and pipeline source.
-- Measurement settings and timing scope.
-- Python, package, OS, CPU, action-cache, and thread settings.
-- Per-backend output validation and maximum absolute error.
-- Raw sample durations in nanoseconds and sample mean milliseconds per image.
-- Mean, median, minimum, maximum, and standard deviation **of sample means**, plus overall images per second.
-- For both backends, PIL time divided by Morflow time; a ratio above 1 means Morflow was faster for this run.
-
-These are sample averages, not individual-call latency percentiles. Compare runs on the same machine, with the same input and settings, and keep other system activity low. The benchmark makes no assumption that either implementation will be faster.
-
-## Verify the suite
-
-```sh
-python -m unittest discover -s examples/benchmark -t examples/benchmark -p 'test_*.py'
-
-# Also exercise Morflow across small, uneven, and upsampled inputs
-MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" \
-  python -m unittest discover -s examples/benchmark -t examples/benchmark -p 'test_*.py'
-```
-
-The native integration test runs only when `MORFLOW_ACTIONS_PATH` is set.
-
+`--threads` sets Morflow's Rayon worker count before loading it. Configure OpenCV threading before starting Python; the benchmark records `OPENCV_FOR_THREADS_NUM` and the bridge path. OpenCV's available optimizations and threading depend on its installed build. This is a comparison of complete implementations, not necessarily equal thread counts.
 
 ## Load once, run repeatedly
 
-Both benchmarks separate setup from execution:
+The input file is opened and decoded exactly once into an owned RGB NumPy array, then closed. Without a file, pixels are generated once. PIL prepares one in-memory image. Each selected Morflow variant calls `morflow.load` exactly once on its checked-in `.morf` file and creates one reusable input wrapper.
 
 ```text
-Load/decode or generate the input once
-Load each Morflow pipeline once; prepare the PIL/NumPy source once
-Run validation → run warmup → run → run → run → …
+Load the image once → load each selected pipeline once → run → run → run → …
 ```
 
-For `--image`, the image is opened and decoded exactly once into an owned RGB NumPy array. The file is closed before either backend runs. PIL reuses an in-memory image; Morflow reuses a typed wrapper over the same decoded pixels. Iterations never reopen or decode the file. The tensor benchmark similarly generates its input once and loads its checked-in pipeline.morf file once.
+Validation, warmup and timed runs reuse these instances. Every iteration starts from the original input. Iterations do not read files, reload pipelines or decode images.
 
-Every iteration transforms the original input, rather than feeding the previous result back in. Input and output conversions needed by the Python binding still occur within `pipeline.run`; pipeline loading and disk I/O do not.
+## Validation and timing
+
+Before timing, output dimensions, float32 dtype and pixels are checked against independently calculated PIL/NumPy references. Pillow handles crop/flip; NumPy calculates nearest sampling and normalization. The timed PIL backend follows basics' float32 scale calculations. OpenCV's reference follows its double-precision inverse-scale calculation. At some resize ratios, these conventions select different neighboring pixels at rounding boundaries.
+
+Each backend must match its own reference within `1e-6`. The report also records each backend's maximum pixel difference and number of differing pixels compared with PIL. The console reports OpenCV rounding differences when present. This distinguishes valid library sampling behavior from an incorrect transformation. Pillow's built-in nearest resize has a different pixel-center convention and is not substituted here. Failed validation stops the run without writing a report.
+
+Timing uses `perf_counter_ns` and includes transformation calls, Python/native overhead, output materialization and release. Input decoding/generation, source setup, pipeline loading, reference calculation, validation and warmup are excluded. Morflow uses its normal runtime shape checks and output verification.
+
+## JSON reports
+
+Reports use schema version 2 and are saved under `image/results/` unless `--output` specifies a path. The writer replaces the selected file atomically after success. Reports include:
+
+- Input source, dimensions, crop, transformation steps and both pipeline sources.
+- Timing settings, scope, package versions, platform and thread/library configuration.
+- Per-backend reference conventions, validation errors, differences from PIL and raw sample durations.
+- Mean, median, minimum, maximum and standard deviation of sample means, plus images per second.
+- A timing ratio for every selected backend pair, including `morf_basic_time_divided_by_morf_opencv_time` when both are selected.
+
+A ratio greater than one means the denominator backend was faster in that run. These are sample means, not individual-call latency percentiles. Generated reports and artifacts under the benchmark directory are ignored by Git.
+
+## Tests
+
+```sh
+python3 -m unittest discover -s examples/benchmark -t examples/benchmark -p 'test_*.py'
+
+# Native tests, with prepared actions and the OpenCV adapter:
+MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins" \
+MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" \
+  python3 -m unittest discover -s examples/benchmark/image -t examples/benchmark
+```
+
+Native basics tests require `MORFLOW_ACTIONS_PATH`; the OpenCV variant is also exercised when `MORFLOW_PLUGINS_PATH` is set. Mocked full-run tests independently verify one image decode and one pipeline load per selected Morflow backend across validation, warmup and repeated runs.

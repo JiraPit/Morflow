@@ -309,4 +309,32 @@ public class MorflowTest {
             }
         }
     }
+    @Test
+    public void testPluginFileAndStringLoading() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(System.getenv("MORFLOW_PLUGINS_PATH") != null);
+        String source = """
+            plugin opencv-bridge/0.1.0
+            from image_opencv/0.1.0 import resize
+            accept Tensor[6,8,3] $image
+            $image >> resize(4,3,filter="nearest") >> emit
+        """;
+        java.nio.file.Path file = java.nio.file.Files.createTempFile("morflow-plugin-", ".morf");
+        try {
+            java.nio.file.Files.writeString(file, source);
+            float[] input = new float[6 * 8 * 3];
+            java.util.Arrays.fill(input, 0.5f);
+            for (Pipeline selected : new Pipeline[]{Morflow.load(file), Morflow.fromStr(source)}) {
+                try (Pipeline pipeline = selected) {
+                    for (int repeat = 0; repeat < 2; repeat++) {
+                        MorflowTensor output = pipeline.run(input, new int[]{6,8,3});
+                        assertArrayEquals(new int[]{3,4,3}, output.getShape());
+                        for (float value : output.toFloatArray()) assertEquals(0.5f, value);
+                    }
+                }
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(file);
+        }
+    }
+
 }

@@ -102,6 +102,7 @@ pub enum PreparedValue {
 #[repr(C)]
 #[derive(StableAbi, Debug, Clone)]
 pub struct PreparedData {
+    pub runtime: abi_stable::std_types::ROption<crate::plugins::RuntimeContext>,
     pub output: ValueShape,
     pub args: PreparedArgs,
     pub fields: RVec<Tuple2<RString, PreparedValue>>,
@@ -234,6 +235,7 @@ pub fn analyze(
         };
     }
     let prepared = PreparedData {
+        runtime: None.into(),
         output: output.clone(),
         args,
         fields: RVec::new(),
@@ -381,6 +383,16 @@ pub fn execute(
     process: crate::ProcessFn,
     payload: Payload,
 ) -> Payload {
+    execute_with_context(name, check, process, payload, None)
+}
+
+pub fn execute_with_context(
+    name: &str,
+    check: ShapeCheckFn,
+    process: crate::ProcessFn,
+    payload: Payload,
+    runtime: Option<crate::plugins::RuntimeContext>,
+) -> Payload {
     match check(
         InputDescriptor::from_payload(&payload),
         payload.args().cloned().unwrap_or_default(),
@@ -389,7 +401,11 @@ pub fn execute(
         ShapeCheckResult::Deferred { unresolved, .. } => Payload::Error(
             format!("Action '{name}' could not prepare execution: {unresolved:?}").into(),
         ),
-        ShapeCheckResult::Ready { output, prepared } => {
+        ShapeCheckResult::Ready {
+            output,
+            mut prepared,
+        } => {
+            prepared.runtime = runtime.into();
             let actual = process(payload.into_unwrapped(), prepared);
             if matches!(actual, Payload::Error(_)) {
                 return actual;
@@ -518,6 +534,7 @@ mod tests {
         ShapeCheckResult::Ready {
             output: output.clone(),
             prepared: PreparedData {
+                runtime: None.into(),
                 output,
                 args: args.into(),
                 fields: vec![Tuple2("token".into(), PreparedValue::Unsigned(token))].into(),

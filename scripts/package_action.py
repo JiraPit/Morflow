@@ -74,6 +74,7 @@ def action_metadata(manifest):
         'package': package['name'],
         'library': cargo.get('lib', {}).get('name', package['name'].replace('-', '_')),
         'version': package['version'],
+        'plugins': package.get('metadata', {}).get('morflow', {}).get('plugins', []),
     }
 
 
@@ -87,12 +88,13 @@ def package_action(manifest, binary, cache, target=None, latest=False):
     data = binary.read_bytes()
     spec_path = manifest.parent / 'SPEC.md'
     spec = spec_path.read_bytes() if spec_path.exists() else None
+    plugin_metadata = json.dumps({'plugins': metadata['plugins']}, indent=2).encode()
     with cache_lock(cache, 'maintenance'):
         for requested in [concrete] + (['latest'] if latest else []):
             filename = f'{action}_action-{requested}-{target}.{ext}'
             path = cache / pack / filename
             identity = {'pack': pack, 'version': requested, 'action': action, 'platform': target}
-            receipt = dict(identity, concrete_version=concrete, repository='local-build', sha256=sha256(data))
+            receipt = dict(identity, concrete_version=concrete, repository='local-build', sha256=sha256(data), plugins=metadata['plugins'])
             with cache_lock(cache, f'{pack}/{requested}/{action} ({target})'):
                 atomic_write(path, data)
                 if spec is not None:
@@ -107,6 +109,8 @@ def package_action(manifest, binary, cache, target=None, latest=False):
                         if previous['concrete_version'] == concrete and previous['repository'] == 'local-build':
                             catalog = previous
                     catalog['checksums'][f'{action}_action-{concrete}-{target}.{ext}'] = sha256(data)
+                    atomic_write(cache / pack / (action + '_METADATA.json'), plugin_metadata)
+                    catalog['checksums'][f'{action}_METADATA.json'] = sha256(plugin_metadata)
                     if spec is not None:
                         catalog['checksums'][f'{action}_SPEC.md'] = sha256(spec)
                     atomic_write(catalog_path, json.dumps(catalog, indent=2).encode())

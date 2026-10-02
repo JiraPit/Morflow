@@ -398,6 +398,7 @@ mod tests {
     use core_types::{ActionArgs, Shape, ValueShape};
     fn plan(shape: Vec<usize>) -> PreparedData {
         PreparedData {
+            runtime: None.into(),
             output: ValueShape::tensor(Shape::new(shape)),
             args: ActionArgs::default().into(),
             fields: Default::default(),

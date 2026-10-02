@@ -532,13 +532,38 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
 
     let import_stmt = choice((from_import, single_item_import, pkg_import));
 
+    let plugin_stmt = text::keyword("plugin")
+        .ignore_then(padded(
+            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+                .repeated()
+                .at_least(1)
+                .collect::<String>(),
+        ))
+        .then(just('/').ignore_then(version_str).or_not())
+        .validate(|(name, version), span, emit| {
+            if version.is_none() {
+                emit(Simple::custom(
+                    span,
+                    "Plugin version is required; use plugin name/version or plugin name/latest",
+                ));
+            }
+            // A missing version emits an error: no pipeline with this placeholder
+            // is returned by parse(), and there is no implicit latest selection.
+            PluginDecl {
+                name,
+                version: version.unwrap_or_default(),
+            }
+        });
+
     enum TopLevel {
+        Plugin(PluginDecl),
         Import(ImportStmt),
         Param(PipelineParam),
         Stmt(Statement),
     }
 
     let top_level_item = choice((
+        padded(plugin_stmt).map(TopLevel::Plugin),
         padded(import_stmt).map(TopLevel::Import),
         padded(accept_stmt).map(TopLevel::Param),
         statement.clone().map(TopLevel::Stmt),
@@ -546,17 +571,20 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
 
     // Top-level pipeline format with imports, `accept $a` declarations and flows
     let pipeline_top_level = top_level_item.repeated().map(|items| {
+        let mut plugins = Vec::new();
         let mut imports = Vec::new();
         let mut params = Vec::new();
         let mut statements = Vec::new();
         for item in items {
             match item {
+                TopLevel::Plugin(plugin) => plugins.push(plugin),
                 TopLevel::Import(imp) => imports.push(imp),
                 TopLevel::Param(param) => params.push(param),
                 TopLevel::Stmt(stmt) => statements.push(stmt),
             }
         }
         Pipeline {
+            plugins,
             imports,
             params,
             statements,

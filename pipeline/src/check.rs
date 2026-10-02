@@ -472,6 +472,14 @@ pub fn check_pipeline(
     file_path: &Path,
     custom_cache_path: Option<&Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    check_pipeline_with_plugins(file_path, custom_cache_path, None)
+}
+
+pub fn check_pipeline_with_plugins(
+    file_path: &Path,
+    custom_cache_path: Option<&Path>,
+    custom_plugins_path: Option<&Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let console = Console::new();
 
     if !file_path.exists() {
@@ -606,6 +614,11 @@ pub fn check_pipeline(
         search_paths.insert(0, custom.to_path_buf());
     }
     let registry = ActionRegistry::new(search_paths);
+    let mut plugin_paths = crate::plugins::search_paths();
+    if let Some(path) = custom_plugins_path {
+        plugin_paths.insert(0, path.to_path_buf());
+    }
+    let plugins = crate::plugins::PluginSet::prepare(&ast.plugins, &plugin_paths)?;
     let mut loaded_actions: HashMap<String, Arc<LoadedAction>> = HashMap::new();
 
     for act_name in &action_names {
@@ -615,7 +628,8 @@ pub fn check_pipeline(
 
         let loaded_res = resolver
             .resolve(act_name, |p, v| registry.catalog(p, v))
-            .and_then(|identity| registry.get_or_load(&identity));
+            .and_then(|identity| registry.get_or_load(&identity))
+            .and_then(|action| action.with_plugins(plugins.clone()));
 
         match loaded_res {
             Ok(action) => {
@@ -633,7 +647,7 @@ pub fn check_pipeline(
                         .with_label(
                             Label::new((filename_str.as_str(), span))
                                 .with_message(format!(
-                                    "Action binary for '{}' not found in cache or search paths",
+                                    "Dependencies for action '{}' could not be verified",
                                     act_name
                                 ))
                                 .with_color(Color::Red),
@@ -649,14 +663,14 @@ pub fn check_pipeline(
 
                 console.print("");
                 console.print(&format!(
-                    "[bold red]✗ Check failed:[/] Missing action binary for '[bold]{}[/]'.",
+                    "[bold red]✗ Check failed:[/] Cannot prepare action '[bold]{}[/]'.",
                     act_name
                 ));
                 console.print(&format!(
                     "[yellow]Tip:[/] Run [bold cyan]morflow prep {}[/] to install required actions.",
                     file_path.display()
                 ));
-                return Err("Missing action binary".into());
+                return Err("Action dependency validation failed".into());
             }
         }
     }

@@ -100,8 +100,9 @@ fn every_rank_determined_action_preserves_rank_with_no_known_lengths() {
                     ("tensor_stats", "cumsum") => 2,
                     ("tensor_stats", "argmax" | "argmin") => 1,
                     ("tensor_stats", _) => 0,
-                    ("linalg_basics", "det" | "trace") => 0,
-                    ("linalg_basics", "dot" | "diag") | ("tensor_basics", "flatten") => 1,
+                    ("linalg_basics" | "linalg_blas", "det" | "trace") => 0,
+                    ("linalg_basics" | "linalg_blas", "dot" | "diag")
+                    | ("tensor_basics", "flatten") => 1,
                     ("tensor_basics", "unsqueeze") => 3,
                     _ => 2,
                 };
@@ -114,7 +115,7 @@ fn every_rank_determined_action_preserves_rank_with_no_known_lengths() {
             count += 1;
         }
     }
-    assert_eq!(count, 77);
+    assert_eq!(count, 93);
 }
 
 #[test]

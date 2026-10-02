@@ -286,3 +286,23 @@ else:
     result = subprocess.run([sys.executable, "-c", code, str(path)], env=environment,
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_plugin_file_and_string_loading(tmp_path):
+    import os
+
+    if not os.environ.get("MORFLOW_PLUGINS_PATH"):
+        pytest.skip("Requires prepared OpenCV plugin and its runtime libraries")
+    source = """plugin opencv-bridge/0.1.0
+from image_opencv/0.1.0 import resize
+accept Tensor[6,8,3] $image
+$image >> resize(4,3,filter="nearest") >> emit
+"""
+    path = tmp_path / "plugin.morf"
+    path.write_text(source)
+    input_data = np.full((6, 8, 3), 0.5, dtype=np.float32)
+    for pipeline in [morflow.load(str(path)), morflow.from_str(source)]:
+        for _ in range(2):
+            output = pipeline.run(input_data)
+            assert output.shape == (3, 4, 3)
+            np.testing.assert_array_equal(output, 0.5)

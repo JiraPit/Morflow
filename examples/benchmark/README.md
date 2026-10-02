@@ -4,7 +4,7 @@ Each benchmark has its own runner, pipeline, tests, dependencies, and generated 
 
 | Benchmark | Backends | Instructions |
 | --- | --- | --- |
-| Image transformation | PIL/NumPy, Morflow | [image/README.md](image/README.md) |
+| Image transformation | PIL/NumPy, morf-basic, morf-opencv | [image/README.md](image/README.md) |
 | Branching tensor transformation | NumPy, morf-basic, morf-blas | [branching_tensor/README.md](branching_tensor/README.md) |
 | Sequential tensor transformation | NumPy, morf-basic, morf-blas | [simple_tensor/README.md](simple_tensor/README.md) |
 

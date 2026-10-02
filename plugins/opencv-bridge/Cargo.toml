@@ -1,0 +1,18 @@
+[package]
+name = "morflow-plugin-opencv-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "morflow_opencv_bridge"
+crate-type = ["cdylib"]
+
+[package.metadata.morflow]
+plugin = "opencv-bridge"
+
+[dependencies]
+morflow-opencv = { path = "../../backends/opencv" }
+opencv = { version = "0.101", default-features = false, features = ["imgproc"] }
+
+[build-dependencies]
+pkg-config = "0.3"

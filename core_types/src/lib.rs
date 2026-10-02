@@ -2,6 +2,7 @@ pub mod audio;
 pub mod composite_contract;
 pub mod contract;
 pub mod image;
+pub mod plugins;
 pub mod shape;
 pub mod shapecheck;
 pub use shapecheck::{

@@ -1,0 +1,20 @@
+plugin opencv-bridge/0.1.0
+
+from base/0.3.1 import to_tensor
+from image_basics/0.3.1 import crop, flip
+from image_opencv/0.1.0 import resize
+
+accept Image $image
+accept IntArg $crop_x
+accept IntArg $crop_y
+accept IntArg $crop_width
+accept IntArg $crop_height
+accept IntArg $output_width
+accept IntArg $output_height
+
+$image >> to_tensor(color="rgb", dtype="u8", layout="hwc", normalize=false)
+       >> crop(x=$crop_x, y=$crop_y, width=$crop_width, height=$crop_height)
+       >> flip(axis="horizontal")
+       >> resize(width=$output_width, height=$output_height, filter="nearest")
+       >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
+       >> emit

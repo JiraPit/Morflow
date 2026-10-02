@@ -1,0 +1,18 @@
+[package]
+name = "image_opencv_resize"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.morflow]
+action = "resize"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+core_types = { path = "../../../core_types" }
+morflow-opencv = { path = "../../../backends/opencv" }
+
+[[package.metadata.morflow.plugins]]
+name = "opencv-bridge"
+version = "^0.1.0"

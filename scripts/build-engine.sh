@@ -2,7 +2,7 @@
 # Morflow Core & Bindings Builder
 # Compiles core_types, parser, pipeline engine host/CLI, and all language bindings
 # (Python, JavaScript/Node.js, Java JNI + Java JAR).
-# Action packs are strictly excluded (use scripts/build-actions.sh for actions).
+# Actions and plugins are excluded (use build-actions.sh and build-plugins.sh).
 
 set -e
 
