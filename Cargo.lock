@@ -1537,6 +1537,62 @@ dependencies = [
 ]
 
 [[package]]
+name = "linalg_blas_cholesky"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_det"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_dot"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_inv"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_matmul"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_outer"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "linalg_blas_qr"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1730,6 +1786,15 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "pipeline",
+]
+
+[[package]]
+name = "morflow-openblas"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "libloading 0.8.9",
+ "matmul",
 ]
 
 [[package]]
@@ -3198,6 +3263,30 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tensor_blas_concat"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "tensor_blas_repeat"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
+]
+
+[[package]]
+name = "tensor_blas_roll"
+version = "0.1.0"
+dependencies = [
+ "core_types",
+ "morflow-openblas",
 ]
 
 [[package]]

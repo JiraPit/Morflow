@@ -248,3 +248,41 @@ def test_qr_composite_component_selection():
     assert np.allclose(out['q'] @ out['r'], matrix, atol=1e-5)
 
     assert np.allclose(out["reconstructed"], matrix, atol=1e-5)
+
+
+def test_blas_packs_mix_with_basic_views_and_reuse_loaded_pipeline():
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[3] / "examples/blas/qr.morf"
+    pipeline = morflow.load(str(path))
+    matrix = np.array([[1., 2.], [3., 4.], [5., 6.]], dtype=np.float32)
+    original = matrix.copy()
+    expected = np.tile(matrix.T, (2, 1))
+    for _ in range(3):
+        np.testing.assert_allclose(pipeline.run(matrix), expected, rtol=1e-5, atol=1e-5)
+    np.testing.assert_array_equal(matrix, original)
+
+
+def test_blas_pipeline_loads_without_openblas_but_execution_reports_it():
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    path = Path(__file__).resolve().parents[3] / "examples/blas/qr.morf"
+    code = """
+import sys
+import numpy as np
+import morflow
+pipeline = morflow.load(sys.argv[1])
+try:
+    pipeline.run(np.ones((3, 2), dtype=np.float32))
+except RuntimeError as error:
+    assert 'MORFLOW_OPENBLAS_LIBRARY' in str(error), str(error)
+else:
+    raise AssertionError('Execution should fail when OpenBLAS is missing')
+"""
+    environment = dict(os.environ, MORFLOW_OPENBLAS_LIBRARY="/definitely/missing/openblas.so")
+    result = subprocess.run([sys.executable, "-c", code, str(path)], env=environment,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr

@@ -41,6 +41,25 @@ class PackagingTests(unittest.TestCase):
             catalog = json.loads((cache / 'custom' / '.catalogs' / 'latest.json').read_text())
             self.assertEqual(catalog['concrete_version'], '0.2.0')
 
+    def test_namespaced_cargo_packages_keep_public_action_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            action = root / 'actions' / 'tensor_blas' / 'concat'
+            action.mkdir(parents=True)
+            manifest = action / 'Cargo.toml'
+            manifest.write_text('[package]\nname="tensor_blas_concat"\nversion="0.1.0"\n[package.metadata.morflow]\naction="concat"\n')
+            binary = root / 'build.so'
+            binary.write_bytes(b'blas action')
+            cache = root / 'cache'
+            artifact = package_action(manifest, binary, cache)
+            self.assertTrue(artifact.name.startswith('concat_action-'))
+            receipt = json.loads(Path(str(artifact) + '.json').read_text())
+            self.assertEqual(receipt['action'], 'concat')
+            discovered = detect_changed_actions.discover_all_actions(root)
+            self.assertEqual(discovered[0]['name'], 'concat')
+            self.assertEqual(discovered[0]['package'], 'tensor_blas_concat')
+            self.assertEqual(discovered[0]['library'], 'tensor_blas_concat')
+
     def test_batches_keep_existing_assets_and_reject_changed_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             old, new = Path(directory) / 'old', Path(directory) / 'new'

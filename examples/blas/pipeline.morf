@@ -1,0 +1,6 @@
+from linalg_blas/0.1.0 import matmul
+from tensor_basics/0.3.1 import transpose
+from tensor_blas/0.1.0 import repeat
+accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
+
+$matrices >> matmul >> transpose >> repeat("2,1") >> emit("result")

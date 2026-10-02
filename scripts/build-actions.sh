@@ -43,13 +43,15 @@ build_action() {
     fi
 
     echo "--> Compiling [$pack] $action..."
-    cargo build --release --package "$action"
+    cargo build --release --manifest-path "actions/$pack/$action/Cargo.toml"
+    local library
+    library=$(python3 -c 'import sys; from pathlib import Path; sys.path.insert(0,"scripts"); from package_action import action_metadata; print(action_metadata(Path(sys.argv[1]))["library"])' "actions/$pack/$action/Cargo.toml")
 
     mkdir -p "$TARGET_DIR/actions/$pack"
 
-    local src_file="$TARGET_DIR/${PREFIX}${action}.${EXT}"
+    local src_file="$TARGET_DIR/${PREFIX}${library}.${EXT}"
     if [ ! -f "$src_file" ]; then
-        src_file="$TARGET_DIR/${action}.${EXT}"
+        src_file="$TARGET_DIR/${library}.${EXT}"
     fi
 
     if [ -f "$src_file" ]; then

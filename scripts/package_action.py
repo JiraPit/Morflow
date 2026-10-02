@@ -66,8 +66,19 @@ def atomic_write(path, data):
             os.unlink(name)
 
 
+def action_metadata(manifest):
+    cargo = tomllib.loads(manifest.read_text())
+    package = cargo['package']
+    return {
+        'name': package.get('metadata', {}).get('morflow', {}).get('action', package['name']),
+        'package': package['name'],
+        'library': cargo.get('lib', {}).get('name', package['name'].replace('-', '_')),
+        'version': package['version'],
+    }
+
+
 def package_action(manifest, binary, cache, target=None, latest=False):
-    metadata = tomllib.loads(manifest.read_text())['package']
+    metadata = action_metadata(manifest)
     action, concrete = metadata['name'], metadata['version']
     pack = manifest.parent.parent.name
     host, ext = host_platform()

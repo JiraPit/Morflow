@@ -1,0 +1,7 @@
+from linalg_blas/0.1.0 import qr, matmul
+from tensor_basics/0.3.1 import transpose
+from tensor_blas/0.1.0 import repeat
+accept Tensor[3,2] $matrix
+
+$matrix >> qr >> $parts
+$parts >> matmul >> transpose >> repeat("2,1") >> emit("result")

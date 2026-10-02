@@ -91,6 +91,16 @@ enum Commands {
 
 // Built-in catalog of Morflow action packs and actions
 pub(crate) const KNOWN_ACTIONS: &[(&str, &str)] = &[
+    ("tensor_blas", "concat"),
+    ("tensor_blas", "repeat"),
+    ("tensor_blas", "roll"),
+    ("linalg_blas", "matmul"),
+    ("linalg_blas", "dot"),
+    ("linalg_blas", "outer"),
+    ("linalg_blas", "inv"),
+    ("linalg_blas", "det"),
+    ("linalg_blas", "qr"),
+    ("linalg_blas", "cholesky"),
     ("base", "identity"),
     ("base", "to_tensor"),
     ("audio_basics", "to_audio"),

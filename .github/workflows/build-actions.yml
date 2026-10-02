@@ -104,13 +104,13 @@ jobs:
       - name: Build Action Binary (${{ matrix.action.name }})
         shell: bash
         run: |
-          cargo build --release --package "${{ matrix.action.name }}" --target "${{ matrix.target.triple }}"
+          cargo build --release --manifest-path "${{ matrix.action.path }}/Cargo.toml" --target "${{ matrix.target.triple }}"
           mkdir -p dist
           EXT="${{ matrix.target.ext }}"
           PREFIX="${{ matrix.target.prefix }}"
-          SRC_FILE="target/${{ matrix.target.triple }}/release/${PREFIX}${{ matrix.action.name }}.${EXT}"
+          SRC_FILE="target/${{ matrix.target.triple }}/release/${PREFIX}${{ matrix.action.library }}.${EXT}"
           if [ ! -f "$SRC_FILE" ]; then
-            SRC_FILE="target/${{ matrix.target.triple }}/release/${{ matrix.action.name }}.${EXT}"
+            SRC_FILE="target/${{ matrix.target.triple }}/release/${{ matrix.action.library }}.${EXT}"
           fi
           if [ ! -f "$SRC_FILE" ]; then
             echo "Error: Built file not found at $SRC_FILE"

@@ -1,0 +1,57 @@
+from math_basics/0.3.1 import mul, add, clamp
+from tensor_basics/0.3.1 import transpose
+from tensor_blas/0.1.0 import roll
+from tensor_stats/0.3.1 import sum
+
+accept Tensor[512,512] $input
+
+# Shared producer, followed by independent branches and two consumers per branch.
+$input >> mul(0.5) >> add(0.25) >> $shared
+$shared >> roll(shift=1, axis=1) >> mul(1.0) >> add(0.0) >> clamp(min=-1.0, max=1.0) >> $branch_0
+$branch_0 >> transpose(dim0=0, dim1=1) >> roll(shift=1, axis=0) >> emit("matrix_0")
+$branch_0 >> sum(axis=1) >> emit("rows_0")
+$shared >> roll(shift=2, axis=1) >> mul(1.125) >> add(0.0625) >> clamp(min=-1.0, max=1.0) >> $branch_1
+$branch_1 >> transpose(dim0=0, dim1=1) >> roll(shift=2, axis=0) >> emit("matrix_1")
+$branch_1 >> sum(axis=1) >> emit("rows_1")
+$shared >> roll(shift=3, axis=1) >> mul(1.25) >> add(0.125) >> clamp(min=-1.0, max=1.0) >> $branch_2
+$branch_2 >> transpose(dim0=0, dim1=1) >> roll(shift=3, axis=0) >> emit("matrix_2")
+$branch_2 >> sum(axis=1) >> emit("rows_2")
+$shared >> roll(shift=4, axis=1) >> mul(1.375) >> add(0.1875) >> clamp(min=-1.0, max=1.0) >> $branch_3
+$branch_3 >> transpose(dim0=0, dim1=1) >> roll(shift=4, axis=0) >> emit("matrix_3")
+$branch_3 >> sum(axis=1) >> emit("rows_3")
+$shared >> roll(shift=5, axis=1) >> mul(1.5) >> add(0.25) >> clamp(min=-1.0, max=1.0) >> $branch_4
+$branch_4 >> transpose(dim0=0, dim1=1) >> roll(shift=5, axis=0) >> emit("matrix_4")
+$branch_4 >> sum(axis=1) >> emit("rows_4")
+$shared >> roll(shift=6, axis=1) >> mul(1.625) >> add(0.0) >> clamp(min=-1.0, max=1.0) >> $branch_5
+$branch_5 >> transpose(dim0=0, dim1=1) >> roll(shift=6, axis=0) >> emit("matrix_5")
+$branch_5 >> sum(axis=1) >> emit("rows_5")
+$shared >> roll(shift=7, axis=1) >> mul(1.75) >> add(0.0625) >> clamp(min=-1.0, max=1.0) >> $branch_6
+$branch_6 >> transpose(dim0=0, dim1=1) >> roll(shift=7, axis=0) >> emit("matrix_6")
+$branch_6 >> sum(axis=1) >> emit("rows_6")
+$shared >> roll(shift=8, axis=1) >> mul(1.875) >> add(0.125) >> clamp(min=-1.0, max=1.0) >> $branch_7
+$branch_7 >> transpose(dim0=0, dim1=1) >> roll(shift=8, axis=0) >> emit("matrix_7")
+$branch_7 >> sum(axis=1) >> emit("rows_7")
+$shared >> roll(shift=9, axis=1) >> mul(1.0) >> add(0.1875) >> clamp(min=-1.0, max=1.0) >> $branch_8
+$branch_8 >> transpose(dim0=0, dim1=1) >> roll(shift=9, axis=0) >> emit("matrix_8")
+$branch_8 >> sum(axis=1) >> emit("rows_8")
+$shared >> roll(shift=10, axis=1) >> mul(1.125) >> add(0.25) >> clamp(min=-1.0, max=1.0) >> $branch_9
+$branch_9 >> transpose(dim0=0, dim1=1) >> roll(shift=10, axis=0) >> emit("matrix_9")
+$branch_9 >> sum(axis=1) >> emit("rows_9")
+$shared >> roll(shift=11, axis=1) >> mul(1.25) >> add(0.0) >> clamp(min=-1.0, max=1.0) >> $branch_10
+$branch_10 >> transpose(dim0=0, dim1=1) >> roll(shift=11, axis=0) >> emit("matrix_10")
+$branch_10 >> sum(axis=1) >> emit("rows_10")
+$shared >> roll(shift=12, axis=1) >> mul(1.375) >> add(0.0625) >> clamp(min=-1.0, max=1.0) >> $branch_11
+$branch_11 >> transpose(dim0=0, dim1=1) >> roll(shift=12, axis=0) >> emit("matrix_11")
+$branch_11 >> sum(axis=1) >> emit("rows_11")
+$shared >> roll(shift=13, axis=1) >> mul(1.5) >> add(0.125) >> clamp(min=-1.0, max=1.0) >> $branch_12
+$branch_12 >> transpose(dim0=0, dim1=1) >> roll(shift=13, axis=0) >> emit("matrix_12")
+$branch_12 >> sum(axis=1) >> emit("rows_12")
+$shared >> roll(shift=14, axis=1) >> mul(1.625) >> add(0.1875) >> clamp(min=-1.0, max=1.0) >> $branch_13
+$branch_13 >> transpose(dim0=0, dim1=1) >> roll(shift=14, axis=0) >> emit("matrix_13")
+$branch_13 >> sum(axis=1) >> emit("rows_13")
+$shared >> roll(shift=15, axis=1) >> mul(1.75) >> add(0.25) >> clamp(min=-1.0, max=1.0) >> $branch_14
+$branch_14 >> transpose(dim0=0, dim1=1) >> roll(shift=15, axis=0) >> emit("matrix_14")
+$branch_14 >> sum(axis=1) >> emit("rows_14")
+$shared >> roll(shift=16, axis=1) >> mul(1.875) >> add(0.0) >> clamp(min=-1.0, max=1.0) >> $branch_15
+$branch_15 >> transpose(dim0=0, dim1=1) >> roll(shift=16, axis=0) >> emit("matrix_15")
+$branch_15 >> sum(axis=1) >> emit("rows_15")

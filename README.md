@@ -115,6 +115,14 @@ $matrices >> matmul >> emit("product")
 
 The first matrix is the left operand and the second is the right operand; this produces Tensor[2,4]. The checker and runtime use the same ordered shape contract. QR's `$parts` can also flow directly into `matmul` to reconstruct the original matrix.
 
+### OpenBLAS action packs
+
+Use `linalg_blas/0.1.0` for `matmul`, `dot`, `outer`, `inv`, `det`, `qr`, and `cholesky`. Use `tensor_blas/0.1.0` for `concat`, `repeat`, and `roll`. View operations such as `reshape` and `transpose` stay in `tensor_basics`.
+
+These packs load the host's **shared OpenBLAS library during execution**; OpenBLAS is not bundled in each action. Checking and loading a pipeline works without OpenBLAS installed. Running an action requires an LP64 OpenBLAS installation; the factorization actions also require its LAPACKE interface. Set `MORFLOW_OPENBLAS_LIBRARY` to select a specific shared library. A missing dependency produces an execution error.
+
+See [OpenBLAS setup and behavior](backends/openblas/README.md) for installation, threading, numerical behavior, and local build instructions.
+
 ### Action versions and cache
 
 Imports select the action version used by both preparation and execution:

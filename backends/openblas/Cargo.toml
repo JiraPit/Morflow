@@ -1,0 +1,12 @@
+[package]
+name = "morflow-openblas"
+version = "0.1.0"
+edition = "2021"
+autotests = false
+
+[dependencies]
+core_types = { path = "../../core_types" }
+libloading = "0.8"
+
+[dev-dependencies]
+basic-matmul = { package = "matmul", path = "../../actions/linalg_basics/matmul" }

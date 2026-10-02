@@ -1,5 +1,17 @@
 [workspace]
 members = [
+    "backends/openblas",
+    "actions/tensor_blas/concat",
+    "actions/tensor_blas/repeat",
+    "actions/tensor_blas/roll",
+    "actions/linalg_blas/matmul",
+    "actions/linalg_blas/dot",
+    "actions/linalg_blas/outer",
+    "actions/linalg_blas/inv",
+    "actions/linalg_blas/det",
+    "actions/linalg_blas/qr",
+    "actions/linalg_blas/cholesky",
+
     "core_types",
     "pipeline",
     "parser",

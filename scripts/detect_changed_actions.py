@@ -23,31 +23,9 @@ TARGET_PLATFORMS = [
 
 
 def parse_cargo_toml(path: Path) -> dict:
-    """Simple parser for package name and version from Cargo.toml without external dependencies."""
-    name = None
-    version = None
-    in_package = False
-
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("[package]"):
-                in_package = True
-                continue
-            elif line.startswith("[") and in_package:
-                break
-
-            if in_package:
-                if line.startswith("name"):
-                    parts = line.split("=", 1)
-                    if len(parts) == 2:
-                        name = parts[1].strip().strip('"').strip("'")
-                elif line.startswith("version"):
-                    parts = line.split("=", 1)
-                    if len(parts) == 2:
-                        version = parts[1].strip().strip('"').strip("'")
-
-    return {"name": name, "version": version}
+    """Read action identity separately from the unique Cargo package name."""
+    from package_action import action_metadata
+    return action_metadata(path)
 
 
 def get_git_changed_files() -> list:
@@ -99,6 +77,8 @@ def discover_all_actions(repo_root: Path) -> list:
                         "pack": pack_name,
                         "version": meta["version"],
                         "path": str(action_dir.relative_to(repo_root)),
+                        "package": meta["package"],
+                        "library": meta["library"],
                     })
     return actions
 

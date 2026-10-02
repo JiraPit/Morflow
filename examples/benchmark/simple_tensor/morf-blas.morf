@@ -1,0 +1,7 @@
+from linalg_blas/0.1.0 import inv, cholesky
+from tensor_basics/0.3.1 import transpose
+
+accept Tensor[256,256] $input
+
+# A single dependency chain: twelve matrix inversions, then Cholesky.
+$input >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> inv >> transpose(dim0=0, dim1=1) >> cholesky >> emit("factor")

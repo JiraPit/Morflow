@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stress a many-flow tensor graph with NumPy or Morflow; save validated JSON timings."""
+"""Measure a sequential chain of matrix inversions and Cholesky with NumPy, morf-basic, or morf-blas; save validated JSON timings."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import os
 import platform
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from itertools import combinations
 from pathlib import Path
 
 import numpy as np
@@ -20,52 +20,47 @@ sys.path.insert(0, str(ROOT.parent))
 
 from common import nonnegative, positive, save_json, summary  # noqa: E402
 
-INPUT_SHAPE = (512, 512)
-BRANCHES = 16
-PIPELINE_PATH = ROOT / "pipeline.morf"
+INPUT_SHAPE = (256, 256)
+INVERSION_COUNT = 12
+PIPELINES = {name: ROOT / f"{name}.morf" for name in ("morf-basic", "morf-blas")}
 
 
-def numpy_runner(tensor: np.ndarray, branches: int, executor=None):
-    def branch(shared, index):
-        value = np.roll(shared, index + 1, axis=1)
-        value = value * np.float32(1 + (index % 8) / 8)
-        value = value + np.float32((index % 5) / 16)
-        value = np.clip(value, np.float32(-1), np.float32(1))
-        matrix = np.ascontiguousarray(np.roll(value.T, index + 1, axis=0))
-        rows = np.sum(value, axis=1, dtype=np.float32)
-        return index, matrix, rows
+def make_input(seed):
+    # A well-conditioned positive definite matrix keeps repeated inversion stable.
+    values = np.random.default_rng(seed).normal(0, 0.01, INPUT_SHAPE).astype(np.float32)
+    return np.ascontiguousarray(
+        values @ values.T + np.eye(INPUT_SHAPE[0], dtype=np.float32)
+    )
 
+
+def numpy_runner(tensor):
     def run():
-        shared = tensor * np.float32(0.5) + np.float32(0.25)
-        if executor is None:
-            values = [branch(shared, index) for index in range(branches)]
-        else:
-            futures = [
-                executor.submit(branch, shared, index) for index in range(branches)
-            ]
-            values = [future.result() for future in futures]
-        result = {}
-        for index, matrix, rows in values:
-            result[f"matrix_{index}"] = matrix
-            result[f"rows_{index}"] = rows
-        return result
+        value = tensor
+        for _ in range(INVERSION_COUNT):
+            value = np.linalg.inv(value).T
+        return {"factor": np.ascontiguousarray(np.linalg.cholesky(value))}
 
     return run
 
 
-def morflow_runner(tensor):
+def morflow_runner(tensor, backend):
     try:
         import morflow
 
         # Setup once; all validation, warmup, and measured calls reuse this instance.
-        pipeline = morflow.load(str(PIPELINE_PATH))
+        pipeline = morflow.load(str(PIPELINES[backend]))
         wrapped = morflow.Tensor(tensor)
     except (ImportError, RuntimeError, ValueError) as error:
         raise RuntimeError(
             "Install the current Morflow Python binding and prepare the pipeline actions. "
             + str(error)
         ) from error
-    return lambda: pipeline.run(wrapped)
+
+    def run():
+        output = pipeline.run(wrapped)
+        return output if isinstance(output, dict) else {"factor": output}
+
+    return run
 
 
 def validate(actual, expected):
@@ -80,28 +75,20 @@ def validate(actual, expected):
             raise RuntimeError(
                 f"{name}: expected {reference.shape}, float32; got {value.shape}, {value.dtype}"
             )
-        # Reduction accumulation order can differ; transformed matrices use tighter bounds.
-        atol, rtol = (1e-3, 1e-5) if name.startswith("rows_") else (1e-6, 0)
-        np.testing.assert_allclose(value, reference, atol=atol, rtol=rtol, err_msg=name)
+        np.testing.assert_allclose(value, reference, atol=2e-5, rtol=2e-4, err_msg=name)
         errors[name] = float(np.max(np.abs(value - reference)))
     return {
         "passed": True,
         "max_absolute_error_by_output": errors,
-        "matrix_tolerance": {"atol": 1e-6, "rtol": 0},
-        "reduction_tolerance": {"atol": 1e-3, "rtol": 1e-5},
+        "tolerance": {"atol": 2e-5, "rtol": 2e-4},
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--numpy", action="store_true")
-    parser.add_argument("--morflow", action="store_true")
-    parser.add_argument(
-        "--numpy-workers",
-        type=positive,
-        default=1,
-        help="1: sequential NumPy; >1: persistent thread pool",
-    )
+    parser.add_argument("--morf-basic", action="store_true")
+    parser.add_argument("--morf-blas", action="store_true")
     parser.add_argument("--threads", type=positive, help="Morflow Rayon worker count")
     parser.add_argument("--iterations", type=positive, default=10)
     parser.add_argument("--samples", type=positive, default=5)
@@ -110,32 +97,25 @@ def main():
     parser.add_argument("--actions-path", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    names = [name for name in ("numpy", "morflow") if getattr(args, name)] or [
-        "numpy",
-        "morflow",
-    ]
+    available = ("numpy", "morf-basic", "morf-blas")
+    names = [
+        name for name in available if getattr(args, name.replace("-", "_"))
+    ] or list(available)
     if args.threads:
         os.environ["RAYON_NUM_THREADS"] = str(args.threads)
     if args.actions_path:
         os.environ["MORFLOW_ACTIONS_PATH"] = str(args.actions_path.resolve())
-    executor = None
     try:
         started = datetime.now(timezone.utc)
-        source = PIPELINE_PATH.read_text()
+        sources = {name: path.read_text() for name, path in PIPELINES.items()}
         # Generate input once. Every graph execution starts from this in-memory tensor.
-        tensor = (
-            np.random.default_rng(args.seed)
-            .uniform(-2, 2, INPUT_SHAPE)
-            .astype(np.float32)
-        )
-        reference = numpy_runner(tensor, BRANCHES)()
-        if args.numpy_workers > 1 and "numpy" in names:
-            executor = ThreadPoolExecutor(max_workers=args.numpy_workers)
+        tensor = make_input(args.seed)
+        reference = numpy_runner(tensor)()
         runners = {
             name: (
-                numpy_runner(tensor, BRANCHES, executor)
+                numpy_runner(tensor)
                 if name == "numpy"
-                else morflow_runner(tensor)
+                else morflow_runner(tensor, name)
             )
             for name in names
         }
@@ -163,18 +143,18 @@ def main():
             for name, times in durations.items()
         }
         report = {
-            "schema_version": 1,
+            "schema_version": 2,
             "started_at_utc": started.isoformat(),
             "workload": {
-                "name": "tensor_many_flows",
+                "name": "simple_tensor",
                 "shape": list(tensor.shape),
                 "dtype": "float32",
                 "seed": args.seed,
-                "branches": BRANCHES,
-                "flow_count": 1 + 3 * BRANCHES,
-                "native_action_calls": 2 + 7 * BRANCHES,
-                "output_count": 2 * BRANCHES,
-                "pipeline": source,
+                "inversion_count": INVERSION_COUNT,
+                "flow_count": 1,
+                "native_action_calls": 2 * INVERSION_COUNT + 1,
+                "output_count": 1,
+                "pipelines": sources,
             },
             "measurement": {
                 "iterations_per_sample": args.iterations,
@@ -182,47 +162,44 @@ def main():
                 "warmup_calls_per_backend": args.warmup,
                 "clock": "perf_counter_ns",
                 "includes": "full graph execution, host conversions, output materialization and release",
-                "excludes": "pipeline loading, input generation, validation, warmup, thread pool creation",
+                "excludes": "pipeline loading, input generation, validation, warmup",
             },
             "environment": {
                 "python": sys.version,
                 "platform": platform.platform(),
                 "numpy": np.__version__,
                 "logical_cpu_count": os.cpu_count(),
-                "numpy_workers": args.numpy_workers,
                 "rayon_num_threads": os.environ.get("RAYON_NUM_THREADS"),
                 "actions_path": os.environ.get("MORFLOW_ACTIONS_PATH"),
+                "openblas_num_threads": os.environ.get("OPENBLAS_NUM_THREADS"),
+                "openblas_library": os.environ.get("MORFLOW_OPENBLAS_LIBRARY"),
                 "morflow": getattr(sys.modules.get("morflow"), "__version__", None),
             },
             "validation": checks,
             "results": results,
         }
-        if len(names) == 2:
+        if len(names) > 1:
             report["comparison"] = {
-                "numpy_time_divided_by_morflow_time": results["numpy"][
-                    "mean_ms_per_graph"
-                ]
-                / results["morflow"]["mean_ms_per_graph"]
+                f"{left.replace('-', '_')}_time_divided_by_{right.replace('-', '_')}_time": results[
+                    left
+                ]["mean_ms_per_graph"]
+                / results[right]["mean_ms_per_graph"]
+                for left, right in combinations(names, 2)
             }
         output = args.output or ROOT / "results" / (
-            "tensor-" + started.strftime("%Y%m%dT%H%M%S.%fZ") + ".json"
+            "simple_tensor-" + started.strftime("%Y%m%dT%H%M%S.%fZ") + ".json"
         )
         save_json(output, report)
-        print(
-            f"Graph: {1 + 3 * BRANCHES} flows, {BRANCHES} branches, {2 * BRANCHES} outputs"
-        )
+        print(f"Graph: 1 sequential flow, {2 * INVERSION_COUNT + 1} actions, 1 output")
         for name, values in results.items():
             print(
-                f"{name:8} {values['median_ms_per_graph']:.3f} ms/graph (median sample mean)"
+                f"{name:10} {values['median_ms_per_graph']:.3f} ms/graph (median sample mean)"
             )
         print(f"JSON: {output.resolve()}")
         return 0
     except (OSError, RuntimeError, ValueError, AssertionError) as error:
         print(f"Benchmark failed: {error}", file=sys.stderr)
         return 1
-    finally:
-        if executor:
-            executor.shutdown(wait=True)
 
 
 if __name__ == "__main__":
