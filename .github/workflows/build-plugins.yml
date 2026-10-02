@@ -55,7 +55,15 @@ jobs:
           python-version: '3.11'
       - name: Install shared OpenCV build dependencies (Linux)
         if: runner.os == 'Linux' && matrix.plugin.name == 'opencv-bridge'
-        run: sudo apt-get update && sudo apt-get install -y libopencv-dev clang pkg-config
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopencv-dev clang llvm libclang-dev pkg-config
+          llvm_config="$(command -v llvm-config)"
+          libclang_path="$("$llvm_config" --libdir)"
+          test -f "$libclang_path/libclang.so"
+          echo "LLVM_CONFIG_PATH=$llvm_config" >> "$GITHUB_ENV"
+          echo "LIBCLANG_PATH=$libclang_path" >> "$GITHUB_ENV"
       - name: Install shared OpenCV build dependencies (macOS)
         if: runner.os == 'macOS' && matrix.plugin.name == 'opencv-bridge'
         run: |
