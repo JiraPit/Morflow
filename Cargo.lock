@@ -1848,7 +1848,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1858,7 +1858,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -1895,7 +1895,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "abi_stable",
  "core_types",
@@ -2328,7 +2328,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "chumsky",
  "serde",
@@ -2368,7 +2368,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pipeline"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "abi_stable",
  "ariadne",

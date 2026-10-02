@@ -8,8 +8,7 @@ use std::path::{Path, PathBuf};
 #[command(
     name = "morflow",
     version,
-    about = "Morflow - Data Processing & Tensor Transformation Engine",
-    after_help = "Plugin workflow:\n  Declare plugin name/version in your .morf file, then run morflow prep <file>.\n  Preparation installs and verifies the declared actions and plugins.\n  Install compatible external shared libraries on the machine that runs the pipeline.\n\nExample:\n  morflow plugins search opencv\n  morflow prep pipeline.morf\n  morflow plugins list\n  morflow check pipeline.morf"
+    about = "Morflow - Data Processing & Tensor Transformation Engine"
 )]
 struct Cli {
     #[command(subcommand)]
