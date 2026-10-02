@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 #[command(
     name = "morflow",
     version,
-    about = "Morflow - High-performance modular dataflow pipeline engine for media and tensor computing"
+    about = "Morflow - Data Processing & Tensor Transformation Engine",
+    after_help = "Plugin workflow:\n  Declare plugin name/version in your .morf file, then run morflow prep <file>.\n  Preparation installs and verifies the declared actions and plugins.\n  Install compatible external shared libraries on the machine that runs the pipeline.\n\nExample:\n  morflow search-plugin opencv\n  morflow prep pipeline.morf\n  morflow plugins list\n  morflow check pipeline.morf"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -18,26 +19,45 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Search known runtime plugins by name
+    #[command(
+        long_about = "Search the shipped plugin catalog by name. Search works offline and prints installable paths with explicit latest versions.",
+        after_help = "Example: morflow search-plugin opencv --limit 5"
+    )]
     SearchPlugin {
+        /// Name or part of a name (e.g. opencv or bridge)
         query: String,
+        /// Maximum number of results
         #[arg(short, long, default_value_t = 5)]
         limit: usize,
     },
     /// Install a runtime plugin with an explicit version or latest
+    #[command(
+        long_about = "Download a plugin for this platform and verify its published checksum. Supply name/version or name/latest; versions are never inferred. This installs the Morflow plugin, while external libraries such as OpenCV must be installed separately. Use prep to install all dependencies declared in a pipeline.",
+        after_help = "Examples:\n  morflow install-plugin opencv-bridge/0.1.0\n  morflow install-plugin opencv-bridge/latest --path ./plugins_cache"
+    )]
     InstallPlugin {
+        /// Plugin name and explicit version (e.g. opencv-bridge/0.1.0)
         plugin: String,
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(short, long)]
         path: Option<PathBuf>,
+        /// Download again even if cached bytes match the published checksum
         #[arg(short, long)]
         force: bool,
     },
     /// Manage installed runtime plugins
+    #[command(
+        after_help = "Discover plugins with morflow search-plugin <query>.\nInstall all pipeline dependencies with morflow prep <file>.\nPlugins are separate from actions and external system libraries."
+    )]
     Plugins {
         #[command(subcommand)]
         command: PluginCommands,
     },
 
     /// Pre-downloads all actions and plugins required by a .morf pipeline ahead of time for offline execution
+    #[command(
+        long_about = "Prepare the actions and plugins declared in a .morf pipeline for offline use. Verify published checksums and check that declared plugin versions satisfy action requirements. Each latest declaration is resolved again; exact versions remain installed alongside it. External system libraries are loaded during execution, not preparation."
+    )]
     Prep {
         /// Path to the .morf pipeline definition file
         file: PathBuf,
@@ -50,7 +70,7 @@ enum Commands {
         #[arg(long)]
         plugins_path: Option<PathBuf>,
 
-        /// Force re-download even if action is already cached locally
+        /// Force re-download of required actions and plugins
         #[arg(short, long)]
         force: bool,
     },
@@ -68,7 +88,7 @@ enum Commands {
         action: String,
     },
 
-    /// Performs fuzzy search for actions by name and returns the top 5 full action paths
+    /// Search the shipped action catalog by name
     Search {
         /// Search query (e.g. color, blur, resample, gain)
         query: String,
@@ -99,7 +119,10 @@ enum Commands {
         force: bool,
     },
 
-    /// Checks a .morf pipeline for syntax correctness, SSA compliance, action dependencies, and data type flow
+    /// Check syntax, variables, prepared dependencies, types, and shapes
+    #[command(
+        long_about = "Check a pipeline using prepared local action and plugin artifacts without network requests. Verify dependency versions and binary checksums, then check types and shapes. Shape checking does not load external plugin libraries such as OpenCV. Run prep first to populate the caches."
+    )]
     Check {
         /// Path to the .morf pipeline definition file
         file: PathBuf,
@@ -107,7 +130,7 @@ enum Commands {
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long)]
         path: Option<PathBuf>,
-        /// Custom plugin cache directory
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(long)]
         plugins_path: Option<PathBuf>,
     },
@@ -117,19 +140,27 @@ enum Commands {
 enum PluginCommands {
     /// List verified installed plugin versions
     List {
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(long)]
         path: Option<PathBuf>,
     },
     /// Install name/version or name/latest
+    #[command(
+        long_about = "Install a plugin with an explicit version and verify its checksum. Uses the same installer as morflow install-plugin. External shared libraries must be installed separately on the execution machine."
+    )]
     Install {
+        /// Plugin name and explicit version (e.g. opencv-bridge/latest)
         plugin: String,
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(long)]
         path: Option<PathBuf>,
+        /// Download again even when the cached checksum matches
         #[arg(long)]
         force: bool,
     },
     /// Remove cached plugins and catalogs; loaded pipelines keep their handles
     Clean {
+        /// Plugin cache directory (defaults to MORFLOW_PLUGINS_PATH or ~/.morflow/plugins)
         #[arg(long)]
         path: Option<PathBuf>,
     },
