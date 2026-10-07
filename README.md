@@ -90,63 +90,6 @@ morflow prep pipeline.morf
 
 Shape checks use native action contracts, with execution validating known output dimensions. See [shape documentation](https://morflow.org/doc#types-shapechecking) for coverage, unresolved metadata, and local validation.
 
-### Select Composite outputs
-
-QR returns a Composite containing Q and R, in that order:
-
-```morf
-import linalg_basics/latest
-accept Tensor[3,2] $matrix
-
-$matrix >> qr >> $parts
-$parts[0] >> emit("q")
-$parts[1] >> emit("r")
-```
-
-Integer indexes select one payload while preserving its type and dimensions. Indexes start at zero. You can chain selection and tensor indexing, such as `$parts[0][0]` for the first row of Q. QR's component contract lets `check` track Q as Tensor[3,2] and R as Tensor[2,2].
-
-Composite inputs can declare an ordered list of component shapes, including nested lists:
-
-```morf
-import linalg_basics/latest
-accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
-$matrices >> matmul >> emit("product")
-```
-
-The first matrix is the left operand and the second is the right operand; this produces Tensor[2,4]. The checker and runtime use the same ordered shape contract. QR's `$parts` can also flow directly into `matmul` to reconstruct the original matrix.
-
-### OpenBLAS action packs
-
-Use `linalg_blas/0.1.2` for `matmul`, `dot`, `outer`, `inv`, `det`, `qr`, and `cholesky`. Use `tensor_blas/0.1.2` for `concat`, `repeat`, and `roll`. View operations such as `reshape` and `transpose` stay in `tensor_basics`.
-
-These packs load the host's **shared OpenBLAS library during execution**; OpenBLAS is not bundled in each action. Checking and loading a pipeline works without OpenBLAS installed. Running an action requires an LP64 OpenBLAS installation; the factorization actions also require its LAPACKE interface. Set `MORFLOW_OPENBLAS_LIBRARY` to select a specific shared library. A missing dependency produces an execution error.
-
-Declare `plugin openblas/0.1.1` and run `morflow prep` to prepare the shared numerical plugin alongside the actions. See [OpenBLAS setup and behavior](plugins/openblas/README.md) for installation, threading, numerical behavior, and local build instructions.
-
-The optional `image_opencv` pack provides spatial image filtering and resampling through host-installed shared OpenCV. Declare `plugin opencv-bridge/0.1.2` and run `morflow prep` to install its prebuilt plugin; OpenCV is not included in action binaries. See [the OpenCV action guide](actions/image_opencv/README.md) and [plugin installation and development](plugins/README.md).
-
-### Action versions and cache
-
-Imports select the action version used by both preparation and execution:
-
-```morf
-from image_basics/0.2.0 import resize
-from audio_basics/latest import gain
-```
-
-Exact versions are stored in filenames such as `resize_action-0.2.0-linux-x86_64.so`. A `latest` import uses a separate file such as `gain_action-latest-linux-x86_64.so`. Each `morflow prep` or `morflow install` resolves the newest stable release again, compares published SHA-256 checksums with the cached bytes, and refreshes `latest` when needed. Exact versions remain installed alongside it.
-
-Each binary has a checksum receipt recording its concrete release and provenance. Loading a pipeline verifies the receipt and binary locally; execution uses the loaded actions until the pipeline is reloaded. File and string loading APIs use the same cache, without pipeline lock files or runtime downloads.
-
-Actions resolve through imports or an explicit `pack/version/action` call. Use aliases to select multiple versions of a pack:
-
-```morf
-import image_basics/0.1.0 as old_image
-import image_basics/0.2.0 as new_image
-```
-
-Qualified calls such as `old_image.resize(...)` and `new_image.resize(...)` select their respective versions. `morflow list` displays installed versions and the concrete release behind each `latest` entry. Set `MORFLOW_ACTIONS_PATH` to use a prepared custom cache.
-
 ### 4. Run in your application
 
 **Python**:
