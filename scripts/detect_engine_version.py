@@ -87,6 +87,8 @@ def main():
                 "bindings/",
                 "Cargo.toml",
                 "Cargo.lock",
+                ".github/workflows/build-engine.yml",
+                "scripts/detect_engine_version.py",
             )
             should_build = any(
                 any(f.startswith(prefix) or f == prefix for prefix in engine_prefixes)
