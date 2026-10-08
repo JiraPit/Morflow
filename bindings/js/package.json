@@ -1,7 +1,7 @@
 {
   "name": "morflow",
   "version": "0.2.5",
-  "description": "High-performance dataflow pipeline engine for JavaScript and TypeScript",
+  "description": "Data Processing & Tensor Transformation Engine for JavaScript and TypeScript",
   "main": "index.js",
   "types": "index.d.ts",
   "bin": {
@@ -17,5 +17,25 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.0.0"
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JiraPit/Morflow.git",
+    "directory": "bindings/js"
+  },
+  "homepage": "https://github.com/JiraPit/Morflow",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "bin/morflow.mjs",
+    "morflow.linux-x64-gnu.node",
+    "morflow.darwin-arm64.node",
+    "morflow.win32-x64-msvc.node",
+    "LICENSE",
+    "README.md"
+  ]
 }

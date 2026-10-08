@@ -1,35 +1,17 @@
-const path = require('path');
-const fs = require('fs');
-
-let nativeBinding = null;
-
-// Search for the platform-specific compiled .node binary
-const possiblePaths = [
-  path.join(__dirname, 'morflow.linux-x64-gnu.node'),
-  path.join(__dirname, 'morflow.node'),
-  path.join(__dirname, '..', '..', 'target', 'release', 'libmorflow_node.so'),
-  path.join(__dirname, '..', '..', 'target', 'debug', 'libmorflow_node.so')
-];
-
-for (const candidate of possiblePaths) {
-  if (fs.existsSync(candidate)) {
-    try {
-      nativeBinding = require(candidate);
-      break;
-    } catch (e) {
-      // try next candidate
-    }
-  }
+const binaries = {
+  'linux-x64': 'morflow.linux-x64-gnu.node',
+  'darwin-arm64': 'morflow.darwin-arm64.node',
+  'win32-x64': 'morflow.win32-x64-msvc.node'
+};
+const platform = `${process.platform}-${process.arch}`;
+const binary = binaries[platform];
+if (!binary) {
+  throw new Error(`Morflow does not provide a native addon for ${platform}.`);
 }
-
-if (!nativeBinding) {
-  // Fallback to direct require
-  try {
-    nativeBinding = require('./morflow.linux-x64-gnu.node');
-  } catch (err) {
-    throw new Error(`Failed to load Morflow native addon: ${err.message}`);
-  }
+if (process.platform === 'linux' && !process.report.getReport().header.glibcVersionRuntime) {
+  throw new Error('Morflow requires a glibc-based Linux system.');
 }
+const nativeBinding = require(`./${binary}`);
 
 /**
  * Enhances a MorflowTensor object with convenient typed array getters.

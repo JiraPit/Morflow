@@ -12,6 +12,8 @@ on:
       - 'Cargo.lock'
       - '.github/workflows/build-engine.yml'
       - 'scripts/detect_engine_version.py'
+      - 'scripts/package-node.mjs'
+      - 'scripts/publish-node.mjs'
   workflow_dispatch:
     inputs:
       force_build:
@@ -238,19 +240,58 @@ jobs:
         shell: bash
         run: |
           cd bindings/js
-          npm install
+          npm ci
           npx napi build --platform --release --target "${{ matrix.triple }}"
           mkdir -p ../../dist_node
-          cp *.node ../../dist_node/ 2>/dev/null || true
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            npm pack --pack-destination ../../dist_node/
-          fi
+          cp "morflow.${{ matrix.platform }}.node" ../../dist_node/
+          node -e "require('./index.js')"
+          node bin/morflow.mjs --version
 
       - name: Upload Node Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: "engine-node-${{ matrix.platform }}"
           path: dist_node/*
+          retention-days: 1
+
+  package-node:
+    name: Package Node.js release
+    needs: [detect-engine, build-node-bindings]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Download native addons
+        uses: actions/download-artifact@v4
+        with:
+          pattern: engine-node-*
+          path: node_artifacts/
+          merge-multiple: true
+
+      - name: Package all supported platforms
+        run: node scripts/package-node.mjs node_artifacts dist_npm
+
+      - name: Verify installed package
+        run: |
+          mkdir -p "$RUNNER_TEMP/morflow-npm-test"
+          npm install --prefix "$RUNNER_TEMP/morflow-npm-test" --ignore-scripts dist_npm/*.tgz
+          cd "$RUNNER_TEMP/morflow-npm-test"
+          node -e "require('morflow')"
+          node node_modules/morflow/bin/morflow.mjs --version
+
+      - name: Upload npm package
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-npm
+          path: dist_npm/*.tgz
+          if-no-files-found: error
           retention-days: 1
 
   build-java-bindings:
@@ -319,7 +360,7 @@ jobs:
 
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
-    needs: [detect-engine, build-core, build-python-wheels, build-node-bindings, build-java-bindings]
+    needs: [detect-engine, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings]
     if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -384,3 +425,33 @@ jobs:
           packages-dir: dist/
           # Allow retrying a partially completed release without replacing published files.
           skip-existing: true
+
+  publish-npm:
+    name: Publish Node.js package to npm
+    needs: [detect-engine, publish-engine-release]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Install npm with Trusted Publishing support
+        run: npm install --global npm@11
+
+      - name: Download npm release package
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-npm
+          path: dist_npm/
+
+      - name: Publish verified package
+        run: node scripts/publish-node.mjs dist_npm/*.tgz

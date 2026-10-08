@@ -89,6 +89,8 @@ def main():
                 "Cargo.lock",
                 ".github/workflows/build-engine.yml",
                 "scripts/detect_engine_version.py",
+                "scripts/package-node.mjs",
+                "scripts/publish-node.mjs",
             )
             should_build = any(
                 any(f.startswith(prefix) or f == prefix for prefix in engine_prefixes)
