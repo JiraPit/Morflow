@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const [archive] = process.argv.slice(2);
@@ -21,7 +22,7 @@ if (query.status === 0) {
   let error;
   try { error = JSON.parse(query.stdout).error; } catch { /* Preserve the registry failure below. */ }
   if (error?.code !== 'E404') throw new Error(query.stderr || query.stdout || 'Cannot query npm registry.');
-  const result = spawnSync(npm, ['publish', archive, '--access', 'public', '--registry', registry], { stdio: 'inherit' });
+  const result = spawnSync(npm, ['publish', resolve(archive), '--access', 'public', '--registry', registry], { stdio: 'inherit' });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 }

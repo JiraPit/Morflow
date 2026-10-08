@@ -281,7 +281,7 @@ jobs:
       - name: Verify installed package
         run: |
           mkdir -p "$RUNNER_TEMP/morflow-npm-test"
-          npm install --prefix "$RUNNER_TEMP/morflow-npm-test" --ignore-scripts dist_npm/*.tgz
+          npm install --prefix "$RUNNER_TEMP/morflow-npm-test" --ignore-scripts ./dist_npm/*.tgz
           cd "$RUNNER_TEMP/morflow-npm-test"
           node -e "require('morflow')"
           node node_modules/morflow/bin/morflow.mjs --version
