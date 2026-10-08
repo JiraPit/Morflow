@@ -164,7 +164,16 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          manylinux: '2014'
+          manylinux: '2_28'
+          before-script-linux: |
+            dnf install -y openssl-devel pkgconf-pkg-config
+            pkg-config --modversion openssl
+            # Current manylinux images no longer include CPython 3.8.
+            if [ "${{ matrix.python-version }}" = "3.8" ]; then
+              uv python install 3.8
+              mkdir -p /opt/python/cp38-cp38/bin
+              ln -s "$(uv python find 3.8)" /opt/python/cp38-cp38/bin/python
+            fi
           args: >-
             --release --locked --manifest-path bindings/python/Cargo.toml
             --out dist_python --interpreter ${{ steps.linux-python.outputs.interpreter }}
@@ -177,6 +186,13 @@ jobs:
           args: >-
             --release --locked --manifest-path bindings/python/Cargo.toml
             --out dist_python --interpreter python
+
+      - name: Verify installed wheel
+        shell: bash
+        run: |
+          python -m pip install --only-binary=:all: dist_python/*.whl
+          cd "$RUNNER_TEMP"
+          python -c "import morflow; print('Morflow wheel import succeeded')"
 
       - name: Upload Python Artifact
         uses: actions/upload-artifact@v4
