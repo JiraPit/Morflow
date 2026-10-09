@@ -1,7 +1,13 @@
 [package]
-name = "core_types"
+name = "morflow-core-types"
 version = "0.4.2"
 edition = "2021"
+description = "Shared payloads, tensor types, shapes, and action interfaces for Morflow"
+license = "MIT"
+repository = "https://github.com/JiraPit/Morflow"
+
+[lib]
+name = "core_types"
 
 [dependencies]
 abi_stable = "0.11"

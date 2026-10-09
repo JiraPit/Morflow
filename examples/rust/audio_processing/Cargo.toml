@@ -1,9 +1,10 @@
 [package]
+publish = false
 name = "audio_processing"
 version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-morflow = { path = "../../../pipeline", package = "pipeline" }
-core_types = { path = "../../../core_types" }
+morflow = { version = "0.2.6", path = "../../../pipeline" }
+core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../../core_types" }
 hound = "3.5"

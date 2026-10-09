@@ -1,0 +1,18 @@
+# Morflow Image Processing Pipeline (.morf)
+
+import base/latest
+from base/latest import to_tensor
+from image_basics/latest import resize, color_adjust, gaussian_blur, to_image
+
+accept Image $img_in
+accept IntArg $target_width = 512
+accept IntArg $target_height = 512
+
+# Direct chained dataflow from host image input to emitted output
+$img_in
+    >> to_tensor(color="rgb", dtype="f32", layout="hwc", normalize=true)
+    >> resize(width=$target_width, height=$target_height, filter="bilinear")
+    >> color_adjust(contrast=1.15, saturation=1.05, brightness=0.02)
+    >> gaussian_blur(sigma=1.2)
+    >> to_image(color="rgba", dtype="u8")
+    >> emit

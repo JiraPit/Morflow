@@ -65,7 +65,7 @@ OpenCV chooses optimizations according to its installed build and available CPU.
 ```sh
 MORFLOW_PLUGINS_PATH="$PWD/target/release/plugins" \
 MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" \
-  cargo test -p pipeline --test opencv_actions
+  cargo test -p morflow --test opencv_actions
 ```
 
 Official operation references: [filtering](https://docs.opencv.org/4.x/d4/d86/group__imgproc__filter.html) and [resampling](https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html).

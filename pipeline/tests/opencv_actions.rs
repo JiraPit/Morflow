@@ -2,18 +2,18 @@
 use core_types::{
     ActionArgs, InputDescriptor, Payload, RBox, ShapeCheckResult, Tensor, TensorDType, Tuple2,
 };
-use pipeline::{ActionIdentity, ActionRegistry, Morflow};
-fn plugins() -> std::sync::Arc<pipeline::plugins::PluginSet> {
-    static PLUGINS: std::sync::OnceLock<std::sync::Arc<pipeline::plugins::PluginSet>> =
+use morflow::{ActionIdentity, ActionRegistry, Morflow};
+fn plugins() -> std::sync::Arc<morflow::plugins::PluginSet> {
+    static PLUGINS: std::sync::OnceLock<std::sync::Arc<morflow::plugins::PluginSet>> =
         std::sync::OnceLock::new();
     PLUGINS
         .get_or_init(|| {
-            pipeline::plugins::PluginSet::prepare(
+            morflow::plugins::PluginSet::prepare(
                 &[parser::ast::PluginDecl {
                     name: "opencv-bridge".into(),
                     version: "0.1.2".into(),
                 }],
-                &pipeline::plugins::search_paths(),
+                &morflow::plugins::search_paths(),
             )
             .unwrap()
         })
@@ -226,8 +226,8 @@ fn invalid_arguments_and_dimensions_fail_during_shapecheck() {
 }
 #[test]
 fn missing_system_library_is_deferred_until_execution() {
-    use pipeline::artifact::{atomic_write, digest, receipt_path};
-    use pipeline::plugins::{PluginIdentity, PluginReceipt};
+    use morflow::artifact::{atomic_write, digest, receipt_path};
+    use morflow::plugins::{PluginIdentity, PluginReceipt};
     const FLAG: &str = "MORFLOW_PLUGIN_TEST_CHILD";
     if std::env::var_os(FLAG).is_none() {
         let root = tempfile::tempdir().unwrap();
@@ -267,7 +267,7 @@ fn missing_system_library_is_deferred_until_execution() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("offline.morf");
     std::fs::write(&path, source).unwrap();
-    assert!(pipeline::check::check_pipeline(&path, None).is_ok());
+    assert!(morflow::check::check_pipeline(&path, None).is_ok());
     for mut pipeline in [
         Morflow::from_str(source).unwrap(),
         Morflow::load(&path).unwrap(),
@@ -600,8 +600,8 @@ fn shape_preserving_filters_support_more_than_four_channels() {
 #[cfg(unix)]
 #[test]
 fn pipeline_reload_selects_refreshed_plugin_and_existing_pipeline_retains_old_one() {
-    use pipeline::artifact::{atomic_write, digest, receipt_path};
-    use pipeline::plugins::{PluginIdentity, PluginReceipt};
+    use morflow::artifact::{atomic_write, digest, receipt_path};
+    use morflow::plugins::{PluginIdentity, PluginReceipt};
     const FLAG: &str = "MORFLOW_PLUGIN_RELOAD_CHILD";
     if std::env::var_os(FLAG).is_none() {
         let root = tempfile::tempdir().unwrap();
@@ -644,7 +644,7 @@ fn pipeline_reload_selects_refreshed_plugin_and_existing_pipeline_retains_old_on
             repository: "test".into(),
             sha256: digest(&bytes),
         };
-        let _guard = pipeline::artifact::CacheGuard::acquire(&root, &id.to_string()).unwrap();
+        let _guard = morflow::artifact::CacheGuard::acquire(&root, &id.to_string()).unwrap();
         atomic_write(&id.path(&root), &bytes).unwrap();
         atomic_write(
             &receipt_path(&id.path(&root)),
@@ -657,7 +657,7 @@ fn pipeline_reload_selects_refreshed_plugin_and_existing_pipeline_retains_old_on
     let mut old = Morflow::from_str(source).unwrap();
     publish(2, "0.1.2");
     let mut new = Morflow::from_str(source).unwrap();
-    let run = |pipeline: &mut pipeline::MorflowPipeline| {
+    let run = |pipeline: &mut morflow::MorflowPipeline| {
         pipeline
             .run(Payload::Tensor(
                 Tensor::from_f32_vec(vec![0.5; 144], vec![6, 8, 3]).unwrap(),

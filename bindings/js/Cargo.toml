@@ -1,6 +1,7 @@
 [package]
+publish = false
 name = "morflow-node"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 
 [lib]
@@ -9,8 +10,8 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "2.16", default-features = false, features = ["napi4", "async", "tokio_rt"] }
 napi-derive = "2.16"
-core_types = { path = "../../core_types" }
-pipeline = { path = "../../pipeline" }
+core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../core_types" }
+morflow = { package = "morflow", version = "0.2.6", path = "../../pipeline" }
 abi_stable = "0.11"
 
 [build-dependencies]

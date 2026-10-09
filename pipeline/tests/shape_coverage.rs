@@ -1,4 +1,4 @@
-use pipeline::{check::ShapeCoverage, ActionIdentity, ActionRegistry};
+use morflow::{check::ShapeCoverage, ActionIdentity, ActionRegistry};
 use std::collections::HashMap;
 
 fn coverage(source: &str) -> ShapeCoverage {
@@ -130,7 +130,7 @@ $x >> each ($row) {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("loop.morf");
     std::fs::write(&path, source).unwrap();
-    pipeline::check::check_pipeline(&path, None).unwrap();
+    morflow::check::check_pipeline(&path, None).unwrap();
 }
 
 #[test]

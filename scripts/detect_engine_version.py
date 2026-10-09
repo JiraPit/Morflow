@@ -91,6 +91,7 @@ def main():
                 "scripts/detect_engine_version.py",
                 "scripts/package-node.mjs",
                 "scripts/publish-node.mjs",
+                "scripts/publish_crates.py",
             )
             should_build = any(
                 any(f.startswith(prefix) or f == prefix for prefix in engine_prefixes)

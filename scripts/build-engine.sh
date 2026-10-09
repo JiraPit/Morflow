@@ -1,6 +1,6 @@
 #!/bin/bash
 # Morflow Core & Bindings Builder
-# Compiles core_types, parser, pipeline engine host/CLI, and all language bindings
+# Compiles morflow-core-types, morflow-parser, the Morflow engine/CLI, and all language bindings
 # (Python, JavaScript/Node.js, Java JNI + Java JAR).
 # Actions and plugins are excluded (use build-actions.sh and build-plugins.sh).
 
@@ -16,8 +16,8 @@ echo " Morflow Core & Bindings Builder"
 echo " (Excluding action packs)"
 echo "=================================================="
 
-echo "--> Building Engine Core (core_types, parser, pipeline)..."
-cargo build --release -p core_types -p parser -p pipeline
+echo "--> Building Engine Core (morflow-core-types, morflow-parser, morflow)..."
+cargo build --release -p morflow-core-types -p morflow-parser -p morflow
 
 echo "--> Building Language Bindings (Python, Node.js, Java JNI)..."
 cargo build --release -p morflow-py -p morflow-node -p morflow-jni

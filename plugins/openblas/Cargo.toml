@@ -1,4 +1,5 @@
 [package]
+publish = false
 name = "morflow-plugin-openblas"
 version = "0.1.1"
 edition = "2021"
@@ -12,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 plugin = "openblas"
 
 [dependencies]
-core_types = { path = "../../core_types" }
+core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../core_types" }
 libloading = "0.8"
 
 [dev-dependencies]

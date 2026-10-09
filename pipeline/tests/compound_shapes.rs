@@ -1,5 +1,5 @@
 use core_types::{ActionArgs, DataType, Shape, ValueShape, ValueShapeResult};
-use pipeline::{ActionIdentity, ActionRegistry, Morflow, Payload, Tensor};
+use morflow::{ActionIdentity, ActionRegistry, Morflow, Payload, Tensor};
 
 fn tensor(dims: &[usize], value: f32) -> Payload {
     Payload::Tensor(
@@ -13,7 +13,7 @@ fn loaded(
     registry: &ActionRegistry,
     pack: &str,
     action: &str,
-) -> std::sync::Arc<pipeline::LoadedAction> {
+) -> std::sync::Arc<morflow::LoadedAction> {
     registry
         .get_or_load(&ActionIdentity::new(pack, "latest", action).unwrap())
         .unwrap()
@@ -259,7 +259,7 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempfile::tempdir()?;
     let path = dir.path().join("compound.morf");
     std::fs::write(&path, source)?;
-    pipeline::check::check_pipeline(
+    morflow::check::check_pipeline(
         &path,
         Some(std::path::Path::new(&std::env::var(
             "MORFLOW_ACTIONS_PATH",

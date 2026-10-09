@@ -14,6 +14,7 @@ on:
       - 'scripts/detect_engine_version.py'
       - 'scripts/package-node.mjs'
       - 'scripts/publish-node.mjs'
+      - 'scripts/publish_crates.py'
   workflow_dispatch:
     inputs:
       force_build:
@@ -49,6 +50,32 @@ jobs:
           python3 scripts/detect_engine_version.py \
             --event "${{ github.event_name }}" \
             --force "${{ github.event.inputs.force_build || 'false' }}"
+
+  build-rust-packages:
+    name: Verify Rust release packages
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify all three crates
+        run: cargo publish --dry-run --locked -p morflow-core-types -p morflow-parser -p morflow
+
+      - name: Upload Rust packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-rust
+          path: |
+            target/package/tmp-crate/morflow-core-types-*.crate
+            target/package/tmp-crate/morflow-parser-*.crate
+            target/package/tmp-crate/morflow-0*.crate
+          if-no-files-found: error
+          retention-days: 1
 
   build-core:
     name: Build Core (${{ matrix.platform }})
@@ -89,7 +116,7 @@ jobs:
       - name: Build CLI Binary
         shell: bash
         run: |
-          cargo build --release -p pipeline --target "${{ matrix.triple }}"
+          cargo build --release -p morflow --target "${{ matrix.triple }}"
           mkdir -p dist/bin
           SRC="target/${{ matrix.triple }}/release/${{ matrix.bin_name }}"
           if [ ! -f "$SRC" ]; then
@@ -360,7 +387,7 @@ jobs:
 
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
-    needs: [detect-engine, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings]
+    needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings]
     if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -455,3 +482,38 @@ jobs:
 
       - name: Publish verified package
         run: node scripts/publish-node.mjs dist_npm/*.tgz
+
+  publish-rust:
+    name: Publish Rust crates to crates.io
+    needs: [detect-engine, publish-engine-release]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Select unpublished crate versions
+        id: crates
+        run: python scripts/publish_crates.py
+
+      - name: Authenticate using Trusted Publishing
+        if: steps.crates.outputs.pending == 'true'
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish crates in dependency order
+        if: steps.crates.outputs.pending == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: python scripts/publish_crates.py --publish

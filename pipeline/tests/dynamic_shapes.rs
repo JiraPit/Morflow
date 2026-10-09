@@ -1,7 +1,7 @@
 use core_types::{
     ActionArgs, DataType, Dimension, PType, Shape, ShapeSpec, Tuple2, ValueShape, ValueShapeResult,
 };
-use pipeline::{ActionIdentity, ActionRegistry, Morflow, Payload, Tensor};
+use morflow::{ActionIdentity, ActionRegistry, Morflow, Payload, Tensor};
 
 fn args(values: &[(&str, &str)]) -> ActionArgs {
     ActionArgs {
@@ -16,7 +16,7 @@ fn action(
     registry: &ActionRegistry,
     pack: &str,
     name: &str,
-) -> std::sync::Arc<pipeline::LoadedAction> {
+) -> std::sync::Arc<morflow::LoadedAction> {
     registry
         .get_or_load(&ActionIdentity::new(pack, "latest", name).unwrap())
         .unwrap()
@@ -226,7 +226,7 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let file = temp.path().join("dynamic.morf");
     std::fs::write(&file, source)?;
-    pipeline::check::check_pipeline(
+    morflow::check::check_pipeline(
         &file,
         Some(std::path::Path::new(&std::env::var(
             "MORFLOW_ACTIONS_PATH",

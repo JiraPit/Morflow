@@ -5,9 +5,9 @@ use core_types::{
     Audio, AudioChannelLayout, AudioLayout, ColorSpace, Image, ImageLayout, Payload, Tensor,
     TensorDType,
 };
+use morflow::{Morflow, MorflowError, MorflowPipeline};
 use numpy::ndarray::{ArrayD, IxDyn};
 use numpy::{IntoPyArray, PyReadonlyArrayDyn, PyUntypedArrayMethods};
-use pipeline::{Morflow, MorflowError, MorflowPipeline};
 use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
@@ -468,7 +468,7 @@ pub fn from_str(source: &str) -> PyResult<PyPipeline> {
 pub fn run_cli(args: Vec<String>) -> PyResult<i32> {
     let mut full_args = vec!["morflow".to_string()];
     full_args.extend(args);
-    Ok(pipeline::cli::run_cli(full_args))
+    Ok(morflow::cli::run_cli(full_args))
 }
 
 /// Python module initialization.

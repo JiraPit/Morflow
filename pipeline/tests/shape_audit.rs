@@ -4,7 +4,7 @@
 use core_types::{
     ActionArgs, Dimension, RBox, Shape, ShapeResult, Tuple2, ValueShape, ValueShapeResult,
 };
-use pipeline::{ActionIdentity, ActionRegistry, Audio, LoadedAction, Payload, Tensor};
+use morflow::{ActionIdentity, ActionRegistry, Audio, LoadedAction, Payload, Tensor};
 
 fn args(values: &[(&str, &str)]) -> ActionArgs {
     ActionArgs {
@@ -138,10 +138,10 @@ fn action(registry: &ActionRegistry, pack: &str, name: &str) -> std::sync::Arc<L
     if action.receipt.plugins.is_empty() {
         return action;
     }
-    static PLUGINS: std::sync::OnceLock<std::sync::Arc<pipeline::plugins::PluginSet>> =
+    static PLUGINS: std::sync::OnceLock<std::sync::Arc<morflow::plugins::PluginSet>> =
         std::sync::OnceLock::new();
     let plugins = PLUGINS.get_or_init(|| {
-        pipeline::plugins::PluginSet::prepare(
+        morflow::plugins::PluginSet::prepare(
             &[
                 parser::ast::PluginDecl {
                     name: "opencv-bridge".into(),
@@ -152,7 +152,7 @@ fn action(registry: &ActionRegistry, pack: &str, name: &str) -> std::sync::Arc<L
                     version: "0.1.1".into(),
                 },
             ],
-            &pipeline::plugins::search_paths(),
+            &morflow::plugins::search_paths(),
         )
         .unwrap()
     });

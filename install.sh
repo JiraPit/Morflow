@@ -84,7 +84,7 @@ detect_platform() {
             PLATFORM="linux-x86_64"
         else
             echo "Error: Pre-built Linux binaries are currently available for x86_64 only."
-            echo "You can build from source via 'cargo build --release -p pipeline'."
+            echo "You can build from source via 'cargo build --release -p morflow'."
             exit 1
         fi
     elif [ "$PLATFORM_OS" = "darwin" ]; then
@@ -92,7 +92,7 @@ detect_platform() {
             PLATFORM="darwin-arm64"
         else
             echo "Error: Pre-built macOS binaries are currently available for Apple Silicon (arm64)."
-            echo "You can build from source via 'cargo build --release -p pipeline'."
+            echo "You can build from source via 'cargo build --release -p morflow'."
             exit 1
         fi
     fi

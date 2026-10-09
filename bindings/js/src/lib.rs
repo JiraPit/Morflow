@@ -8,9 +8,9 @@ use core_types::{
     Audio, AudioChannelLayout, AudioLayout, ColorSpace, Image, ImageLayout, Payload, Tensor,
     TensorDType,
 };
+use morflow::{Morflow, MorflowError, MorflowPipeline};
 use napi::bindgen_prelude::*;
 use napi::Env;
-use pipeline::{Morflow, MorflowError, MorflowPipeline};
 
 fn map_error(err: MorflowError) -> napi::Error {
     match err {
@@ -591,5 +591,5 @@ pub fn from_str(source: String) -> napi::Result<Pipeline> {
 pub fn run_cli(args: Vec<String>) -> napi::Result<i32> {
     let mut full_args = vec!["morflow".to_string()];
     full_args.extend(args);
-    Ok(pipeline::cli::run_cli(full_args))
+    Ok(morflow::cli::run_cli(full_args))
 }

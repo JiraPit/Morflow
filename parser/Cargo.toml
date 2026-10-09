@@ -1,7 +1,13 @@
 [package]
-name = "parser"
-version = "0.2.5"
+name = "morflow-parser"
+version = "0.2.6"
 edition = "2021"
+description = "Parser for Morflow declarative data processing pipelines"
+license = "MIT"
+repository = "https://github.com/JiraPit/Morflow"
+
+[lib]
+name = "parser"
 
 [dependencies]
 chumsky = "0.9"

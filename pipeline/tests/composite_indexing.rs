@@ -1,4 +1,4 @@
-use pipeline::{Audio, Morflow, Payload, Tensor};
+use morflow::{Audio, Morflow, Payload, Tensor};
 
 fn matrix() -> Payload {
     Payload::Tensor(Tensor::from_f32_shape(&[1., 0., 0., 1., 1., 1.], vec![3, 2]).unwrap())
@@ -107,7 +107,7 @@ fn check(source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let path = dir.path().join("composite.morf");
     std::fs::write(&path, source)?;
     let cache = std::env::var("MORFLOW_ACTIONS_PATH").unwrap();
-    pipeline::check::check_pipeline(&path, Some(std::path::Path::new(&cache)))
+    morflow::check::check_pipeline(&path, Some(std::path::Path::new(&cache)))
 }
 
 #[test]

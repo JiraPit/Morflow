@@ -179,8 +179,7 @@ mod tests {
 
     #[test]
     fn test_load_example_morf_file() {
-        let example_content =
-            include_str!("../../examples/rust/audio_processing/audio_pipeline.morf");
+        let example_content = include_str!("../tests/fixtures/audio_pipeline.morf");
         let res = parse(example_content);
         assert!(res.is_ok(), "Failed to parse example file: {:?}", res.err());
         let pipeline = res.unwrap();
@@ -365,8 +364,7 @@ mod tests {
 
     #[test]
     fn test_load_audio_split_example() {
-        let example_content =
-            include_str!("../../examples/rust/audio_split/audio_split_pipeline.morf");
+        let example_content = include_str!("../tests/fixtures/audio_split_pipeline.morf");
         let res = parse(example_content);
         assert!(
             res.is_ok(),
@@ -469,8 +467,7 @@ mod tests {
 
     #[test]
     fn test_load_image_pipeline_example() {
-        let example_content =
-            include_str!("../../examples/rust/image_processing/image_pipeline.morf");
+        let example_content = include_str!("../tests/fixtures/image_pipeline.morf");
         let res = parse(example_content);
         assert!(
             res.is_ok(),

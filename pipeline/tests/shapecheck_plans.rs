@@ -1,5 +1,5 @@
 use core_types::{ActionArgs, InputDescriptor, Shape, ShapeCheckResult, Tuple2, ValueShape};
-use pipeline::{ActionIdentity, ActionRegistry, Payload, Tensor};
+use morflow::{ActionIdentity, ActionRegistry, Payload, Tensor};
 
 fn args(values: &[(&str, &str)]) -> ActionArgs {
     ActionArgs {
@@ -17,12 +17,12 @@ fn loaded(
     registry: &ActionRegistry,
     pack: &str,
     action: &str,
-) -> std::sync::Arc<pipeline::LoadedAction> {
+) -> std::sync::Arc<morflow::LoadedAction> {
     registry
         .get_or_load(&ActionIdentity::new(pack, "latest", action).unwrap())
         .unwrap()
 }
-fn run(action: &pipeline::LoadedAction, input: Payload, args: ActionArgs) -> Payload {
+fn run(action: &morflow::LoadedAction, input: Payload, args: ActionArgs) -> Payload {
     action.process(Payload::WithArgs {
         payload: core_types::RBox::new(input),
         args,

@@ -10,7 +10,7 @@ use jni::objects::{
 };
 use jni::sys::{jint, jlong, jobject, jobjectArray};
 use jni::JNIEnv;
-use pipeline::{Morflow, MorflowError, MorflowPipeline};
+use morflow::{Morflow, MorflowError, MorflowPipeline};
 
 /// Sample rate assumed by `payloadType="audio"` when the caller omits one.
 const DEFAULT_SAMPLE_RATE: u32 = 44100;

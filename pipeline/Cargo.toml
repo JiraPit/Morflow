@@ -1,16 +1,20 @@
 [package]
-name = "pipeline"
-version = "0.2.5"
+name = "morflow"
+version = "0.2.6"
 edition = "2021"
 rust-version = "1.89"
+description = "Data Processing & Tensor Transformation Engine"
+license = "MIT"
+repository = "https://github.com/JiraPit/Morflow"
+readme = "../README.md"
 
 [[bin]]
 name = "morflow"
 path = "src/main.rs"
 
 [dependencies]
-core_types = { path = "../core_types" }
-parser = { path = "../parser" }
+core_types = { package = "morflow-core-types", version = "0.4.2", path = "../core_types" }
+parser = { package = "morflow-parser", version = "0.2.6", path = "../parser" }
 libloading = "0.8"
 abi_stable = "0.11"
 rayon = "1.10"
@@ -25,7 +29,3 @@ serde_json = "1"
 sha2 = "0.10"
 semver = "1"
 tempfile = "3"
-
-[dev-dependencies]
-identity = { path = "../actions/base/identity" }
-neg = { path = "../actions/math_basics/neg" }

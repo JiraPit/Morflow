@@ -1,7 +1,7 @@
 //! Differential tests load the compiled native binaries through the verified
 //! cache and compare their contracts against real execution.
 use core_types::{ActionArgs, RBox, Shape, ShapeResult, Tuple2};
-use pipeline::{ActionIdentity, ActionRegistry, Audio, Payload, RVec, Tensor};
+use morflow::{ActionIdentity, ActionRegistry, Audio, Payload, RVec, Tensor};
 
 fn args(values: &[(&str, &str)]) -> ActionArgs {
     ActionArgs {
