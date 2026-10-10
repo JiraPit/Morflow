@@ -391,7 +391,10 @@ fn call_args(call: &ActionCall, params: &[PipelineParam]) -> ActionArgs {
 fn print_shape_coverage(console: &Console, coverage: &ShapeCoverage) {
     use rich_rust::renderables::table::Cell;
     console.print("");
-    console.rule(Some("Shape safety"));
+    console.print_text(&Text::styled(
+        "Shape safety",
+        Style::parse("bold cyan").unwrap_or_default(),
+    ));
     let Some(percent) = coverage.percentage() else {
         console.print("Shape safety: N/A (no processing actions)");
         return;
@@ -483,11 +486,7 @@ pub fn check_pipeline_with_plugins(
     let console = Console::new();
 
     if !file_path.exists() {
-        console.print(&format!(
-            "[bold red]Error:[/] Pipeline file '{}' does not exist.",
-            file_path.display()
-        ));
-        return Err(format!("File '{}' not found", file_path.display()).into());
+        return Err(format!("Pipeline file '{}' does not exist", file_path.display()).into());
     }
 
     let source = fs::read_to_string(file_path)?;
@@ -499,7 +498,10 @@ pub fn check_pipeline_with_plugins(
     let ast = match parser::parse(&source) {
         Ok(p) => p,
         Err(errs) => {
-            console.rule(Some("Morflow Syntax Verification"));
+            console.print_text(&Text::styled(
+                "Morflow Syntax Verification",
+                Style::parse("bold cyan").unwrap_or_default(),
+            ));
             for err in &errs {
                 let span = err.span();
                 let msg = match err.reason() {
@@ -557,7 +559,10 @@ pub fn check_pipeline_with_plugins(
     // Phase 2: Semantic & Flow Validation (SSA / Emits)
     // ==========================================
     if let Err(err) = validate_pipeline(&ast) {
-        console.rule(Some("Morflow Semantic & SSA Verification"));
+        console.print_text(&Text::styled(
+            "Morflow Semantic & SSA Verification",
+            Style::parse("bold cyan").unwrap_or_default(),
+        ));
         let err_str = err.to_string();
 
         let token_target = if let Some(dollar_idx) = err_str.find('$') {
@@ -978,7 +983,10 @@ pub fn check_pipeline_with_plugins(
     // ==========================================
     // Phase 5: Rich Presentation (rich_rust)
     // ==========================================
-    console.rule(Some("Pipeline check"));
+    console.print_text(&Text::styled(
+        "Pipeline check",
+        Style::parse("bold cyan").unwrap_or_default(),
+    ));
     console.print(&format!(
         "  [bold cyan]Pipeline:[/]        [green]{}[/]",
         file_path.display()
@@ -1227,7 +1235,10 @@ pub fn check_pipeline_with_plugins(
 
     // 3. Action Dynamic Inspection Table (showing actual types from action binaries)
     if !action_names.is_empty() {
-        console.rule(Some("Actions"));
+        console.print_text(&Text::styled(
+            "Actions",
+            Style::parse("bold cyan").unwrap_or_default(),
+        ));
         let width = console.width();
         let show_path = width >= 95;
 

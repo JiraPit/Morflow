@@ -1,6 +1,9 @@
 use crate::artifact::*;
 use crate::release::{spec_path, PreparedRelease, ReleaseClient};
 use clap::{Parser, Subcommand};
+use rich_rust::prelude::*;
+use rich_rust::r#box::ROUNDED;
+use rich_rust::renderables::table::Cell;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -354,21 +357,58 @@ where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
 {
+    let args: Vec<std::ffi::OsString> = args.into_iter().map(Into::into).collect();
+    let rich_errors = match args.get(1).and_then(|arg| arg.to_str()) {
+        Some("check" | "list" | "search") => true,
+        Some("plugins") => matches!(
+            args.get(2).and_then(|arg| arg.to_str()),
+            Some("list" | "search")
+        ),
+        _ => false,
+    };
     let cli = match Cli::try_parse_from(args) {
         Ok(c) => c,
         Err(e) => {
-            let _ = e.print();
+            if rich_errors && e.use_stderr() {
+                print_error(&e.to_string());
+            } else {
+                let _ = e.print();
+            }
             return e.exit_code();
         }
     };
     match run_command(cli.command) {
         Ok(()) => 0,
         Err(e) => {
-            eprintln!("Error: {e}");
+            if rich_errors {
+                print_error(&e.to_string());
+            } else {
+                eprintln!("Error: {e}");
+            }
             1
         }
     }
 }
+/// Rich command failures use stderr and preserve diagnostic text literally.
+fn print_error(message: &str) {
+    let console = Console::builder().file(Box::new(std::io::stderr())).build();
+    let width = console.width().saturating_sub(6).max(1);
+    let wrapped = Text::new(message)
+        .wrap(width)
+        .into_iter()
+        .map(|line| line.plain().to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let panel = Panel::from_text(&wrapped)
+        .title(Text::styled(
+            "Error",
+            Style::parse("bold red").unwrap_or_default(),
+        ))
+        .box_style(&ROUNDED)
+        .border_style(Style::parse("red").unwrap_or_default());
+    console.print_renderable(&panel);
+}
+
 fn report_install(
     client: &ReleaseClient,
     root: &Path,
@@ -388,6 +428,46 @@ fn report_install(
     );
     Ok(())
 }
+/// Render literal user/cache text as cells rather than interpreting it as markup.
+fn print_catalog(
+    title: &str,
+    context: &str,
+    columns: &[&str],
+    rows: Vec<Vec<String>>,
+    empty: &str,
+) {
+    let console = Console::new();
+    console.print_text(&Text::styled(
+        title,
+        Style::parse("bold cyan").unwrap_or_default(),
+    ));
+    console.print_text(&Text::styled(
+        context,
+        Style::parse("dim").unwrap_or_default(),
+    ));
+    console.print("");
+    if rows.is_empty() {
+        console.print(&format!("[dim]{empty}[/]"));
+        return;
+    }
+    let mut table = Table::new()
+        .box_style(&ROUNDED)
+        .border_style(Style::parse("dim").unwrap_or_default())
+        .header_style(Style::parse("bold cyan").unwrap_or_default());
+    for column in columns {
+        table = table.with_column(Column::new(*column));
+    }
+    let count = rows.len();
+    for row in rows {
+        table.add_row_cells(row.into_iter().map(Cell::new));
+    }
+    console.print_renderable(&table);
+    console.print(&format!(
+        "[dim]{count} {}[/]",
+        if count == 1 { "result" } else { "results" }
+    ));
+}
+
 fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
     match command {
         Commands::Plugins { command } => run_plugin_command(command)?,
@@ -464,14 +544,33 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         Commands::List { path } => {
             let root = resolve_action_cache_dir(path);
             let _maintenance = CacheGuard::shared(&root, "maintenance")?;
+            let mut rows = Vec::new();
             for receipt in installed_receipts(&root)? {
                 let _guard = CacheGuard::acquire(&root, &receipt.identity.to_string())?;
                 let (receipt, _) = read_verified(&root, &receipt.identity)?;
-                println!(
-                    "{} -> {} [{}]",
-                    receipt.identity, receipt.concrete_version, receipt.repository
-                );
+                rows.push(vec![
+                    format!(
+                        "{}/{}/{}",
+                        receipt.identity.pack, receipt.identity.version, receipt.identity.action
+                    ),
+                    receipt.concrete_version,
+                    receipt.identity.platform,
+                    receipt.repository,
+                ]);
             }
+            rows.sort();
+            print_catalog(
+                "Installed actions",
+                &format!("Cache: {}", root.display()),
+                &[
+                    "Action / requested version",
+                    "Release",
+                    "Platform",
+                    "Repository",
+                ],
+                rows,
+                "No verified actions installed. Run morflow prep <file> to prepare a pipeline.",
+            );
         }
         Commands::Spec { action } => {
             let id = match parse_target_path(&action)? {
@@ -531,9 +630,24 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                     .then(a.1.cmp(b.1))
                     .then(a.0.cmp(b.0))
             });
-            for (pack, action, _, _) in matches.into_iter().take(limit) {
-                println!("{pack}/latest/{action}");
-            }
+            let rows = matches
+                .into_iter()
+                .take(limit)
+                .map(|(pack, action, _, _)| {
+                    vec![
+                        action.into(),
+                        pack.into(),
+                        format!("{pack}/latest/{action}"),
+                    ]
+                })
+                .collect();
+            print_catalog(
+                "Action search",
+                &format!("Query: {query}"),
+                &["Action", "Pack", "Import path"],
+                rows,
+                "No matching actions. Try a broader search.",
+            );
         }
         Commands::Clean { path } => {
             let root = resolve_action_cache_dir(path);
@@ -660,9 +774,17 @@ fn run_plugin_command(command: PluginCommands) -> Result<(), Box<dyn std::error:
     use crate::plugins::{PluginIdentity, PluginReceipt};
     match command {
         PluginCommands::Search { query, limit } => {
-            for name in search_plugins(&query, limit) {
-                println!("{name}/latest");
-            }
+            let rows = search_plugins(&query, limit)
+                .into_iter()
+                .map(|name| vec![name.into(), format!("{name}/latest")])
+                .collect();
+            print_catalog(
+                "Plugin search",
+                &format!("Query: {query}"),
+                &["Plugin", "Declaration"],
+                rows,
+                "No matching plugins. Try a broader search.",
+            );
         }
         PluginCommands::Install {
             plugin,
@@ -715,21 +837,28 @@ fn run_plugin_command(command: PluginCommands) -> Result<(), Box<dyn std::error:
                         }
                         let _guard = CacheGuard::acquire(&root, &receipt.identity.to_string())?;
                         let (receipt, _) = crate::plugins::read_verified(&root, &receipt.identity)?;
-                        rows.push(format!(
-                            "{} -> {} [{}]",
-                            receipt.identity, receipt.concrete_version, receipt.repository
-                        ));
+                        rows.push(vec![
+                            format!("{}/{}", receipt.identity.name, receipt.identity.version),
+                            receipt.concrete_version,
+                            receipt.identity.platform,
+                            receipt.repository,
+                        ]);
                     }
                 }
             }
             rows.sort();
-            if rows.is_empty() {
-                println!("No plugins installed in {}", root.display());
-            } else {
-                for row in rows {
-                    println!("{row}");
-                }
-            }
+            print_catalog(
+                "Installed plugins",
+                &format!("Cache: {}", root.display()),
+                &[
+                    "Plugin / requested version",
+                    "Release",
+                    "Platform",
+                    "Repository",
+                ],
+                rows,
+                "No verified plugins installed. Run morflow prep <file> to prepare a pipeline.",
+            );
         }
         PluginCommands::Clean { path } => {
             let root = crate::plugins::cache_dir(path);

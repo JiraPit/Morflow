@@ -1,9 +1,9 @@
 plugin openblas/0.1.1
 
-from math_basics/0.3.1 import mul, add, clamp
-from tensor_basics/0.3.1 import transpose
+from math_basics/0.3.2 import mul, add, clamp
+from tensor_basics/0.3.2 import transpose
 from tensor_blas/0.1.2 import roll
-from tensor_stats/0.3.1 import sum
+from tensor_stats/0.3.2 import sum
 
 accept Tensor[512,512] $input
 

@@ -279,7 +279,7 @@ public class MorflowTest {
     }
     @Test
     public void testExactVersionAndRequiredImports() {
-        String source = "from base/0.3.1 import identity\naccept Tensor $data\n$data >> identity >> emit";
+        String source = "from base/0.3.2 import identity\naccept Tensor $data\n$data >> identity >> emit";
         try (Pipeline pipeline = Morflow.fromStr(source)) {
             assertArrayEquals(new float[]{1.0f, 2.0f}, pipeline.run(new float[]{1.0f, 2.0f}, new int[]{2}).toFloatArray());
         }

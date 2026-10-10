@@ -1,7 +1,7 @@
 plugin openblas/0.1.1
 
 from linalg_blas/0.1.2 import inv, cholesky
-from tensor_basics/0.3.1 import transpose
+from tensor_basics/0.3.2 import transpose
 
 accept Tensor[256,256] $input
 

@@ -1,5 +1,5 @@
-from linalg_basics/0.3.1 import inv, cholesky
-from tensor_basics/0.3.1 import transpose
+from linalg_basics/0.3.2 import inv, cholesky
+from tensor_basics/0.3.2 import transpose
 
 accept Tensor[256,256] $input
 

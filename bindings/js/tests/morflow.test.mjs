@@ -311,7 +311,7 @@ test('Morflow - StrArg, BoolArg and Scalar positional parameters', () => {
 });
 
 test('Morflow - exact version and required imports', () => {
-  const pipeline = morflow.fromStr(`from base/0.3.1 import identity
+  const pipeline = morflow.fromStr(`from base/0.3.2 import identity
 accept Tensor $data
 $data >> identity >> emit`);
   assert.deepEqual(Array.from(pipeline.runSync(new Float32Array([1, 2])).toFloat32Array()), [1, 2]);

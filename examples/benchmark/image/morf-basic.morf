@@ -1,5 +1,5 @@
-from base/0.3.1 import to_tensor
-from image_basics/0.3.1 import crop, flip, resize
+from base/0.3.2 import to_tensor
+from image_basics/0.3.2 import crop, flip, resize
 
 accept Image $image
 accept IntArg $crop_x

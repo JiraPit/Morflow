@@ -15,7 +15,7 @@ Use `tensor_basics` for reshape, transpose, permute, squeeze, unsqueeze, flatten
 ```morf
 plugin openblas/0.1.1
 from linalg_blas/0.1.2 import matmul
-from tensor_basics/0.3.1 import transpose
+from tensor_basics/0.3.2 import transpose
 accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
 
 $matrices >> matmul >> transpose >> emit("transposed_product")

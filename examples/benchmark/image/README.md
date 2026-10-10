@@ -7,7 +7,7 @@ Compare **PIL/NumPy**, **morf-basic**, and **morf-opencv** using the same in-mem
 3. Nearest-neighbor resize to the requested output size.
 4. Convert to a float32 HWC tensor normalized to `[0,1]`.
 
-`morf-basic.morf` uses `image_basics` for crop, flip and resize. `morf-opencv.morf` uses the same crop and flip actions and replaces resize with `image_opencv/0.1.2`. Both use `base/0.3.1` for tensor conversion. This workload compares OpenCV resize within the existing pipeline; it does not measure the pack's blur, rotation, morphology, edge detection or sharpening actions.
+`morf-basic.morf` uses `image_basics` for crop, flip and resize. `morf-opencv.morf` uses the same crop and flip actions and replaces resize with `image_opencv/0.1.2`. Both use `base/0.3.2` for tensor conversion. This workload compares OpenCV resize within the existing pipeline; it does not measure the pack's blur, rotation, morphology, edge detection or sharpening actions.
 
 ## Setup
 

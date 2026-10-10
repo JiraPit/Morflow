@@ -1,7 +1,7 @@
 plugin openblas/0.1.1
 
 from linalg_blas/0.1.2 import matmul
-from tensor_basics/0.3.1 import transpose
+from tensor_basics/0.3.2 import transpose
 from tensor_blas/0.1.2 import repeat
 accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
 
