@@ -792,63 +792,40 @@ impl Tensor {
         self.reshape(new_shape)
     }
 
-    /// Casts the tensor data type to `target_dtype`.
+    /// Casts the tensor data type to `target_dtype`, for any pair of dtypes.
+    ///
+    /// Into a float, each value is rounded at most once. Into an integer,
+    /// floats are rounded to the nearest whole number (NaN becomes 0), and
+    /// every value is clamped to the target's range.
     pub fn cast(&self, target_dtype: TensorDType) -> Result<Self, RString> {
+        use crate::numeric::{Element, IntElement};
+
         if self.dtype == target_dtype {
             return Ok(self.clone());
         }
 
-        let total = self.num_elements();
-        let f32_vals = self.to_vec_f32();
-
-        match target_dtype {
-            TensorDType::F32 => Self::from_f32_vec(f32_vals, self.shape.to_vec()),
-            TensorDType::U8 => {
-                let u8_vec: Vec<u8> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(0.0, 255.0).round() as u8)
-                    .collect();
-                Self::from_rvec_u8(RVec::from(u8_vec), self.shape.to_vec(), TensorDType::U8)
-            }
-            TensorDType::I32 => {
-                let i32_vec: Vec<i32> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32)
-                    .collect();
-                Self::from_i32_vec(i32_vec, self.shape.to_vec())
-            }
-            TensorDType::F64 => {
-                let f64_vec: Vec<f64> = f32_vals.par_iter().map(|&x| x as f64).collect();
-                let byte_len = total * 8;
-                let mut bytes = vec![0u8; byte_len];
-                bytes
-                    .par_chunks_exact_mut(8)
-                    .zip(f64_vec.par_iter())
-                    .for_each(|(chunk, &val)| {
-                        chunk.copy_from_slice(&val.to_ne_bytes());
-                    });
-                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::F64)
-            }
-            TensorDType::I16 => {
-                let i16_vec: Vec<i16> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(i16::MIN as f32, i16::MAX as f32).round() as i16)
-                    .collect();
-                let byte_len = total * 2;
-                let mut bytes = vec![0u8; byte_len];
-                bytes
-                    .par_chunks_exact_mut(2)
-                    .zip(i16_vec.par_iter())
-                    .for_each(|(chunk, &val)| {
-                        chunk.copy_from_slice(&val.to_ne_bytes());
-                    });
-                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::I16)
-            }
-            _ => Err(RString::from(format!(
-                "Unsupported cast to target dtype {:?}",
-                target_dtype
-            ))),
+        fn to_int<I: IntElement>(source: &Tensor) -> Vec<I> {
+            crate::match_dtype!(source.dtype,
+                int S => source
+                    .to_vec_of::<S>()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|v| I::from_i128(v.to_i128().clamp(I::MIN_I128, I::MAX_I128)))
+                    .collect(),
+                float F => source
+                    .to_vec_of::<F>()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|v| I::from_f64(v.to_f64().round()))
+                    .collect(),
+            )
         }
+
+        let shape = self.shape.to_vec();
+        crate::match_dtype!(target_dtype,
+            int I => Self::from_vec_of(to_int::<I>(self), shape),
+            float F => Self::from_vec_of(self.to_vec_as::<F>(), shape),
+        )
     }
 
     /// Concatenates multiple tensors along `axis`.
