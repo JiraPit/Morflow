@@ -343,6 +343,87 @@ test('Morflow - select QR Composite components', () => {
   }
 });
 
+test('Morflow - every dtype round-trips through a typed array', () => {
+  const pipeline = morflow.fromStr(`
+    accept Tensor $data
+    $data >> base/latest/identity >> emit
+  `);
+  const inputs = {
+    f32: new Float32Array([1.5, -2]),
+    f64: new Float64Array([1.5, -2]),
+    i8: new Int8Array([-3, 4]),
+    i16: new Int16Array([-300, 400]),
+    i32: new Int32Array([-70000, 80000]),
+    i64: new BigInt64Array([-(2n ** 40n), 2n ** 40n]),
+    u32: new Uint32Array([1, 4000000000]),
+    u64: new BigUint64Array([1n, 2n ** 63n])
+  };
+  for (const [dtype, input] of Object.entries(inputs)) {
+    const output = pipeline.runSync(input);
+    assert.equal(output.dtype, dtype);
+    assert.deepEqual(output.shape, [2]);
+    assert.deepEqual(Array.from(output.toTypedArray()), Array.from(input));
+  }
+  const bytes = pipeline.runSync({ data: Buffer.from([7, 8]), shape: [2], dtype: 'u8' });
+  assert.equal(bytes.dtype, 'u8');
+  assert.deepEqual(Array.from(bytes.toTypedArray()), [7, 8]);
+});
+
+test('Morflow - integer sum returns i64', () => {
+  const pipeline = morflow.fromStr(`
+    import tensor_stats/latest
+    accept Tensor $data
+    $data >> sum(axis=0) >> emit
+  `);
+  const output = pipeline.runSync({ data: new Int32Array([1, 2, 3, 4]), shape: [2, 2] });
+  assert.equal(output.dtype, 'i64');
+  assert.deepEqual(Array.from(output.toBigInt64Array()), [4n, 6n]);
+});
+
+test('Morflow - unknown dtype is rejected', () => {
+  const pipeline = morflow.fromStr(`
+    accept Tensor $data
+    $data >> base/latest/identity >> emit
+  `);
+  assert.throws(() => {
+    pipeline.runSync({ data: Buffer.alloc(8), shape: [2], dtype: 'f16' });
+  }, /Unknown dtype/);
+});
+
+test('Morflow - an array is a Composite for two-tensor arithmetic', async () => {
+  const pipeline = morflow.fromStr(`
+    import math_basics/latest
+    accept Composite $pair
+    $pair >> add >> emit
+  `);
+  const a = { data: new Int32Array([1, 2, 3, 4, 5, 6]), shape: [2, 3] };
+  const b = new Int32Array([10, 20, 30]);
+  const output = await pipeline.run([a, b]);
+  assert.equal(output.dtype, 'i32');
+  assert.deepEqual(output.shape, [2, 3]);
+  assert.deepEqual(Array.from(output.toInt32Array()), [11, 22, 33, 14, 25, 36]);
+});
+
+test('Morflow - a Composite output is an array', () => {
+  const pipeline = morflow.fromStr(`
+    accept Composite $pair
+    $pair >> emit
+  `);
+  const [first, second] = pipeline.runSync([new Float64Array([1.5, 2.5]), new BigInt64Array([7n])]);
+  assert.equal(first.dtype, 'f64');
+  assert.deepEqual(Array.from(first.toFloat64Array()), [1.5, 2.5]);
+  assert.equal(second.dtype, 'i64');
+  assert.deepEqual(Array.from(second.toBigInt64Array()), [7n]);
+});
+
+test('Morflow - a raw byte buffer is not a Composite component', () => {
+  const pipeline = morflow.fromStr(`
+    accept Composite $pair
+    $pair >> emit
+  `);
+  assert.throws(() => pipeline.runSync([Buffer.from([1, 2])]), TypeError);
+});
+
 
 test('Morflow - declared plugin works through file and string APIs', {skip: !process.env.MORFLOW_PLUGINS_PATH}, async () => {
   const fs = await import('node:fs');

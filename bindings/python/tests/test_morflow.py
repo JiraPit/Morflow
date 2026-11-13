@@ -42,6 +42,80 @@ def test_multi_emit_pipeline():
     assert np.allclose(outputs["part_b"], [3.0, 4.0])
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, np.uint8, np.int8, np.int16,
+                                   np.int32, np.int64, np.uint32, np.uint64])
+def test_identity_pipeline_keeps_every_dtype(dtype):
+    pipeline = morflow.from_str("""
+        accept Tensor $data
+        $data >> base/latest/identity >> emit
+    """)
+    inp = np.arange(6, dtype=dtype).reshape(2, 3)
+    out = pipeline.run(inp)
+    assert isinstance(out, np.ndarray)
+    assert out.dtype == dtype
+    assert np.array_equal(out, inp)
+
+
+def test_integer_sum_returns_int64():
+    pipeline = morflow.from_str("""
+        import tensor_stats/latest
+        accept Tensor $data
+        $data >> sum(axis=0) >> emit
+    """)
+    out = pipeline.run(np.array([[1, 2], [3, 4]], dtype=np.int32))
+    assert out.dtype == np.int64
+    assert np.array_equal(out, [4, 6])
+
+
+def test_float64_keeps_double_precision():
+    pipeline = morflow.from_str("""
+        import math_basics/latest
+        accept Tensor $data
+        $data >> add(value=1e-10) >> emit
+    """)
+    out = pipeline.run(np.array([1.0], dtype=np.float64))
+    assert out.dtype == np.float64
+    assert out[0] == 1.0 + 1e-10
+
+
+def test_image_wrapper_converts_float64_to_float32():
+    pipeline = morflow.from_str("""
+        from base/latest import to_tensor
+        accept Image $image
+        $image >> to_tensor >> emit
+    """)
+    out = pipeline.run(morflow.Image(np.full((2, 2, 3), 0.5), color="rgb"))
+    assert out.dtype == np.float32
+    np.testing.assert_allclose(out, 0.5)
+
+
+def test_list_or_tuple_is_a_composite_for_two_tensor_arithmetic():
+    pipeline = morflow.from_str("""
+        import math_basics/latest
+        accept Composite $pair
+        $pair >> add >> emit
+    """)
+    a = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)
+    b = np.array([10, 20, 30], dtype=np.int32)
+    for pair in ([a, b], (a, b)):
+        out = pipeline.run(pair)
+        assert out.dtype == np.int32
+        assert np.array_equal(out, a + b)
+
+
+def test_composite_output_is_a_list():
+    pipeline = morflow.from_str("""
+        accept Composite $pair
+        $pair >> emit
+    """)
+    a = np.array([1.5, 2.5], dtype=np.float64)
+    b = np.array([7], dtype=np.int64)
+    out = pipeline.run([a, b])
+    assert isinstance(out, list)
+    assert out[0].dtype == np.float64 and np.array_equal(out[0], a)
+    assert out[1].dtype == np.int64 and np.array_equal(out[1], b)
+
+
 def test_syntax_error_handling():
     with pytest.raises(ValueError):
         morflow.from_str("accept Tensor $invalid >>> broken")

@@ -28,6 +28,38 @@ impl TensorDType {
             TensorDType::I64 | TensorDType::U64 | TensorDType::F64 => 8,
         }
     }
+
+    /// Short lowercase name used by the host bindings: `"f32"`, `"i64"`, …
+    pub const fn name(&self) -> &'static str {
+        match self {
+            TensorDType::U8 => "u8",
+            TensorDType::I8 => "i8",
+            TensorDType::I16 => "i16",
+            TensorDType::I32 => "i32",
+            TensorDType::I64 => "i64",
+            TensorDType::U32 => "u32",
+            TensorDType::U64 => "u64",
+            TensorDType::F32 => "f32",
+            TensorDType::F64 => "f64",
+        }
+    }
+
+    /// Parses a dtype name, accepting the short names from [`TensorDType::name`]
+    /// and the NumPy-style long names (`"float32"`, `"int64"`, `"uint8"`, …).
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name.to_ascii_lowercase().as_str() {
+            "u8" | "uint8" | "byte" => Some(TensorDType::U8),
+            "i8" | "int8" => Some(TensorDType::I8),
+            "i16" | "int16" => Some(TensorDType::I16),
+            "i32" | "int32" => Some(TensorDType::I32),
+            "i64" | "int64" => Some(TensorDType::I64),
+            "u32" | "uint32" => Some(TensorDType::U32),
+            "u64" | "uint64" => Some(TensorDType::U64),
+            "f32" | "float32" | "float" => Some(TensorDType::F32),
+            "f64" | "float64" | "double" => Some(TensorDType::F64),
+            _ => None,
+        }
+    }
 }
 
 /// A high-performance, zero-copy, multi-dimensional tensor view across FFI boundaries.

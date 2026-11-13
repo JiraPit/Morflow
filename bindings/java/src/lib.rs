@@ -715,6 +715,31 @@ fn java_tensor_to_payload<'local>(
         });
     }
 
+    // A Composite carries its components in `getItems()` rather than in a buffer.
+    let is_composite = env
+        .call_method(obj, "isComposite", "()Z", &[])
+        .and_then(|v| v.z())
+        .map_err(|e| format!("Failed to call isComposite(): {}", e))?;
+    if is_composite {
+        let items = env
+            .call_method(obj, "getItems", "()Ljava/util/List;", &[])
+            .and_then(|v| v.l())
+            .map_err(|e| format!("Failed to call getItems(): {}", e))?;
+        let count = env
+            .call_method(&items, "size", "()I", &[])
+            .and_then(|v| v.i())
+            .map_err(|e| format!("Failed to read the Composite size: {}", e))?;
+        let mut payloads = Vec::with_capacity(count as usize);
+        for i in 0..count {
+            let item = env
+                .call_method(&items, "get", "(I)Ljava/lang/Object;", &[JValue::Int(i)])
+                .and_then(|v| v.l())
+                .map_err(|e| format!("Failed to read Composite component {}: {}", i, e))?;
+            payloads.push(java_tensor_to_payload(env, &item)?);
+        }
+        return Ok(Payload::Composite(RVec::from(payloads)));
+    }
+
     // 1. Get `data` ByteBuffer
     let data_obj = env
         .call_method(obj, "getData", "()Ljava/nio/ByteBuffer;", &[])
@@ -821,29 +846,26 @@ fn construct_payload_from_raw(
     dtype_str: &str,
     spec: &PayloadSpec,
 ) -> Result<Payload, String> {
-    // Construct Payload from byte slice, shape, and dtype
-    let tensor = match dtype_str.to_lowercase().as_str() {
-        "f32" | "float" | "float32" => {
-            if !byte_slice.len().is_multiple_of(4) {
-                return Err("Byte slice length not divisible by 4 for F32 tensor".into());
-            }
-            let f32_slice: &[f32] = unsafe {
-                std::slice::from_raw_parts(byte_slice.as_ptr() as *const f32, byte_slice.len() / 4)
-            };
-            Tensor::from_f32_shape(f32_slice, usize_shape)?
-        }
-        "u8" | "uint8" | "byte" => {
-            Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), usize_shape, TensorDType::U8)?
-        }
-        "i32" | "int32" => {
-            Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), usize_shape, TensorDType::I32)?
-        }
-        _ /* "raw" */ => {
-            return Ok(Payload::Data {
-                buffer: RVec::from(byte_slice.to_vec()),
-            });
-        }
-    };
+    // Construct Payload from byte slice, shape, and dtype; "raw" is plain bytes.
+    if dtype_str.eq_ignore_ascii_case("raw") {
+        return Ok(Payload::Data {
+            buffer: RVec::from(byte_slice.to_vec()),
+        });
+    }
+    let dtype = TensorDType::from_name(dtype_str).ok_or_else(|| {
+        format!(
+            "Unknown dtype '{}' (expected one of: f32, f64, u8, i8, i16, i32, i64, u32, u64, raw)",
+            dtype_str
+        )
+    })?;
+    if !byte_slice.len().is_multiple_of(dtype.element_size()) {
+        return Err(format!(
+            "Byte slice length not divisible by {} for a {} tensor",
+            dtype.element_size(),
+            dtype.name()
+        ));
+    }
+    let tensor = Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), usize_shape, dtype)?;
 
     match spec.kind {
         PayloadKind::Tensor => Ok(Payload::Tensor(tensor)),
@@ -909,8 +931,26 @@ fn payload_to_java_tensor<'local>(
         }
         Payload::WithArgs { payload, .. } => payload_to_java_tensor(env, payload),
         Payload::Error(err) => Err(err.to_string()),
-        Payload::Composite(_) => {
-            Err("Composite payloads cannot be returned directly as a single MorflowTensor".into())
+        Payload::Composite(items) => {
+            let tensor_class = env
+                .find_class("org/morflow/MorflowTensor")
+                .map_err(|e| format!("Failed to find MorflowTensor class: {}", e))?;
+            let array = env
+                .new_object_array(items.len() as i32, &tensor_class, JObject::null())
+                .map_err(|e| format!("Failed to allocate Composite components: {}", e))?;
+            for (i, item) in items.iter().enumerate() {
+                let component = payload_to_java_tensor(env, item)?;
+                env.set_object_array_element(&array, i as i32, component)
+                    .map_err(|e| format!("Failed to set Composite component {}: {}", i, e))?;
+            }
+            env.call_static_method(
+                &tensor_class,
+                "composite",
+                "([Lorg/morflow/MorflowTensor;)Lorg/morflow/MorflowTensor;",
+                &[JValue::Object(&array)],
+            )
+            .and_then(|v| v.l())
+            .map_err(|e| format!("Failed to create a Composite MorflowTensor: {}", e))
         }
         Payload::Scalar(t) => tensor_to_java_morflow_tensor(env, t),
         Payload::Arg(_) => {
@@ -923,12 +963,7 @@ fn tensor_to_java_morflow_tensor<'local>(
     env: &mut JNIEnv<'local>,
     tensor: &Tensor,
 ) -> Result<JObject<'local>, String> {
-    let dtype_str = match tensor.dtype {
-        TensorDType::F32 => "f32",
-        TensorDType::U8 => "u8",
-        TensorDType::I32 => "i32",
-        _ => "raw",
-    };
+    let dtype_str = tensor.dtype.name();
 
     let shape: Vec<i32> = tensor.shape.iter().map(|&d| d as i32).collect();
     if let Some(bytes) = tensor.as_bytes() {

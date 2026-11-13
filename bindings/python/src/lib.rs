@@ -10,7 +10,7 @@ use numpy::ndarray::{ArrayD, IxDyn};
 use numpy::{IntoPyArray, PyReadonlyArrayDyn, PyUntypedArrayMethods};
 use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
+use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 
 fn map_error(err: MorflowError) -> PyErr {
     match err {
@@ -72,64 +72,45 @@ fn parse_audio_layout(spec: &str) -> PyResult<AudioLayout> {
     }
 }
 
-/// Extracts a supported NumPy array into a plain tensor. Returns `None` when
+/// Copies a NumPy array whose dtype is exactly `T` into a tensor of the
+/// matching dtype. Returns `None` when `obj` is not such an array.
+fn typed_ndarray_to_tensor<T>(obj: &Bound<'_, PyAny>) -> Option<PyResult<Tensor>>
+where
+    T: numpy::Element + core_types::numeric::Element,
+{
+    let readonly = obj.extract::<PyReadonlyArrayDyn<T>>().ok()?;
+    let shape: Vec<usize> = readonly.shape().to_vec();
+    Some((|| {
+        let slice = readonly
+            .as_slice()
+            .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
+        Tensor::from_vec_of(slice.to_vec(), shape).map_err(|e| PyValueError::new_err(e.to_string()))
+    })())
+}
+
+/// Extracts a NumPy array of any tensor dtype (float32/64, int8/16/32/64,
+/// uint8/32/64) into a plain tensor of the same dtype. Returns `None` when
 /// `obj` is not a recognized array.
 fn ndarray_to_tensor(obj: &Bound<'_, PyAny>) -> Option<PyResult<Tensor>> {
-    // Float32
-    if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<f32>>() {
-        let shape: Vec<usize> = readonly.shape().to_vec();
-        return Some((|| {
-            let slice = readonly
-                .as_slice()
-                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-            Tensor::from_f32_shape(slice, shape).map_err(|e| PyValueError::new_err(e.to_string()))
-        })());
-    }
+    typed_ndarray_to_tensor::<f32>(obj)
+        .or_else(|| typed_ndarray_to_tensor::<f64>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<u8>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<i8>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<i16>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<i32>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<i64>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<u32>(obj))
+        .or_else(|| typed_ndarray_to_tensor::<u64>(obj))
+}
 
-    // UInt8
-    if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<u8>>() {
-        let shape: Vec<usize> = readonly.shape().to_vec();
-        return Some((|| {
-            let slice = readonly
-                .as_slice()
-                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-            Tensor::from_rvec_u8(RVec::from(slice.to_vec()), shape, TensorDType::U8)
-                .map_err(|e| PyValueError::new_err(e.to_string()))
-        })());
+/// Images and audio hold `F32` (or `U8`) samples, so a float64 array sent as
+/// one is converted to `F32`.
+fn f64_samples_to_f32(tensor: Tensor) -> PyResult<Tensor> {
+    if tensor.dtype != TensorDType::F64 {
+        return Ok(tensor);
     }
-
-    // Float64, downcast to Float32
-    if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<f64>>() {
-        let shape: Vec<usize> = readonly.shape().to_vec();
-        return Some((|| {
-            let slice = readonly
-                .as_slice()
-                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-            let f32_vec: Vec<f32> = slice.iter().map(|&x| x as f32).collect();
-            Tensor::from_f32_shape(&f32_vec, shape)
-                .map_err(|e| PyValueError::new_err(e.to_string()))
-        })());
-    }
-
-    // Int32
-    if let Ok(readonly) = obj.extract::<PyReadonlyArrayDyn<i32>>() {
-        let shape: Vec<usize> = readonly.shape().to_vec();
-        return Some((|| {
-            let slice = readonly
-                .as_slice()
-                .map_err(|e| PyValueError::new_err(format!("Non-contiguous numpy array: {}", e)))?;
-            let byte_slice: &[u8] = unsafe {
-                std::slice::from_raw_parts(
-                    slice.as_ptr() as *const u8,
-                    std::mem::size_of_val(slice),
-                )
-            };
-            Tensor::from_rvec_u8(RVec::from(byte_slice.to_vec()), shape, TensorDType::I32)
-                .map_err(|e| PyValueError::new_err(e.to_string()))
-        })());
-    }
-
-    None
+    Tensor::from_vec_of(tensor.to_vec_as::<f32>(), tensor.shape.to_vec())
+        .map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
 /// Extracts the tensor from a supported NumPy array, or reports a clear error
@@ -209,8 +190,8 @@ impl PyAudio {
     }
 }
 
-/// Convert a Python object (NumPy array, explicit payload wrapper, bytes, str,
-/// int, float) to a Morflow Payload.
+/// Convert a Python object (NumPy array, explicit payload wrapper, list or tuple,
+/// bytes, str, int, float) to a Morflow Payload.
 fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
     // 1. Explicit payload wrappers, which take precedence over auto-detection.
     if let Ok(forced) = obj.downcast::<PyTensor>() {
@@ -223,7 +204,8 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
 
     if let Ok(forced) = obj.downcast::<PyImage>() {
         let forced = forced.borrow();
-        let tensor = require_ndarray_tensor(forced.data.bind(obj.py()), "Image")?;
+        let tensor =
+            f64_samples_to_f32(require_ndarray_tensor(forced.data.bind(obj.py()), "Image")?)?;
         let color_space = match forced.color.as_deref() {
             Some(spec) => parse_color_space(spec)?,
             None => tensor
@@ -250,7 +232,8 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
 
     if let Ok(forced) = obj.downcast::<PyAudio>() {
         let forced = forced.borrow();
-        let tensor = require_ndarray_tensor(forced.data.bind(obj.py()), "Audio")?;
+        let tensor =
+            f64_samples_to_f32(require_ndarray_tensor(forced.data.bind(obj.py()), "Audio")?)?;
         let layout = match forced.layout.as_deref() {
             Some(spec) => parse_audio_layout(spec)?,
             None => AudioLayout::Planar,
@@ -273,14 +256,24 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         return Ok(Payload::Tensor(result?));
     }
 
-    // 3. Bytes / Bytearray
+    // 3. A list or tuple is a Composite with one component per item, so
+    //    `[a, b]` feeds the two-tensor form of add/sub/mul/div/pow.
+    if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyTuple>() {
+        let items = obj
+            .try_iter()?
+            .map(|item| py_any_to_payload(&item?))
+            .collect::<PyResult<Vec<_>>>()?;
+        return Ok(Payload::Composite(RVec::from(items)));
+    }
+
+    // 4. Bytes / Bytearray
     if let Ok(bytes) = obj.extract::<&[u8]>() {
         return Ok(Payload::Data {
             buffer: RVec::from(bytes.to_vec()),
         });
     }
 
-    // 4. String
+    // 5. String
     if let Ok(py_str) = obj.downcast::<PyString>() {
         let s = py_str.to_str()?;
         return Ok(Payload::Data {
@@ -288,7 +281,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         });
     }
 
-    // 5. Integer
+    // 6. Integer
     if let Ok(py_int) = obj.downcast::<PyInt>() {
         let i: i64 = py_int.extract()?;
         return Ok(Payload::Data {
@@ -296,7 +289,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
         });
     }
 
-    // 6. Float
+    // 7. Float
     if let Ok(py_float) = obj.downcast::<PyFloat>() {
         let f: f64 = py_float.extract()?;
         return Ok(Payload::Data {
@@ -337,47 +330,21 @@ fn payload_to_py<'py>(py: Python<'py>, payload: &Payload) -> PyResult<Bound<'py,
     }
 }
 
+/// Converts a tensor of any dtype into a NumPy array of the same dtype.
 fn tensor_to_py<'py>(py: Python<'py>, tensor: &Tensor) -> PyResult<Bound<'py, PyAny>> {
-    let shape_ix = IxDyn(tensor.shape.as_slice());
-    match tensor.dtype {
-        TensorDType::F32 => {
-            let data = tensor.to_vec_f32();
-            let arr = ArrayD::from_shape_vec(shape_ix, data)
-                .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            let py_arr = arr.into_pyarray(py);
-            Ok(py_arr.into_any())
-        }
-        TensorDType::U8 => {
-            let data = tensor.to_contiguous_bytes().into_vec();
-            let arr = ArrayD::from_shape_vec(shape_ix, data)
-                .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            let py_arr = arr.into_pyarray(py);
-            Ok(py_arr.into_any())
-        }
-        TensorDType::I32 => {
-            let i32_vec = if let Some(slice) = tensor.as_i32_slice() {
-                slice.to_vec()
-            } else {
-                let bytes = tensor.to_contiguous_bytes();
-                let i32_slice: &[i32] = unsafe {
-                    std::slice::from_raw_parts(
-                        bytes.as_ptr() as *const i32,
-                        bytes.len() / std::mem::size_of::<i32>(),
-                    )
-                };
-                i32_slice.to_vec()
-            };
-            let arr = ArrayD::from_shape_vec(shape_ix, i32_vec)
-                .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            let py_arr = arr.into_pyarray(py);
-            Ok(py_arr.into_any())
-        }
-        _ => {
-            // Default fallback as raw bytes
-            let bytes = tensor.to_contiguous_bytes();
-            Ok(PyBytes::new(py, bytes.as_slice()).into_any())
-        }
+    fn typed<'py, T>(py: Python<'py>, tensor: &Tensor) -> PyResult<Bound<'py, PyAny>>
+    where
+        T: numpy::Element + core_types::numeric::Element,
+    {
+        let data = tensor.to_vec_of::<T>().unwrap_or_default();
+        let arr = ArrayD::from_shape_vec(IxDyn(tensor.shape.as_slice()), data)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok(arr.into_pyarray(py).into_any())
     }
+    core_types::match_dtype!(tensor.dtype,
+        int I => typed::<I>(py, tensor),
+        float F => typed::<F>(py, tensor),
+    )
 }
 
 /// An executable Morflow pipeline instance.
