@@ -1,0 +1,33 @@
+# Morflow Tensor Loops and Conditions Pipeline (.morf)
+
+import base/latest
+import math_basics/latest
+import tensor_stats/latest
+import nn_basics/latest
+
+# Sensor readings: one row per time step, one column per sensor
+accept Tensor[*,3] $readings
+
+# Loop over the sensors (axis 1) and stack each sensor's running total back along axis 1
+$readings >> each(axis=1) ($sensor) {
+    $sensor >> cumsum
+} >> emit("running_totals")
+
+# Negative axes count from the end, so axis=-2 loops over the time steps
+$readings >> each(axis=-2) ($step) {
+    $step >> softmax
+} >> emit("step_weights")
+
+# Branch on a single reading: flip every sign if the first sensor started below zero
+$readings >> if ($readings[0, 0] < 0) {
+    neg
+} else {
+    identity
+} >> emit("aligned")
+
+# Take the first arm whose condition holds, comparing readings from the last time step
+$readings >> route {
+    $readings[-1, 0] > $readings[-1, 1] => { clamp(min=0.0) }
+    $readings[-1, 2] > 10 => { clamp(max=10.0) }
+    else => { abs }
+} >> emit("checked")

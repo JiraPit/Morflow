@@ -1302,7 +1302,7 @@ dependencies = [
 
 [[package]]
 name = "identity"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
 ]
@@ -3408,6 +3408,14 @@ version = "0.1.2"
 dependencies = [
  "morflow-core-types",
  "morflow-plugin-openblas",
+]
+
+[[package]]
+name = "tensor_loops"
+version = "0.1.0"
+dependencies = [
+ "morflow",
+ "morflow-core-types",
 ]
 
 [[package]]
