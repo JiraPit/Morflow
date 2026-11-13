@@ -1,4 +1,4 @@
-//! Hidden tests for the math_basics, tensor_stats and nn_basics packs
+//! Integration tests for the math_basics, tensor_stats and nn_basics packs
 //! (two-tensor arithmetic with broadcasting, its shape predictions, and support
 //! for every tensor dtype, NaN like NumPy, exact integer statistics),
 //! Python-style `$var[...]` slicing of tensors, images, audio and bytes, number
@@ -564,21 +564,9 @@ fn run_file(name: &str) {
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
     let cases: Vec<Value> = serde_json::from_str(&text).unwrap();
     let registry = ActionRegistry::default();
-    let oracle = std::env::var_os("F2P_ORACLE_OUT");
-    let mut observed = Vec::new();
     let mut failures = Vec::new();
     for case in &cases {
         let id = case["name"].as_str().unwrap();
-        if oracle.is_some() {
-            if case.get("morf").is_some() && case.get("inputs").is_some() {
-                let got = match execute(case) {
-                    Ok(out) => describe(&out),
-                    Err((stage, e)) => serde_json::json!({"error": e, "stage": stage}),
-                };
-                observed.push(serde_json::json!({"name": id, "got": got}));
-            }
-            continue;
-        }
         let outcome = match case["type"].as_str().unwrap() {
             "run" => run_case(case),
             "check" => check_case(case),
@@ -588,11 +576,6 @@ fn run_file(name: &str) {
         if let Err(e) = outcome {
             failures.push(format!("  {id}: {e}"));
         }
-    }
-    if let Some(dir) = oracle {
-        let out = PathBuf::from(dir).join(format!("{name}.json"));
-        std::fs::write(out, serde_json::to_string_pretty(&observed).unwrap()).unwrap();
-        return;
     }
     assert!(
         failures.is_empty(),
@@ -609,17 +592,18 @@ macro_rules! case_files {
     };
 }
 
-// P2P: these pass before the change and must keep passing.
+// Behaviour from before the packs supported every dtype, which must not change.
 case_files!(
     // Existing F32 results stay exactly the same.
     f32_behaviour_unchanged,
-    // Invalid composites are rejected (today every composite is rejected).
+    // Invalid composites are rejected.
     binary_errors,
     // Conditions that can be evaluated still pick the right branch.
     condition_values,
 );
 
-// F2P: these fail before the change.
+// Multi-dtype packs, two-tensor arithmetic, slicing, conditions, number
+// literals, each(axis=N) and the static checks.
 case_files!(
     binary_broadcast_values,
     binary_scalar_components,
