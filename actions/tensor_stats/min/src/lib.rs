@@ -1,5 +1,6 @@
+use core_types::numeric::{self, FloatElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -125,46 +126,43 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// The minimum keeps the input dtype; NaN propagates like NumPy.
 fn reduce_min(
     tensor: &Tensor,
     axis: Option<usize>,
     out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-
-    if let Some(ax) = axis {
-        let outer_size: usize = tensor.shape[0..ax].iter().product();
-        let axis_len = tensor.shape[ax];
-
-        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
-
-        let out_len = outer_size * inner_size;
-        if out_len == 0 {
-            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-        }
-        let mut out_vals = vec![f32::INFINITY; out_len];
-
-        out_vals
-            .par_chunks_mut(inner_size)
-            .enumerate()
-            .for_each(|(outer_idx, slice)| {
-                for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                    let mut m = f32::INFINITY;
-                    for a in 0..axis_len {
-                        let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                        m = m.min(vals[in_idx]);
-                    }
-                    *slot = m;
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            let out = match axis {
+                Some(ax) => numeric::reduce_axis(&vals, &tensor.shape, ax, |lane: &[I]| {
+                    lane.iter().copied().reduce(|a, b| a.min(b)).unwrap_or_default()
+                }),
+                None => {
+                    let Some(m) = vals.par_iter().copied().reduce_with(|a, b| a.min(b)) else {
+                        return Err("Action \'min\' cannot reduce an empty integer tensor: it has no identity value".into());
+                    };
+                    vec![m]
                 }
-            });
-
-        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
-    } else {
-        let m = vals.par_iter().copied().reduce(|| f32::INFINITY, f32::min);
-        let shape = out_shape;
-        Tensor::from_f32_vec(vec![m], shape).map_err(|e| e.to_string())
-    }
+            };
+            Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+        },
+        float F => {
+            let vals = tensor.to_vec_of::<F>().unwrap_or_default();
+            let out = match axis {
+                Some(ax) => numeric::reduce_axis(&vals, &tensor.shape, ax, |lane: &[F]| {
+                    let mut m = F::INFINITY;
+                    for &v in lane {
+                        m = m.nan_min(v);
+                    }
+                    m
+                }),
+                None => vec![vals.par_iter().copied().reduce(|| F::INFINITY, |a, b| a.nan_min(b))],
+            };
+            Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+        },
+    )
 }
 
 #[no_mangle]

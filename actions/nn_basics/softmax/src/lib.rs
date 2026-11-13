@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatVals};
 use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
-use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -46,58 +46,64 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     let axis = prepared.unsigned("axis").unwrap_or(0) as usize;
 
     match inner_payload {
-        Payload::Tensor(tensor) | Payload::Scalar(tensor) => match compute_softmax(&tensor, axis) {
-            Ok(t) => Payload::from_tensor(t),
-            Err(e) => Payload::Error(e.into()),
-        },
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            let result = match numeric::float_vals(&tensor) {
+                FloatVals::F32(vals) => compute_softmax::<f32>(vals, &tensor.shape, axis),
+                FloatVals::F64(vals) => compute_softmax::<f64>(vals, &tensor.shape, axis),
+            };
+            match result {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e.into()),
+            }
+        }
         _ => Payload::Error(core_types::RString::from(
             "Action \'softmax\' requires a tensor or scalar value",
         )),
     }
 }
 
-fn compute_softmax(tensor: &Tensor, ax: usize) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-    if r == 0 {
-        return Ok(Tensor::from_f32_vec(vec![1.0], vec![]).unwrap());
+/// F32 is computed in single precision, everything else in F64. A NaN in a
+/// lane makes the whole lane NaN, like NumPy.
+fn compute_softmax<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    ax: usize,
+) -> Result<Tensor, String> {
+    let shape = shape.to_vec();
+    if shape.is_empty() {
+        let x = vals[0];
+        let y = if x.is_nan() { x } else { T::one() };
+        return Tensor::from_vec_of(vec![y], shape).map_err(|e| e.to_string());
     }
 
-    let axis_len = tensor.shape[ax];
+    let axis_len = shape[ax];
     if axis_len == 0 || vals.is_empty() {
-        return Ok(tensor.clone());
+        return Tensor::from_vec_of(vals, shape).map_err(|e| e.to_string());
     }
-    let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
 
-    let mut out_vals = vec![0.0f32; vals.len()];
+    let out_vals = numeric::map_axis(&vals, &shape, ax, |lane: &[T], out: &mut [T]| {
+        let mut max_val = T::neg_infinity();
+        for &v in lane {
+            max_val = max_val.nan_max(v);
+        }
+        let mut sum_exp = T::zero();
+        for (a, &v) in lane.iter().enumerate() {
+            let exp_val = (v - max_val).exp();
+            out[a] = exp_val;
+            sum_exp = sum_exp + exp_val;
+        }
 
-    out_vals
-        .par_chunks_mut(axis_len * inner_size)
-        .enumerate()
-        .for_each(|(outer_idx, block)| {
-            for inner_idx in 0..inner_size {
-                let mut max_val = f32::NEG_INFINITY;
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    max_val = max_val.max(vals[in_idx]);
-                }
+        let inv_sum = if sum_exp > T::zero() {
+            T::one() / sum_exp
+        } else {
+            T::one()
+        };
+        for o in out.iter_mut() {
+            *o = *o * inv_sum;
+        }
+    });
 
-                let mut sum_exp = 0.0f32;
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    let exp_val = (vals[in_idx] - max_val).exp();
-                    block[a * inner_size + inner_idx] = exp_val;
-                    sum_exp += exp_val;
-                }
-
-                let inv_sum = if sum_exp > 0.0 { 1.0 / sum_exp } else { 1.0 };
-                for a in 0..axis_len {
-                    block[a * inner_size + inner_idx] *= inv_sum;
-                }
-            }
-        });
-
-    Tensor::from_f32_vec(out_vals, tensor.shape.to_vec()).map_err(|e| e.to_string())
+    Tensor::from_vec_of(out_vals, shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

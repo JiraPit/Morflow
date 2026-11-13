@@ -1,0 +1,1109 @@
+[
+ {
+  "name": "f32 [2, 3, 4] each(axis=3) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=3) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [2, 3, 4] each(axis=-4) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=-4) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [2, 3, 4] each(axis=7) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=7) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i16 [5] each(axis=1) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      5
+     ],
+     "values": [
+      3,
+      -1,
+      4,
+      -1,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i16 [5] each(axis=-2) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=-2) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      5
+     ],
+     "values": [
+      3,
+      -1,
+      4,
+      -1,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f64 [3, 5] each(axis=2) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=2) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      3,
+      5
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      0.3,
+      1.5,
+      -2.0,
+      0.25,
+      0.5,
+      -1.0,
+      2.0,
+      0.0,
+      3.0,
+      -0.5,
+      0.75,
+      -1.25,
+      1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f64 [3, 5] each(axis=-3) is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=-3) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      3,
+      5
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      0.3,
+      1.5,
+      -2.0,
+      0.25,
+      0.5,
+      -1.0,
+      2.0,
+      0.0,
+      3.0,
+      -0.5,
+      0.75,
+      -1.25,
+      1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "each(axis=0) on a scalar is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f32",
+     "shape": [],
+     "values": [
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "rgb image each(axis=0) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4,
+      3
+     ],
+     "values": [
+      0,
+      7,
+      14,
+      21,
+      28,
+      35,
+      42,
+      49,
+      56,
+      63,
+      70,
+      77,
+      84,
+      91,
+      98,
+      105,
+      112,
+      119,
+      126,
+      133,
+      140,
+      147,
+      154,
+      161,
+      168,
+      175,
+      182,
+      189,
+      196,
+      203,
+      210,
+      217,
+      224,
+      231,
+      238,
+      245
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "rgb image each(axis=1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4,
+      3
+     ],
+     "values": [
+      0,
+      7,
+      14,
+      21,
+      28,
+      35,
+      42,
+      49,
+      56,
+      63,
+      70,
+      77,
+      84,
+      91,
+      98,
+      105,
+      112,
+      119,
+      126,
+      133,
+      140,
+      147,
+      154,
+      161,
+      168,
+      175,
+      182,
+      189,
+      196,
+      203,
+      210,
+      217,
+      224,
+      231,
+      238,
+      245
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "rgb image each(axis=-1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4,
+      3
+     ],
+     "values": [
+      0,
+      7,
+      14,
+      21,
+      28,
+      35,
+      42,
+      49,
+      56,
+      63,
+      70,
+      77,
+      84,
+      91,
+      98,
+      105,
+      112,
+      119,
+      126,
+      133,
+      140,
+      147,
+      154,
+      161,
+      168,
+      175,
+      182,
+      189,
+      196,
+      203,
+      210,
+      217,
+      224,
+      231,
+      238,
+      245
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "grayscale image each(axis=0) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4
+     ],
+     "values": [
+      0,
+      9,
+      18,
+      27,
+      36,
+      45,
+      54,
+      63,
+      72,
+      81,
+      90,
+      99
+     ],
+     "color": "grayscale",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "grayscale image each(axis=1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4
+     ],
+     "values": [
+      0,
+      9,
+      18,
+      27,
+      36,
+      45,
+      54,
+      63,
+      72,
+      81,
+      90,
+      99
+     ],
+     "color": "grayscale",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "grayscale image each(axis=-1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      3,
+      4
+     ],
+     "values": [
+      0,
+      9,
+      18,
+      27,
+      36,
+      45,
+      54,
+      63,
+      72,
+      81,
+      90,
+      99
+     ],
+     "color": "grayscale",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "stereo audio each(axis=0) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "stereo audio each(axis=1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "stereo audio each(axis=-1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "mono audio each(axis=0) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "mono audio each(axis=-1) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "$x[axis=0] is no longer accepted",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[axis=0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "$x[dim=1] is no longer accepted",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[dim=1] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "$x[axis=-1] is no longer accepted",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[axis=-1] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "$x[0, axis=1] is no longer accepted",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[0, axis=1] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "$x[axis=0] >> each is no longer accepted",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x[axis=0] >> each ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.75,
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "declared Tensor[2,3,4] each(axis=3) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=3) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "declared Tensor[2,3,4] each(axis=-4) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-4) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "declared Tensor[*,3] each(axis=2) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[*,3] $x\n$x >> each(axis=2) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "declared Tensor[5] each(axis=-2) is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[5] $x\n$x >> each(axis=-2) ($v) { $v >> abs } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      5
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ }
+]

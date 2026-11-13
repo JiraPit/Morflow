@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -11,7 +11,6 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
-
 fn shape_impl(input: Shape, _args: PreparedArgs) -> Shape {
     input
 }
@@ -26,16 +25,26 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `tanh(x)`.
+struct Op;
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_iter_mut().for_each(|x| *x = x.tanh());
-            Payload::from_tensor(tensor)
+impl FloatUnary for Op {
+    #[inline]
+    fn apply<T: FloatElement>(&self, x: T) -> T {
+        x.tanh()
+    }
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let _ = &prepared;
+    let op = Op;
+
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_float_unary(tensor, &op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'tanh\' requires a tensor or scalar value",

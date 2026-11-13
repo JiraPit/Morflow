@@ -20,4 +20,5 @@ Standardizes image and audio payloads into unified multi-dimensional tensor repr
 - This is the designated bridge from `Image` and `Audio` payloads into plain `Tensor` payloads; the reverse conversions live in `image_basics/to_image` and `audio_basics/to_audio`.
 - Input and output types are both strictly enforced at runtime, so this action is the only valid way to feed image or audio data into tensor-native actions.
 - Performs color space conversions, channel re-ordering, layout transposition, and type casting in parallel using Rayon.
+- Strided image views, such as the result of slicing or cropping, are copied to contiguous memory first, so they convert exactly like a whole image.
 - Unwraps `Payload::Audio` directly into its underlying multi-channel tensor.

@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -25,43 +25,60 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `log(x + eps)` in base e, 2 or 10, with the argument floored at `eps`; NaN is kept.
+struct Op {
+    eps32: f32,
+    eps64: f64,
+    base: u32,
+}
 
-    let mut base = "e";
-    let mut eps = 1e-8f32;
-
-    if let Some(args) = &args_opt {
-        if let Some(b) = args
-            .get_named("base")
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            base = b;
+impl FloatUnary for Op {
+    #[inline]
+    fn apply<T: FloatElement>(&self, x: T) -> T {
+        if x.is_nan() {
+            return x;
         }
-        if let Some(e_str) = args.get_named("eps") {
-            if let Ok(e) = prepared.args.parse::<f32>(e_str) {
-                eps = e;
-            }
+        let eps = T::lit(self.eps32, self.eps64);
+        let y = (x + eps).max(eps);
+        match self.base {
+            2 => y.log2(),
+            10 => y.log10(),
+            _ => y.ln(),
+        }
+    }
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let _ = &prepared;
+    let args = &prepared.args;
+    let base = match args
+        .get_named("base")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        Some("2") => 2,
+        Some("10") => 10,
+        _ => 0,
+    };
+    let mut op = Op {
+        eps32: 1e-8f32,
+        eps64: 1e-8f64,
+        base,
+    };
+    if let Some(e_str) = args.get_named("eps") {
+        if let Ok(e) = prepared.args.parse::<f32>(e_str) {
+            op.eps32 = e;
+        }
+        if let Ok(e) = e_str.parse::<f64>() {
+            op.eps64 = e;
         }
     }
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            match base {
-                "2" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log2()),
-                "10" => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).log10()),
-                _ => slice
-                    .par_iter_mut()
-                    .for_each(|x| *x = (*x + eps).max(eps).ln()),
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_float_unary(tensor, &op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
             }
-            Payload::from_tensor(tensor)
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'log\' requires a tensor or scalar value",

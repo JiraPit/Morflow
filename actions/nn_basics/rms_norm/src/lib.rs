@@ -1,5 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatVals};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
+use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -27,47 +28,59 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
 }
 
 fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
-
-    let mut eps = 1e-5f32;
-    if let Some(args) = &args_opt {
-        if let Some(e_str) = args
-            .get_named("eps")
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(e) = prepared.args.parse::<f32>(e_str) {
-                eps = e;
-            }
+    let args = &prepared.args;
+    let mut eps32 = 1e-5f32;
+    let mut eps64 = 1e-5f64;
+    if let Some(e_str) = args
+        .get_named("eps")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(e) = prepared.args.parse::<f32>(e_str) {
+            eps32 = e;
+        }
+        if let Ok(e) = e_str.parse::<f64>() {
+            eps64 = e;
         }
     }
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let r = tensor.rank();
-            if r == 0 {
-                return Payload::from_tensor(tensor);
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            let shape = tensor.shape.to_vec();
+            let result = match numeric::float_vals(&tensor) {
+                FloatVals::F32(vals) => rms_norm::<f32>(vals, shape, eps32),
+                FloatVals::F64(vals) => rms_norm::<f64>(vals, shape, eps64),
+            };
+            match result {
+                Ok(t) => Payload::from_tensor(t),
+                Err(e) => Payload::Error(e),
             }
-            let feat_dim = *tensor.shape.last().unwrap();
-            if feat_dim == 0 {
-                return Payload::from_tensor(tensor);
-            }
-
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_chunks_mut(feat_dim).for_each(|feat| {
-                let mean_sq: f32 = feat.iter().map(|&x| x * x).sum::<f32>() / feat_dim as f32;
-                let inv_rms = 1.0 / (mean_sq + eps).sqrt();
-                for x in feat {
-                    *x *= inv_rms;
-                }
-            });
-            Payload::from_tensor(tensor)
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'rms_norm\' requires a tensor or scalar value",
         )),
     }
+}
+
+/// Normalises every vector along the last axis. F32 is computed in single
+/// precision, everything else in F64.
+fn rms_norm<T: FloatElement>(
+    mut vals: Vec<T>,
+    shape: Vec<usize>,
+    eps: T,
+) -> Result<Tensor, core_types::RString> {
+    let feat_dim = shape.last().copied().unwrap_or(0);
+    if shape.is_empty() || feat_dim == 0 {
+        return Tensor::from_vec_of(vals, shape);
+    }
+    let n = T::from_i128(feat_dim as i128);
+    vals.par_chunks_mut(feat_dim).for_each(|feat| {
+        let mean_sq: T = feat.iter().map(|&x| x * x).sum::<T>() / n;
+        let inv_rms = T::one() / (mean_sq + eps).sqrt();
+        for x in feat {
+            *x = *x * inv_rms;
+        }
+    });
+    Tensor::from_vec_of(vals, shape)
 }
 
 #[no_mangle]

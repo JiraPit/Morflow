@@ -1,0 +1,537 @@
+[
+ {
+  "name": "i32 [5] [5] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[5] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [-6] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[-6] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [100] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[100] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [-100] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[-100] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [::0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[::0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [1:4:0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[1:4:0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "i32 [5] [-1::0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[-1::0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      5
+     ],
+     "values": [
+      -20,
+      -10,
+      0,
+      10,
+      20
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [4, 0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[4, 0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [-5, 0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[-5, 0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [:, 6] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[:, 6] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [:, -7] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[:, -7] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [0, 0, 0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[0, 0, 0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "f32 [4,6] [:, ::0] is an error",
+  "type": "run",
+  "morf": "accept Tensor $x\n$x[:, ::0] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "declared Tensor[4,6] [-1, -7] is an error",
+  "type": "run",
+  "morf": "accept Tensor[4,6] $x\n$x[-1, -7] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "declared Tensor[4,6] [::0, -7] is an error",
+  "type": "run",
+  "morf": "accept Tensor[4,6] $x\n$x[::0, -7] >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      4,
+      6
+     ],
+     "values": [
+      -3.0,
+      -2.5,
+      -2.0,
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5,
+      8.0,
+      8.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ }
+]

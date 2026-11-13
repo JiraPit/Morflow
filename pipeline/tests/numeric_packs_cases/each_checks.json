@@ -1,0 +1,308 @@
+[
+ {
+  "name": "Tensor[2,3,4] each(axis=0) slices have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=0) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=0) slices do not have 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=0) ($v) { $v >> tensor.reshape(shape=\"[1,8]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=1) slices have 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=1) ($v) { $v >> tensor.reshape(shape=\"[1,8]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=1) slices do not have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=1) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=2) slices have 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=2) ($v) { $v >> tensor.reshape(shape=\"[1,6]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=2) slices do not have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=2) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-1) slices have 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-1) ($v) { $v >> tensor.reshape(shape=\"[1,6]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-1) slices do not have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-1) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-2) slices have 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-2) ($v) { $v >> tensor.reshape(shape=\"[1,8]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-2) slices do not have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-2) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-3) slices have 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-3) ($v) { $v >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4] each(axis=-3) slices do not have 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[2,3,4] $x\n$x >> each(axis=-3) ($v) { $v >> tensor.reshape(shape=\"[1,8]\") } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=0) result has 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=0) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=0) result does not have 16 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=0) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[16]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=0) result is [2, 1, 4]",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=0) ($v) { $v >> sum(axis=0, keepdim=true) } >> each(axis=0) ($w) { $w >> tensor.reshape(shape=\"[1,4]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=1) result has 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=1) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[12]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=1) result does not have 24 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=1) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=1) result is [1, 3, 4]",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=1) ($v) { $v >> sum(axis=0, keepdim=true) } >> each(axis=0) ($w) { $w >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=2) result has 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=2) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[12]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=2) result does not have 24 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=2) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=2) result is [1, 3, 4]",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=2) ($v) { $v >> sum(axis=0, keepdim=true) } >> each(axis=0) ($w) { $w >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=-1) result has 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-1) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[12]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=-1) result does not have 24 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-1) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=-1) result is [1, 3, 4]",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-1) ($v) { $v >> sum(axis=0, keepdim=true) } >> each(axis=0) ($w) { $w >> tensor.reshape(shape=\"[1,12]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=-3) result has 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-3) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "each(axis=-3) result does not have 16 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-3) ($v) { $v >> sum(axis=0, keepdim=true) } >> tensor.reshape(shape=\"[16]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "each(axis=-3) result is [2, 1, 4]",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\nimport tensor_stats/latest\naccept Tensor[2,3,4] $x\n$x >> each(axis=-3) ($v) { $v >> sum(axis=0, keepdim=true) } >> each(axis=0) ($w) { $w >> tensor.reshape(shape=\"[1,4]\") } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3] each(axis=2) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> each(axis=2) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3] each(axis=-3) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> each(axis=-3) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[*,*,*] each(axis=3) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[*,*,*] $x\n$x >> each(axis=3) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[4] each(axis=1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[4] $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3] each(axis=-2) checks",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> each(axis=-2) ($v) { $v >> abs } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,3] each(axis=1) checks",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[*,3] $x\n$x >> each(axis=1) ($v) { $v >> abs } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4] each(axis=-1) checks",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor[4] $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor each(axis=5) checks",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=5) ($v) { $v >> abs } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor each(axis=-1) checks",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Scalar each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image[*,*,3] each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image[*,*,3] $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image[*,*,3] each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image[*,*,3] $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image[*,*] each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image[*,*] $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image[*,*] each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Image[*,*] $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio[2,*] each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio[2,*] $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio[2,*] each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio[2,*] $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio[*] each(axis=0) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio[*] $x\n$x >> each(axis=0) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio[*] each(axis=-1) is rejected",
+  "type": "check",
+  "morf": "import math_basics/latest\naccept Audio[*] $x\n$x >> each(axis=-1) ($v) { $v >> abs } >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "$x[axis=0] is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3,4] $x\n$x[axis=0] >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "$x[dim=2] is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3,4] $x\n$x[dim=2] >> emit\n",
+  "ok": false
+ }
+]

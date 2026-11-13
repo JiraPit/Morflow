@@ -1,0 +1,212 @@
+[
+ {
+  "name": "Tensor[2,3]: if ($x.width == 3) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.width == 3) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.height > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.height > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.len > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.len > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.mean > 0.5) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.mean > 0.5) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.peak > 1e0) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.peak > 1e0) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.rms < 2) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.rms < 2) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4]: if ($x.channels == 4) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3,4] $x\n$x >> if ($x.channels == 4) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,*,3]: if ($x.channels == 3) checks",
+  "type": "check",
+  "morf": "accept Tensor[*,*,3] $x\n$x >> if ($x.channels == 3) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor: if ($x.width > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor $x\n$x >> if ($x.width > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor: if ($x.channels > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor $x\n$x >> if ($x.channels > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Image: if ($x.width > 1) checks",
+  "type": "check",
+  "morf": "accept Image $x\n$x >> if ($x.width > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Image: if ($x.channels == 3) checks",
+  "type": "check",
+  "morf": "accept Image $x\n$x >> if ($x.channels == 3) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Image: if ($x.mean > 1) checks",
+  "type": "check",
+  "morf": "accept Image $x\n$x >> if ($x.mean > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Audio: if ($x.sample_rate >= 44100) checks",
+  "type": "check",
+  "morf": "accept Audio $x\n$x >> if ($x.sample_rate >= 44100) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Audio: if ($x.duration < 1.5) checks",
+  "type": "check",
+  "morf": "accept Audio $x\n$x >> if ($x.duration < 1.5) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Audio: if ($x.channels == 2) checks",
+  "type": "check",
+  "morf": "accept Audio $x\n$x >> if ($x.channels == 2) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Audio: if ($x.peak > 0.5) checks",
+  "type": "check",
+  "morf": "accept Audio $x\n$x >> if ($x.peak > 0.5) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Bytes: if ($x.len > 10) checks",
+  "type": "check",
+  "morf": "accept Bytes $x\n$x >> if ($x.len > 10) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Scalar: if ($x > 1) checks",
+  "type": "check",
+  "morf": "accept Scalar $x\n$x >> if ($x > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Scalar: if ($x.mean > 1) checks",
+  "type": "check",
+  "morf": "accept Scalar $x\n$x >> if ($x.mean > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "IntArg: if ($n > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor $x\naccept IntArg $n\n$x >> if ($n > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "FloatArg: if ($n <= 0.5) checks",
+  "type": "check",
+  "morf": "accept Tensor $x\naccept FloatArg $n\n$x >> if ($n <= 0.5) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.bogus > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.bogus > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if ($x > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if (\"a\" == \"b\") is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if (\"a\" == \"b\") {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[5]: if ($x.width > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[5] $x\n$x >> if ($x.width > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if ($x.channels > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.channels > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor: if ($x.sample_rate > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor $x\n$x >> if ($x.sample_rate > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image: if ($x.duration > 1) is rejected",
+  "type": "check",
+  "morf": "accept Image $x\n$x >> if ($x.duration > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Audio: if ($x.width > 1) is rejected",
+  "type": "check",
+  "morf": "accept Audio $x\n$x >> if ($x.width > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Bytes: if ($x.peak > 1) is rejected",
+  "type": "check",
+  "morf": "accept Bytes $x\n$x >> if ($x.peak > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Composite: if ($x.mean > 1) is rejected",
+  "type": "check",
+  "morf": "accept Composite $x\n$x >> if ($x.mean > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Composite: if ($x.len > 1) is rejected",
+  "type": "check",
+  "morf": "accept Composite $x\n$x >> if ($x.len > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "a route arm after a true one is still checked",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> route {\n$x.width == 3 => { base/latest/identity }\n$x.bogus > 1 => { base/latest/identity }\nelse => { base/latest/identity }\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "a nested condition is checked",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $x\n$x >> if ($x.width == 3) {\nbase/latest/identity >> if ($x.bogus > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n}\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ }
+]

@@ -207,13 +207,15 @@ pub enum SliceItem {
     },
     /// Full dimension slice `:`
     Full,
-    /// Named dimension index, e.g. `dim=2` or `axis=0`
-    NamedDim { dim_name: String, index: i64 },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EachLoop {
     pub var_name: String,
+    /// The tensor axis to iterate, from `each(axis=N)`; negative counts from
+    /// the end. `None` keeps the payload's natural iteration axis.
+    #[serde(default)]
+    pub axis: Option<i64>,
     pub body: Vec<Statement>,
 }
 

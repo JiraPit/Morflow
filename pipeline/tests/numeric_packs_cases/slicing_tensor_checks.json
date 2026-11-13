@@ -1,0 +1,158 @@
+[
+ {
+  "name": "Tensor[5] [-1] checks",
+  "type": "check",
+  "morf": "accept Tensor[5] $x\n$x[-1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [::-1] checks",
+  "type": "check",
+  "morf": "accept Tensor[5] $x\n$x[::-1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [-10:] checks",
+  "type": "check",
+  "morf": "accept Tensor[5] $x\n$x[-10:] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [-1] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[-1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [:, -1] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[:, -1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [10:] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[10:] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [5:2, -2] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[5:2, -2] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [-4, -6] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[-4, -6] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [::-1][-1] checks",
+  "type": "check",
+  "morf": "accept Tensor[4,6] $x\n$x[::-1][-1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,6] [-1] checks",
+  "type": "check",
+  "morf": "accept Tensor[*,6] $x\n$x[-1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,6] [:, -6] checks",
+  "type": "check",
+  "morf": "accept Tensor[*,6] $x\n$x[:, -6] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,6] [::-2, -1] checks",
+  "type": "check",
+  "morf": "accept Tensor[*,6] $x\n$x[::-2, -1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,*] [-1, -1] checks",
+  "type": "check",
+  "morf": "accept Tensor[*,*] $x\n$x[-1, -1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[3,4,5] [-1, ::-2, -1] checks",
+  "type": "check",
+  "morf": "accept Tensor[3,4,5] $x\n$x[-1, ::-2, -1] >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [-3:] has 3 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[5] $x\n$x[-3:] >> tensor.reshape(shape=\"[3]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [::-2] has 3 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[5] $x\n$x[::-2] >> tensor.reshape(shape=\"[3]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [-100:2] has 2 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[5] $x\n$x[-100:2] >> tensor.reshape(shape=\"[2]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[5] [4:-10:-2] has 3 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[5] $x\n$x[4:-10:-2] >> tensor.reshape(shape=\"[3]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [-1] has 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[-1] >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [:, -2:] has 8 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[:, -2:] >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [-3:, ::-1] has 18 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[-3:, ::-1] >> tensor.reshape(shape=\"[18]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [::-3, -4:-1] has 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[::-3, -4:-1] >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [-1:-5:-1, -1:-7:-2] has 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[-1:-5:-1, -1:-7:-2] >> tensor.reshape(shape=\"[12]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4,6] [1:][-1:] has 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[4,6] $x\n$x[1:][-1:] >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[3,4,5] [-1, ::-2, 1:-1] has 6 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[3,4,5] $x\n$x[-1, ::-2, 1:-1] >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[3,4,5] [::-2, ::-3, ::-2] has 12 elements",
+  "type": "check",
+  "morf": "import tensor_basics/latest as tensor\naccept Tensor[3,4,5] $x\n$x[::-2, ::-3, ::-2] >> tensor.reshape(shape=\"[12]\") >> emit\n",
+  "ok": true
+ }
+]

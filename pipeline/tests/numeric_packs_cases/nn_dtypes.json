@@ -1,0 +1,8286 @@
+[
+ {
+  "name": "relu f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    0.3,
+    1.25,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "gelu f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.10021084646475348,
+    -0.04601721056028303,
+    0.0,
+    0.18537340617455283,
+    1.11793769724328,
+    1.9544998742254873
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.10042842301976707,
+    -0.04601724895456484,
+    0.0,
+    0.18537092354275922,
+    1.1177142029697147,
+    1.954597694087775
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.2736382857095345,
+    -0.047502081252106004,
+    0.0,
+    0.1723327550434977,
+    0.9716248264683639,
+    1.7615941559557646
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.18242552380635635,
+    0.47502081252106,
+    0.5,
+    0.574442516811659,
+    0.7772998611746911,
+    0.8807970779778823
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9051482536448665,
+    -0.09966799462495582,
+    0.0,
+    0.2913126124515909,
+    0.8482836399575129,
+    0.9640275800758169
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.015,
+    -0.001,
+    0.0,
+    0.3,
+    1.25,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.30000000000000004,
+    -0.020000000000000004,
+    0.0,
+    0.3,
+    1.25,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.10485599613261377,
+    0.4252120320404407,
+    0.46993197182694557,
+    0.11037945414113322,
+    0.2854092207627386,
+    0.6042113250961282
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1418510649004878,
+    0.20587037180094733,
+    0.11920292202211755,
+    0.8581489350995123,
+    0.7941296281990528,
+    0.8807970779778823
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.2551673355477253,
+    -0.8551673355477252,
+    -0.7551673355477252,
+    -2.2038312662526853,
+    -1.2538312662526852,
+    -0.5038312662526852
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.4116828587726433,
+    0.6328233504842884,
+    0.7788595082883549,
+    -1.269835039659329,
+    0.09583660676674179,
+    1.1739984328925872
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9820639191439647,
+    0.44023554996108766,
+    0.541828369182877,
+    -0.8905362268406833,
+    0.06721028127099496,
+    0.8233259455696883
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.7282031181091668,
+    -0.1152135412072778,
+    0.0,
+    0.21855484780090428,
+    0.9106451991704345,
+    1.4570323186726952
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.4975062326893742,
+    -0.09983374884595828,
+    0.0,
+    0.2053558544152091,
+    0.8556493933967045,
+    1.3690390294347272
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu f64 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    0.1,
+    1.2345678901234567,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max_pool2d f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4.0,
+    7.0,
+    5.0,
+    7.0,
+    6.0,
+    4.0,
+    7.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max_pool2d f64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    6.0,
+    7.0,
+    7.0,
+    7.0,
+    7.0,
+    7.0,
+    7.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    0.75,
+    3.75,
+    1.75,
+    2.0,
+    2.75,
+    0.25,
+    3.75,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d f64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0,
+      1.0,
+      -3.0,
+      4.0,
+      0.0,
+      7.0,
+      3.0,
+      -1.0,
+      6.0,
+      2.0,
+      -2.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    1.4444444444444444,
+    2.3333333333333335,
+    2.5555555555555554,
+    2.2222222222222223,
+    2.2222222222222223,
+    1.8888888888888888,
+    2.111111111111111,
+    1.7777777777777777
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    2.995950098156056,
+    3.999873255855743,
+    4.999998564474933
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    2.996362607918227,
+    3.9999297540518075,
+    4.999999770820381
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    2.8577223804672998,
+    3.928055160151634,
+    4.966535745378576
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9525741268224334,
+    0.9820137900379085,
+    0.9933071490757153
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.9950547536867305,
+    0.999329299739067,
+    0.9999092042625951
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.09003057317038046,
+    0.24472847105479764,
+    0.6652409557748218,
+    0.09003057317038046,
+    0.24472847105479764,
+    0.6652409557748218
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756679,
+    0.04742587317756679,
+    0.04742587317756679,
+    0.9525741268224334,
+    0.9525741268224334,
+    0.9525741268224334
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.4076059644443806,
+    -1.4076059644443806,
+    -0.4076059644443806,
+    -2.4076059644443806,
+    -1.4076059644443806,
+    -0.4076059644443806
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2247356859083902,
+    0.0,
+    1.2247356859083902,
+    -1.2247356859083902,
+    0.0,
+    1.2247356859083902
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9258200997725515,
+    0.0,
+    0.9258200997725515,
+    -0.9258200997725515,
+    0.0,
+    0.9258200997725515
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7745943454619326,
+    1.5491886909238652,
+    0.7348467023809757,
+    0.9797956031746343,
+    1.224744503968293
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7223151185146152,
+    1.4446302370292303,
+    0.729396808625797,
+    0.9725290781677294,
+    1.2156613477096616
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u8 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    100,
+    128,
+    200,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    7,
+    10,
+    8,
+    10,
+    9,
+    7,
+    10,
+    8
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u8 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    9,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d u8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    3.75,
+    6.75,
+    4.75,
+    5.0,
+    5.75,
+    3.25,
+    6.75,
+    4.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d u8 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4.444444444444445,
+    5.333333333333333,
+    5.555555555555555,
+    5.222222222222222,
+    5.222222222222222,
+    4.888888888888889,
+    5.111111111111111,
+    4.777777777777778
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.00404990184394427,
+    -0.15865526383236372,
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    3.999873255855743
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.0036373920817729943,
+    -0.1588080093917233,
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    3.9999297540518075
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.14227761953270035,
+    -0.2689414213699951,
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    3.928055160151634
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756678,
+    0.2689414213699951,
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9950547536867305,
+    -0.7615941559557649,
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.999329299739067
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.03,
+    -0.01,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6000000000000001,
+    -0.2,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.03511902695933972,
+    0.2594964603424191,
+    0.7053845126982411,
+    0.04201006613406605,
+    0.11419519938459449,
+    0.8437947344813395
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.017986209962091555,
+    0.04742587317756679,
+    0.017986209962091555,
+    0.9820137900379085,
+    0.9525741268224334,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.3490122167681866,
+    -1.3490122167681866,
+    -0.3490122167681865,
+    -3.169846019556286,
+    -2.169846019556286,
+    -0.1698460195562861
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.3363019143128718,
+    0.2672603828625743,
+    1.0690415314502972,
+    -1.0690415314502977,
+    -0.26726038286257453,
+    1.3363019143128718
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.162476387438193,
+    0.2324952774876385,
+    0.9299811099505542,
+    -0.9299811099505544,
+    -0.23249527748763868,
+    1.1624763874381927
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.6431652077695351,
+    -0.5477217359231784,
+    0.0,
+    0.3779642030348929,
+    0.7559284060697858,
+    1.5118568121395717
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.584811631386123,
+    -0.5282705437953743,
+    0.0,
+    0.3713906763541037,
+    0.7427813527082074,
+    1.4855627054164149
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i8 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    0,
+    100,
+    127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4,
+    7,
+    5,
+    7,
+    6,
+    4,
+    7,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i8 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    0.75,
+    3.75,
+    1.75,
+    2.0,
+    2.75,
+    0.25,
+    3.75,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d i8 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    1.4444444444444444,
+    2.3333333333333335,
+    2.5555555555555554,
+    2.2222222222222223,
+    2.2222222222222223,
+    1.8888888888888888,
+    2.111111111111111,
+    1.7777777777777777
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.00404990184394427,
+    -0.15865526383236372,
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    3.999873255855743
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.0036373920817729943,
+    -0.1588080093917233,
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    3.9999297540518075
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.14227761953270035,
+    -0.2689414213699951,
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    3.928055160151634
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756678,
+    0.2689414213699951,
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9950547536867305,
+    -0.7615941559557649,
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.999329299739067
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.03,
+    -0.01,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6000000000000001,
+    -0.2,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.03511902695933972,
+    0.2594964603424191,
+    0.7053845126982411,
+    0.04201006613406605,
+    0.11419519938459449,
+    0.8437947344813395
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.017986209962091555,
+    0.04742587317756679,
+    0.017986209962091555,
+    0.9820137900379085,
+    0.9525741268224334,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.3490122167681866,
+    -1.3490122167681866,
+    -0.3490122167681865,
+    -3.169846019556286,
+    -2.169846019556286,
+    -0.1698460195562861
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.3363019143128718,
+    0.2672603828625743,
+    1.0690415314502972,
+    -1.0690415314502977,
+    -0.26726038286257453,
+    1.3363019143128718
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.162476387438193,
+    0.2324952774876385,
+    0.9299811099505542,
+    -0.9299811099505544,
+    -0.23249527748763868,
+    1.1624763874381927
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.6431652077695351,
+    -0.5477217359231784,
+    0.0,
+    0.3779642030348929,
+    0.7559284060697858,
+    1.5118568121395717
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.584811631386123,
+    -0.5282705437953743,
+    0.0,
+    0.3713906763541037,
+    0.7427813527082074,
+    1.4855627054164149
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i16 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    0,
+    1000,
+    32767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4,
+    7,
+    5,
+    7,
+    6,
+    4,
+    7,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i16 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d i16",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    0.75,
+    3.75,
+    1.75,
+    2.0,
+    2.75,
+    0.25,
+    3.75,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d i16 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    1.4444444444444444,
+    2.3333333333333335,
+    2.5555555555555554,
+    2.2222222222222223,
+    2.2222222222222223,
+    1.8888888888888888,
+    2.111111111111111,
+    1.7777777777777777
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.00404990184394427,
+    -0.15865526383236372,
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    3.999873255855743
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.0036373920817729943,
+    -0.1588080093917233,
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    3.9999297540518075
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.14227761953270035,
+    -0.2689414213699951,
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    3.928055160151634
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756678,
+    0.2689414213699951,
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9950547536867305,
+    -0.7615941559557649,
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.999329299739067
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.03,
+    -0.01,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6000000000000001,
+    -0.2,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.03511902695933972,
+    0.2594964603424191,
+    0.7053845126982411,
+    0.04201006613406605,
+    0.11419519938459449,
+    0.8437947344813395
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.017986209962091555,
+    0.04742587317756679,
+    0.017986209962091555,
+    0.9820137900379085,
+    0.9525741268224334,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.3490122167681866,
+    -1.3490122167681866,
+    -0.3490122167681865,
+    -3.169846019556286,
+    -2.169846019556286,
+    -0.1698460195562861
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.3363019143128718,
+    0.2672603828625743,
+    1.0690415314502972,
+    -1.0690415314502977,
+    -0.26726038286257453,
+    1.3363019143128718
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.162476387438193,
+    0.2324952774876385,
+    0.9299811099505542,
+    -0.9299811099505544,
+    -0.23249527748763868,
+    1.1624763874381927
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.6431652077695351,
+    -0.5477217359231784,
+    0.0,
+    0.3779642030348929,
+    0.7559284060697858,
+    1.5118568121395717
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.584811631386123,
+    -0.5282705437953743,
+    0.0,
+    0.3713906763541037,
+    0.7427813527082074,
+    1.4855627054164149
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i32 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    0,
+    65536,
+    2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4,
+    7,
+    5,
+    7,
+    6,
+    4,
+    7,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i32 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    0.75,
+    3.75,
+    1.75,
+    2.0,
+    2.75,
+    0.25,
+    3.75,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d i32 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    1.4444444444444444,
+    2.3333333333333335,
+    2.5555555555555554,
+    2.2222222222222223,
+    2.2222222222222223,
+    1.8888888888888888,
+    2.111111111111111,
+    1.7777777777777777
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.00404990184394427,
+    -0.15865526383236372,
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    3.999873255855743
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.0036373920817729943,
+    -0.1588080093917233,
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    3.9999297540518075
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.14227761953270035,
+    -0.2689414213699951,
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    3.928055160151634
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756678,
+    0.2689414213699951,
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9950547536867305,
+    -0.7615941559557649,
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.999329299739067
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.03,
+    -0.01,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6000000000000001,
+    -0.2,
+    0.0,
+    1.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.03511902695933972,
+    0.2594964603424191,
+    0.7053845126982411,
+    0.04201006613406605,
+    0.11419519938459449,
+    0.8437947344813395
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.017986209962091555,
+    0.04742587317756679,
+    0.017986209962091555,
+    0.9820137900379085,
+    0.9525741268224334,
+    0.9820137900379085
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.3490122167681866,
+    -1.3490122167681866,
+    -0.3490122167681865,
+    -3.169846019556286,
+    -2.169846019556286,
+    -0.1698460195562861
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.3363019143128718,
+    0.2672603828625743,
+    1.0690415314502972,
+    -1.0690415314502977,
+    -0.26726038286257453,
+    1.3363019143128718
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.162476387438193,
+    0.2324952774876385,
+    0.9299811099505542,
+    -0.9299811099505544,
+    -0.23249527748763868,
+    1.1624763874381927
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.6431652077695351,
+    -0.5477217359231784,
+    0.0,
+    0.3779642030348929,
+    0.7559284060697858,
+    1.5118568121395717
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.584811631386123,
+    -0.5282705437953743,
+    0.0,
+    0.3713906763541037,
+    0.7427813527082074,
+    1.4855627054164149
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu i64 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0,
+    11,
+    9007199254740993,
+    4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4,
+    7,
+    5,
+    7,
+    6,
+    4,
+    7,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d i64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    0.75,
+    3.75,
+    1.75,
+    2.0,
+    2.75,
+    0.25,
+    3.75,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d i64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5,
+      1,
+      -3,
+      4,
+      0,
+      7,
+      3,
+      -1,
+      6,
+      2,
+      -2,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    1.4444444444444444,
+    2.3333333333333335,
+    2.5555555555555554,
+    2.2222222222222223,
+    2.2222222222222223,
+    1.8888888888888888,
+    2.111111111111111,
+    1.7777777777777777
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    2.995950098156056,
+    4.999998564474933,
+    6.999999999990983
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    2.996362607918227,
+    4.999999770820381,
+    6.999999999999997
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    2.8577223804672998,
+    4.966535745378576,
+    6.993622641639196
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9525741268224334,
+    0.9933071490757153,
+    0.9990889488055994
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.9950547536867305,
+    0.9999092042625951,
+    0.9999983369439447
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.09003057317038046,
+    0.24472847105479764,
+    0.6652409557748218,
+    0.015876239976466765,
+    0.11731042782619838,
+    0.8668133321973349
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756679,
+    0.017986209962091555,
+    0.006692850924284856,
+    0.9525741268224334,
+    0.9820137900379085,
+    0.9933071490757153
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.4076059644443806,
+    -1.4076059644443806,
+    -0.4076059644443806,
+    -4.142931628499899,
+    -2.142931628499899,
+    -0.14293162849989915
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2247356859083902,
+    0.0,
+    1.2247356859083902,
+    -1.2247425750014138,
+    0.0,
+    1.2247425750014138
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9258200997725515,
+    0.0,
+    0.9258200997725515,
+    -1.1239029738980328,
+    0.0,
+    1.1239029738980328
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7745943454619326,
+    1.5491886909238652,
+    0.570351722396427,
+    0.9505862039940449,
+    1.3308206855916629
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7223151185146152,
+    1.4446302370292303,
+    0.5677922680888606,
+    0.9463204468147677,
+    1.3248486255406748
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u32 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    70000,
+    2147483648,
+    4000000000,
+    4294967295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    7,
+    10,
+    8,
+    10,
+    9,
+    7,
+    10,
+    8
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u32 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    9,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d u32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    3.75,
+    6.75,
+    4.75,
+    5.0,
+    5.75,
+    3.25,
+    6.75,
+    4.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d u32 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4.444444444444445,
+    5.333333333333333,
+    5.555555555555555,
+    5.222222222222222,
+    5.222222222222222,
+    4.888888888888889,
+    5.111111111111111,
+    4.777777777777778
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "gelu u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8413447361676363,
+    1.9544998742254873,
+    2.995950098156056,
+    4.999998564474933,
+    6.999999999990983
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8411919906082768,
+    1.954597694087775,
+    2.996362607918227,
+    4.999999770820381,
+    6.999999999999997
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7310585786300049,
+    1.7615941559557646,
+    2.8577223804672998,
+    4.966535745378576,
+    6.993622641639196
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    0.7310585786300049,
+    0.8807970779778823,
+    0.9525741268224334,
+    0.9933071490757153,
+    0.9990889488055994
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7615941559557649,
+    0.9640275800758169,
+    0.9950547536867305,
+    0.9999092042625951,
+    0.9999983369439447
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.09003057317038046,
+    0.24472847105479764,
+    0.6652409557748218,
+    0.015876239976466765,
+    0.11731042782619838,
+    0.8668133321973349
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.04742587317756679,
+    0.017986209962091555,
+    0.006692850924284856,
+    0.9525741268224334,
+    0.9820137900379085,
+    0.9933071490757153
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.4076059644443806,
+    -1.4076059644443806,
+    -0.4076059644443806,
+    -4.142931628499899,
+    -2.142931628499899,
+    -0.14293162849989915
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2247356859083902,
+    0.0,
+    1.2247356859083902,
+    -1.2247425750014138,
+    0.0,
+    1.2247425750014138
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm(eps=0.5) u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm(eps=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9258200997725515,
+    0.0,
+    0.9258200997725515,
+    -1.1239029738980328,
+    0.0,
+    1.1239029738980328
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7745943454619326,
+    1.5491886909238652,
+    0.570351722396427,
+    0.9505862039940449,
+    1.3308206855916629
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm(eps=0.25) u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm(eps=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.7223151185146152,
+    1.4446302370292303,
+    0.5677922680888606,
+    0.9463204468147677,
+    1.3248486255406748
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu u64 extremes",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    5,
+    9007199254740993,
+    9223372036854775808,
+    18446744073709551614,
+    18446744073709551615
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    7,
+    10,
+    8,
+    10,
+    9,
+    7,
+    10,
+    8
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d u64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    9,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "avg_pool2d u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    3.75,
+    6.75,
+    4.75,
+    5.0,
+    5.75,
+    3.25,
+    6.75,
+    4.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d u64 kernel 3 stride 1",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      1,
+      2,
+      4,
+      4
+     ],
+     "values": [
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8,
+      4,
+      0,
+      7,
+      3,
+      10,
+      6,
+      2,
+      9,
+      5,
+      1,
+      8
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    2,
+    2,
+    2
+   ],
+   "values": [
+    4.444444444444445,
+    5.333333333333333,
+    5.555555555555555,
+    5.222222222222222,
+    5.222222222222222,
+    4.888888888888889,
+    5.111111111111111,
+    4.777777777777778
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max_pool2d of u64 is exact",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      1,
+      1,
+      2,
+      2
+     ],
+     "values": [
+      18446744073709551615,
+      18446744073709551614,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "values": [
+    18446744073709551615
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max_pool2d of i64 is exact",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      1,
+      1,
+      2,
+      2
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "values": [
+    4611686018427387906
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cosine_similarity f32 with f32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.30000001192092896,
+        1.25,
+        2.0,
+        -1.5,
+        -0.10000000149011612,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.1608767807483673,
+    -0.1608767807483673
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cosine_similarity f64 with f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.1,
+        0.0,
+        0.3,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        -1.5,
+        -0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.16087677054432517,
+    -0.16087677054432517
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity i32 with i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        -3,
+        -1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.3450327796711771,
+    -0.3450327796711771
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity u8 with i8",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        9,
+        16,
+        100
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        -3,
+        -1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.0,
+    -0.13374304212056112
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity f32 with i64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        -3,
+        -1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.2467658519744873,
+    -0.28596848249435425
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cosine_similarity f32 with f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        -1.5,
+        -0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.1608767710548593,
+    -0.16087677544549805
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity u64 with u64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        9,
+        16,
+        100
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9,
+        16,
+        100,
+        1,
+        2,
+        4
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.9465241167804934,
+    0.9465241167804934
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity i16 with f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        -1.5,
+        -0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.2859684848853694,
+    -0.24676584833042328
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity u32 with i32",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        9,
+        16,
+        100
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        -3,
+        -1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.0,
+    -0.13374304212056112
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ }
+]

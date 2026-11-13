@@ -1,0 +1,1322 @@
+[
+ {
+  "name": "add with three components",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add with one component",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add with a composite and a scalar argument",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add with shapes that cannot broadcast at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add with mismatched leading dims at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub with three components",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub with one component",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub with a composite and a scalar argument",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub with shapes that cannot broadcast at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub with mismatched leading dims at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul with three components",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul with one component",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul with a composite and a scalar argument",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul with shapes that cannot broadcast at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul with mismatched leading dims at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div with three components",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div with one component",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div with a composite and a scalar argument",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div with shapes that cannot broadcast at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div with mismatched leading dims at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow with three components",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow with one component",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow with a composite and a scalar argument",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow(exponent=2.0) >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow with shapes that cannot broadcast at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow with mismatched leading dims at run time",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow i32 ** i32 with a negative exponent",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2,
+        3,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        3
+       ],
+       "values": [
+        1,
+        -1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow u8 ** i8 with a negative exponent",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        3
+       ],
+       "values": [
+        1,
+        2,
+        3
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        3
+       ],
+       "values": [
+        1,
+        -2,
+        1
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow i64 ** i16 with a negative exponent",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        3
+       ],
+       "values": [
+        2,
+        3,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        3
+       ],
+       "values": [
+        1,
+        -1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ }
+]

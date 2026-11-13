@@ -1,0 +1,476 @@
+[
+ {
+  "name": "bytes [-3:]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[-3:] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    104,
+    105,
+    106
+   ]
+  }
+ },
+ {
+  "name": "bytes [:-2]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[:-2] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104
+   ]
+  }
+ },
+ {
+  "name": "bytes [::2]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[::2] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    97,
+    99,
+    101,
+    103,
+    105
+   ]
+  }
+ },
+ {
+  "name": "bytes [::-1]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[::-1] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    106,
+    105,
+    104,
+    103,
+    102,
+    101,
+    100,
+    99,
+    98,
+    97
+   ]
+  }
+ },
+ {
+  "name": "bytes [-100:3]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[-100:3] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    97,
+    98,
+    99
+   ]
+  }
+ },
+ {
+  "name": "bytes [8:2]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[8:2] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": []
+  }
+ },
+ {
+  "name": "bytes [20:]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[20:] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": []
+  }
+ },
+ {
+  "name": "bytes [-1:-11:-1]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[-1:-11:-1] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    106,
+    105,
+    104,
+    103,
+    102,
+    101,
+    100,
+    99,
+    98,
+    97
+   ]
+  }
+ },
+ {
+  "name": "bytes [7:2:-2]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[7:2:-2] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    104,
+    102,
+    100
+   ]
+  }
+ },
+ {
+  "name": "bytes [3:-3]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[3:-3] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    100,
+    101,
+    102,
+    103
+   ]
+  }
+ },
+ {
+  "name": "bytes [::-4]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[::-4] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    106,
+    102,
+    98
+   ]
+  }
+ },
+ {
+  "name": "bytes [-2::-3]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[-2::-3] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    105,
+    102,
+    99
+   ]
+  }
+ },
+ {
+  "name": "bytes [1:100]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[1:100] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106
+   ]
+  }
+ },
+ {
+  "name": "bytes [-5:-2]",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[-5:-2] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "kind": "bytes",
+   "values": [
+    102,
+    103,
+    104
+   ]
+  }
+ },
+ {
+  "name": "bytes [::0] is an error",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[::0] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "bytes [2:8:0] is an error",
+  "type": "run",
+  "morf": "accept Bytes $x\n$x[2:8:0] >> emit\n",
+  "inputs": [
+   {
+    "bytes": [
+     97,
+     98,
+     99,
+     100,
+     101,
+     102,
+     103,
+     104,
+     105,
+     106
+    ]
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ }
+]

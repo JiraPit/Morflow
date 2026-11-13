@@ -1,5 +1,6 @@
+use core_types::numeric::{self, Element, FloatElement, IntElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -25,44 +26,92 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
-
-    let mut min_val = f32::NEG_INFINITY;
-    let mut max_val = f32::INFINITY;
-
-    if let Some(args) = &args_opt {
-        if let Some(min_str) = args
-            .get_named("min")
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(m) = prepared.args.parse::<f32>(min_str) {
-                min_val = m;
-            }
-        }
-        if let Some(max_str) = args
-            .get_named("max")
-            .or_else(|| args.positional.get(1).map(|s| s.as_str()))
-        {
-            if let Ok(m) = prepared.args.parse::<f32>(max_str) {
-                max_val = m;
-            }
-        }
+/// Clips like NumPy's `clip`: `min(max(x, lo), hi)`. NaN in the input or in
+/// a bound gives NaN.
+#[inline]
+fn clip<T: FloatElement>(x: T, lo: T, hi: T) -> T {
+    if x.is_nan() || lo.is_nan() || hi.is_nan() {
+        return T::nan();
     }
+    let y = if x < lo { lo } else { x };
+    if y > hi {
+        hi
+    } else {
+        y
+    }
+}
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice
-                .par_iter_mut()
-                .for_each(|x| *x = x.clamp(min_val, max_val));
-            Payload::from_tensor(tensor)
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let args = &prepared.args;
+    let min_str = args
+        .get_named("min")
+        .or_else(|| args.positional.first().map(|s| s.as_str()));
+    let max_str = args
+        .get_named("max")
+        .or_else(|| args.positional.get(1).map(|s| s.as_str()));
+
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match clamp_tensor(tensor, min_str, max_str, &prepared) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e.into()),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'clamp\' requires a tensor or scalar value",
         )),
+    }
+}
+
+fn clamp_tensor(
+    mut tensor: Tensor,
+    min_str: Option<&str>,
+    max_str: Option<&str>,
+    prepared: &core_types::PreparedData,
+) -> Result<Tensor, String> {
+    match tensor.dtype {
+        TensorDType::F32 => {
+            let mut min_val = f32::NEG_INFINITY;
+            let mut max_val = f32::INFINITY;
+            if let Some(m) = min_str.and_then(|s| prepared.args.parse::<f32>(s).ok()) {
+                min_val = m;
+            }
+            if let Some(m) = max_str.and_then(|s| prepared.args.parse::<f32>(s).ok()) {
+                max_val = m;
+            }
+            let slice = tensor.as_f32_slice_mut();
+            slice
+                .par_iter_mut()
+                .for_each(|x| *x = clip(*x, min_val, max_val));
+            Ok(tensor)
+        }
+        TensorDType::F64 => {
+            let min_val = min_str
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(f64::NEG_INFINITY);
+            let max_val = max_str
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(f64::INFINITY);
+            tensor
+                .map_same::<f64>(|x| clip(x, min_val, max_val))
+                .map_err(|e| e.to_string())
+        }
+        dtype => match_dtype!(dtype,
+            int I => {
+                let min_val: I = match min_str {
+                    Some(text) => numeric::int_arg::<I>("clamp", "min", text)?,
+                    None => I::from_i128(I::MIN_I128),
+                };
+                let max_val: I = match max_str {
+                    Some(text) => numeric::int_arg::<I>("clamp", "max", text)?,
+                    None => I::from_i128(I::MAX_I128),
+                };
+                tensor
+                    .map_same::<I>(|x| x.max(min_val).min(max_val))
+                    .map_err(|e| e.to_string())
+            },
+            float F => unreachable!("float dtypes are handled above"),
+        ),
     }
 }
 

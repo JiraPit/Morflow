@@ -203,3 +203,149 @@ pub fn qr(
         Ok(ValueShape::composite([q, r]))
     })())
 }
+
+/// NumPy broadcasting of two partially known shapes. A dimension is only
+/// predicted when every valid run-time value would produce it, and shapes
+/// that can never broadcast are rejected.
+pub fn broadcast_dims(a: &Shape, b: &Shape) -> Result<Shape> {
+    let (ad, bd) = (a.dims(), b.dims());
+    let rank = ad.len().max(bd.len());
+    let get = |dims: &[Dimension], axis: usize| {
+        if axis + dims.len() >= rank {
+            dims[axis + dims.len() - rank]
+        } else {
+            Dimension::Known(1)
+        }
+    };
+    let mut out = Vec::with_capacity(rank);
+    for axis in 0..rank {
+        let (x, y) = (get(ad, axis), get(bd, axis));
+        let d = match (x, y) {
+            (Dimension::Known(p), Dimension::Known(q)) => {
+                if p == q || q == 1 {
+                    x
+                } else if p == 1 {
+                    y
+                } else {
+                    return Err(format!(
+                        "operands could not be broadcast together with shapes {a} and {b}"
+                    )
+                    .into());
+                }
+            }
+            // A 1 adopts whatever the other side turns out to be.
+            (Dimension::Known(1), Dimension::Unknown)
+            | (Dimension::Unknown, Dimension::Known(1)) => Dimension::Unknown,
+            // The unknown side has to be 1 or equal, so the known side wins.
+            (Dimension::Known(_), Dimension::Unknown) => x,
+            (Dimension::Unknown, Dimension::Known(_)) => y,
+            (Dimension::Unknown, Dimension::Unknown) => Dimension::Unknown,
+        };
+        out.push(d);
+    }
+    Ok(Shape::new(out))
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OperandKind {
+    Scalar,
+    Tensor,
+    Either,
+}
+
+fn elementwise_operand(item: &ValueShape, index: usize) -> Result<(OperandKind, Option<Shape>)> {
+    let numeric = DataType::Tensor | DataType::Scalar;
+    match item {
+        ValueShape::Unknown => Ok((OperandKind::Either, None)),
+        ValueShape::Composite(_) => Err(format!(
+            "Composite component {index} must be a Tensor or Scalar, got Composite"
+        )
+        .into()),
+        ValueShape::Leaf { kind, shape } => {
+            let shape = shape.as_ref().into_option().cloned();
+            if *kind == DataType::Scalar {
+                Ok((OperandKind::Scalar, Some(Shape::scalar())))
+            } else if *kind == DataType::Tensor {
+                Ok((OperandKind::Tensor, shape))
+            } else if kind.intersects(numeric) {
+                let rank = shape.as_ref().map(Shape::rank);
+                let kind = if rank.is_some_and(|r| r > 0) {
+                    OperandKind::Tensor
+                } else {
+                    OperandKind::Either
+                };
+                Ok((kind, shape))
+            } else {
+                Err(
+                    format!("Composite component {index} must be a Tensor or Scalar, got {kind}")
+                        .into(),
+                )
+            }
+        }
+    }
+}
+
+/// Shape contract of the arithmetic actions (`add`, `sub`, `mul`, `div`,
+/// `pow`): a Tensor or Scalar with a scalar argument keeps its shape, and a
+/// two-component Composite `[a, b]` broadcasts. A Composite together with a
+/// scalar argument is invalid.
+pub fn elementwise(input: ValueShape, scalar_arg: bool) -> ValueShapeResult {
+    finish((|| match &input {
+        ValueShape::Unknown => Err(Error::Unknown),
+        ValueShape::Composite(items) => {
+            if scalar_arg {
+                return Err(
+                    "A Composite input [a, b] cannot be combined with a scalar argument".into(),
+                );
+            }
+            if items.len() != 2 {
+                return Err(format!(
+                    "Expected a Composite of exactly 2 components [a, b], got {}",
+                    items.len()
+                )
+                .into());
+            }
+            let (ka, sa) = elementwise_operand(&items[0], 0)?;
+            let (kb, sb) = elementwise_operand(&items[1], 1)?;
+            let shape = match (sa, sb) {
+                (Some(a), Some(b)) => Some(broadcast_dims(&a, &b)?),
+                _ => None,
+            };
+            let kind = if ka == OperandKind::Scalar && kb == OperandKind::Scalar {
+                DataType::Scalar
+            } else if ka == OperandKind::Tensor
+                || kb == OperandKind::Tensor
+                || shape.as_ref().is_some_and(|s| s.rank() > 0)
+            {
+                DataType::Tensor
+            } else {
+                DataType::Tensor | DataType::Scalar
+            };
+            Ok(ValueShape::Leaf {
+                kind,
+                shape: shape.into(),
+            })
+        }
+        ValueShape::Leaf { kind, shape } => {
+            if kind.intersects(DataType::Composite) && !kind.intersects(DataType::Tensor) {
+                if scalar_arg {
+                    return Err(
+                        "A Composite input [a, b] cannot be combined with a scalar argument".into(),
+                    );
+                }
+                return Err(Error::Unknown);
+            }
+            match shape.as_ref().into_option() {
+                Some(shape) => Ok(ValueShape::Leaf {
+                    kind: if shape.rank() == 0 {
+                        DataType::Scalar
+                    } else {
+                        DataType::Tensor
+                    },
+                    shape: Some(shape.clone()).into(),
+                }),
+                None => Err(Error::Unknown),
+            }
+        }
+    })())
+}

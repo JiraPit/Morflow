@@ -1,6 +1,6 @@
+use core_types::numeric;
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
-use rayon::prelude::*;
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -125,45 +125,44 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// The index of the first minimum along `ax` as I32; a NaN counts as the
+/// extreme, so the first NaN wins like NumPy.
 fn reduce_argmin(tensor: &Tensor, ax: usize, out_shape: Vec<usize>) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-    if r == 0 {
+    if tensor.rank() == 0 {
         return Ok(Tensor::from_i32_vec(vec![0], vec![]).unwrap());
     }
-
-    let outer_size: usize = tensor.shape[0..ax].iter().product();
-    let axis_len = tensor.shape[ax];
-
-    let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
-
-    let out_len = outer_size * inner_size;
-    if out_len == 0 {
-        return Tensor::from_i32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-    }
-    let mut out_indices = vec![0i32; out_len];
-
-    out_indices
-        .par_chunks_mut(inner_size)
-        .enumerate()
-        .for_each(|(outer_idx, slice)| {
-            for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                let mut min_val = f32::INFINITY;
-                let mut min_idx = 0i32;
-
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    let val = vals[in_idx];
-                    if val < min_val {
-                        min_val = val;
-                        min_idx = a as i32;
+    let out = match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            numeric::reduce_axis(&vals, &tensor.shape, ax, |lane: &[I]| {
+                let mut best_idx = 0usize;
+                for (a, &v) in lane.iter().enumerate().skip(1) {
+                    if v < lane[best_idx] {
+                        best_idx = a;
                     }
                 }
-                *slot = min_idx;
-            }
-        });
-
-    Tensor::from_i32_vec(out_indices, out_shape).map_err(|e| e.to_string())
+                best_idx as i32
+            })
+        },
+        float F => {
+            let vals = tensor.to_vec_of::<F>().unwrap_or_default();
+            numeric::reduce_axis(&vals, &tensor.shape, ax, |lane: &[F]| {
+                let mut best = F::INFINITY;
+                let mut best_idx = 0i32;
+                for (a, &v) in lane.iter().enumerate() {
+                    if v.is_nan() {
+                        return a as i32;
+                    }
+                    if v < best {
+                        best = v;
+                        best_idx = a as i32;
+                    }
+                }
+                best_idx
+            })
+        },
+    );
+    Tensor::from_i32_vec(out, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

@@ -342,14 +342,91 @@ impl Tensor {
                 });
         }
 
-        let strides = compute_c_contiguous_strides(&new_shape, elem_size);
-        Ok(Self {
+        // The blocks above are laid out with the new axis first. For any
+        // other axis, move it into place and materialise the C-order layout.
+        let mut leading_shape = base_shape.to_vec();
+        leading_shape.insert(0, tensors.len());
+        let strides = compute_c_contiguous_strides(&leading_shape, elem_size);
+        let stacked = Self {
             storage: RArc::new(RVec::from(combined_bytes)),
             byte_offset: 0,
-            shape: RVec::from(new_shape),
+            shape: RVec::from(leading_shape),
             strides,
             dtype,
-        })
+        };
+        if insert_axis == 0 {
+            return Ok(stacked);
+        }
+        let mut order: Vec<usize> = (1..new_shape.len()).collect();
+        order.insert(insert_axis, 0);
+        let moved = stacked.permute(&order)?;
+        Self::from_rvec_u8(moved.to_contiguous_bytes(), new_shape, dtype)
+    }
+
+    /// Slices `axis` with Python/NumPy semantics: negative positions count
+    /// from the end, out-of-range bounds are clamped, and a negative step walks
+    /// backwards. Returns a zero-copy view for positive steps and a contiguous
+    /// copy for negative ones.
+    pub fn slice_python(
+        &self,
+        axis: usize,
+        start: Option<i64>,
+        stop: Option<i64>,
+        step: Option<i64>,
+    ) -> Result<Self, RString> {
+        if axis >= self.shape.len() {
+            return Err(RString::from(format!(
+                "Axis {} out of bounds for tensor of rank {}",
+                axis,
+                self.shape.len()
+            )));
+        }
+        let (first, step, len) = resolve_python_slice(self.shape[axis], start, stop, step)?;
+        let axis_stride = self.strides[axis];
+        let mut new_shape = self.shape.clone();
+        new_shape[axis] = len;
+        let mut new_strides = self.strides.clone();
+        new_strides[axis] = if len <= 1 {
+            axis_stride
+        } else {
+            axis_stride * step
+        };
+        let byte_offset = if len == 0 {
+            self.byte_offset
+        } else {
+            (self.byte_offset as isize + first as isize * axis_stride) as usize
+        };
+        let view = Self {
+            storage: self.storage.clone(),
+            byte_offset,
+            shape: new_shape,
+            strides: new_strides,
+            dtype: self.dtype,
+        };
+        if step < 0 {
+            let shape = view.shape.to_vec();
+            return Self::from_rvec_u8(view.to_contiguous_bytes(), shape, self.dtype);
+        }
+        Ok(view)
+    }
+
+    /// Selects one position of `axis` with Python semantics (negative counts
+    /// from the end), removing the axis.
+    pub fn index_python(&self, axis: usize, index: i64) -> Result<Self, RString> {
+        if axis >= self.shape.len() {
+            return Err(RString::from(format!(
+                "Too many indices: axis {} does not exist for a rank-{} value",
+                axis,
+                self.shape.len()
+            )));
+        }
+        let position = resolve_python_index(self.shape[axis], index).ok_or_else(|| {
+            RString::from(format!(
+                "Index {} is out of bounds for axis {} with size {}",
+                index, axis, self.shape[axis]
+            ))
+        })?;
+        self.slice_axis_index(axis, position)
     }
 
     /// Access contiguous byte slice if this view is contiguous in memory.
@@ -1069,6 +1146,76 @@ impl Tensor {
 }
 
 /// Helper to compute C-contiguous (row-major) byte strides for a given shape and element size.
+/// Resolves a Python index against a dimension of length `len`.
+pub fn resolve_python_index(len: usize, index: i64) -> Option<usize> {
+    let len = len as i128;
+    let index = index as i128;
+    let resolved = if index < 0 { index + len } else { index };
+    (0..len).contains(&resolved).then_some(resolved as usize)
+}
+
+/// Resolves a Python slice `start:stop:step` against a dimension of length
+/// `len`, returning the first position, the step and the number of elements.
+pub fn resolve_python_slice(
+    len: usize,
+    start: Option<i64>,
+    stop: Option<i64>,
+    step: Option<i64>,
+) -> Result<(usize, isize, usize), RString> {
+    let step = step.unwrap_or(1) as i128;
+    if step == 0 {
+        return Err(RString::from("Slice step cannot be zero"));
+    }
+    let n = len as i128;
+    let adjust = |value: Option<i64>, default: i128| -> i128 {
+        match value {
+            None => default,
+            Some(v) => {
+                let v = v as i128;
+                if v < 0 {
+                    let v = v + n;
+                    if v < 0 {
+                        if step < 0 {
+                            -1
+                        } else {
+                            0
+                        }
+                    } else {
+                        v
+                    }
+                } else if v >= n {
+                    if step < 0 {
+                        n - 1
+                    } else {
+                        n
+                    }
+                } else {
+                    v
+                }
+            }
+        }
+    };
+    let (start, stop) = if step > 0 {
+        (adjust(start, 0), adjust(stop, n))
+    } else {
+        (adjust(start, n - 1), adjust(stop, -1))
+    };
+    let count = if step > 0 {
+        if start < stop {
+            (stop - start - 1) / step + 1
+        } else {
+            0
+        }
+    } else if stop < start {
+        (start - stop - 1) / (-step) + 1
+    } else {
+        0
+    };
+    let first = if count == 0 { 0 } else { start as usize };
+    let step = isize::try_from(step).map_err(|_| RString::from("Slice step is too large"))?;
+    Ok((first, step, count as usize))
+}
+
 pub fn compute_c_contiguous_strides(shape: &[usize], elem_size: usize) -> RVec<isize> {
     let mut strides = vec![0isize; shape.len()];
     let mut current_stride = elem_size as isize;

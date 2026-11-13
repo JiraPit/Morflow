@@ -84,7 +84,7 @@ fn invalid_composite_indexes_and_slice_forms_fail_explicitly() {
         ("$parts[1]", "out of bounds"),
         ("$parts[:]", "integer indexes only"),
         ("$parts[0:1]", "integer indexes only"),
-        ("$parts[axis=0]", "integer indexes only"),
+        ("$parts[::2]", "integer indexes only"),
         ("$parts[0][0]", "Cannot slice"),
     ] {
         let source = format!("accept Composite $parts\n{reference} >> emit");

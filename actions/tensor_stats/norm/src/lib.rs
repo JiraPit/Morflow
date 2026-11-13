@@ -1,5 +1,6 @@
+use core_types::numeric::{self, Element, FloatElement, IntElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -103,11 +104,22 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
+/// The requested norm: `p` in both precisions, or the infinity norm.
+#[derive(Clone, Copy)]
+struct Order {
+    p32: f32,
+    p64: f64,
+    is_inf: bool,
+}
+
 fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
-    let mut p_val = 2.0f32;
-    let mut is_inf = false;
+    let mut order = Order {
+        p32: 2.0,
+        p64: 2.0,
+        is_inf: false,
+    };
     let axis = prepared.unsigned("axis").map(|value| value as usize);
 
     if let Some(args) = &args_opt {
@@ -116,9 +128,14 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
             if p_str == "inf" || p_str == "infinity" {
-                is_inf = true;
-            } else if let Ok(p) = prepared.args.parse::<f32>(p_str) {
-                p_val = p;
+                order.is_inf = true;
+            } else {
+                if let Ok(p) = prepared.args.parse::<f32>(p_str) {
+                    order.p32 = p;
+                }
+                if let Ok(p) = p_str.parse::<f64>() {
+                    order.p64 = p;
+                }
             }
         }
     }
@@ -127,8 +144,7 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
             match reduce_norm(
                 &tensor,
-                p_val,
-                is_inf,
+                order,
                 axis,
                 prepared
                     .output_dims()
@@ -142,66 +158,85 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// Floats keep their dtype; integers give an F64 that is exact (rounded
+/// once) for the infinity norm and for positive integer orders.
 fn reduce_norm(
     tensor: &Tensor,
-    p: f32,
+    order: Order,
+    axis: Option<usize>,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            let p = order.p64;
+            let exact_order = ((1.0..=64.0).contains(&p) && p.fract() == 0.0).then_some(p as u32);
+            let lane_norm = |lane: &[I]| -> f64 {
+                if order.is_inf {
+                    return lane.iter().map(|v| v.unsigned_abs_u128()).max().unwrap_or(0) as f64;
+                }
+                match exact_order {
+                    Some(p) => numeric::int_p_norm(lane.iter().map(|v| v.to_i128()), p),
+                    None => {
+                        let sum_p: f64 = lane.iter().map(|v| v.to_f64().abs().powf(p)).sum();
+                        sum_p.powf(1.0 / p)
+                    }
+                }
+            };
+            let out = match axis {
+                Some(ax) => numeric::reduce_axis(&vals, &tensor.shape, ax, lane_norm),
+                None => vec![lane_norm(&vals)],
+            };
+            Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+        },
+        float F => {
+            let vals = tensor.to_vec_of::<F>().unwrap_or_default();
+            let p = F::lit(order.p32, order.p64);
+            norm_float(vals, &tensor.shape, p, order.is_inf, axis, out_shape)
+        },
+    )
+}
+
+fn norm_float<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    p: T,
     is_inf: bool,
     axis: Option<usize>,
     out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-
-    if let Some(ax) = axis {
-        let outer_size: usize = tensor.shape[0..ax].iter().product();
-        let axis_len = tensor.shape[ax];
-
-        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
-
-        let out_len = outer_size * inner_size;
-        if out_len == 0 {
-            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-        }
-        let mut out_vals = vec![0.0f32; out_len];
-        let inv_p = 1.0 / p;
-
-        out_vals
-            .par_chunks_mut(inner_size)
-            .enumerate()
-            .for_each(|(outer_idx, slice)| {
-                for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                    if is_inf {
-                        let mut max_abs = 0.0f32;
-                        for a in 0..axis_len {
-                            let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                            max_abs = max_abs.max(vals[in_idx].abs());
-                        }
-                        *slot = max_abs;
-                    } else {
-                        let mut sum_p = 0.0f32;
-                        for a in 0..axis_len {
-                            let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                            sum_p += vals[in_idx].abs().powf(p);
-                        }
-                        *slot = sum_p.powf(inv_p);
+    let out = match axis {
+        Some(ax) => {
+            let inv_p = T::one() / p;
+            numeric::reduce_axis(&vals, shape, ax, |lane: &[T]| {
+                if is_inf {
+                    let mut max_abs = T::zero();
+                    for &v in lane {
+                        max_abs = max_abs.nan_max(v.abs());
                     }
+                    max_abs
+                } else {
+                    let mut sum_p = T::zero();
+                    for &v in lane {
+                        sum_p = sum_p + v.abs().powf(p);
+                    }
+                    sum_p.powf(inv_p)
                 }
-            });
-
-        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
-    } else {
-        let norm_val = if is_inf {
-            vals.par_iter()
-                .map(|&x| x.abs())
-                .reduce(|| 0.0f32, f32::max)
-        } else {
-            let sum_p: f32 = vals.par_iter().map(|&x| x.abs().powf(p)).sum();
-            sum_p.powf(1.0 / p)
-        };
-
-        let shape = out_shape;
-        Tensor::from_f32_vec(vec![norm_val], shape).map_err(|e| e.to_string())
-    }
+            })
+        }
+        None => {
+            let norm_val = if is_inf {
+                vals.par_iter()
+                    .map(|&x| x.abs())
+                    .reduce(T::zero, |a, b| a.nan_max(b))
+            } else {
+                let sum_p: T = vals.par_iter().map(|&x| x.abs().powf(p)).sum();
+                sum_p.powf(T::one() / p)
+            };
+            vec![norm_val]
+        }
+    };
+    Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

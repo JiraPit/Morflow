@@ -206,6 +206,28 @@ fn standardize_image_to_tensor(
         return img.tensor.clone();
     }
 
+    // Sliced or cropped images are strided views. Copy them into a contiguous
+    // buffer first, so they convert like a whole image instead of falling back
+    // to the raw pixels below.
+    let contiguous;
+    let img = if img.is_contiguous() {
+        img
+    } else {
+        let copy = Tensor::from_rvec_u8(
+            img.to_contiguous_bytes(),
+            img.tensor.shape.to_vec(),
+            img.dtype(),
+        )
+        .and_then(|tensor| core_types::Image::new(tensor, img.color_space, img.layout));
+        match copy {
+            Ok(copy) => {
+                contiguous = copy;
+                &contiguous
+            }
+            Err(_) => return img.tensor.clone(),
+        }
+    };
+
     // Convert pixel data to F32 intermediate in HWC
     let hwc_f32: Vec<f32> = match img.dtype() {
         TensorDType::U8 => {

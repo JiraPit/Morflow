@@ -1,0 +1,3798 @@
+[
+ {
+  "name": "add [2, 3] + [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [2, 3] + [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    0.0,
+    1.0,
+    1.25,
+    2.25,
+    3.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [3] + [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    0.0,
+    1.0,
+    -0.25,
+    0.75,
+    1.75
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [2, 1] + [1, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    -1.0,
+    -0.75,
+    -0.5,
+    -0.25,
+    -0.25,
+    0.0,
+    0.25,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [4, 1, 3] + [2, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4,
+        1,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75,
+        2.5,
+        3.25,
+        4.0,
+        4.75,
+        5.5,
+        6.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    -0.25,
+    0.5,
+    -0.75,
+    0.0,
+    0.75,
+    1.25,
+    2.0,
+    2.75,
+    1.5,
+    2.25,
+    3.0,
+    3.5,
+    4.25,
+    5.0,
+    3.75,
+    4.5,
+    5.25,
+    5.75,
+    6.5,
+    7.25,
+    6.0,
+    6.75,
+    7.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [1] + [2, 2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1
+       ],
+       "values": [
+        -2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    -1.0,
+    -0.75,
+    -0.5,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [2, 3, 1] + [3, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25,
+        2.5,
+        2.75,
+        3.0,
+        3.25,
+        3.5,
+        3.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    4
+   ],
+   "values": [
+    -1.0,
+    -0.75,
+    -0.5,
+    -0.25,
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    2.5,
+    2.75,
+    3.0,
+    3.25,
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+    3.0,
+    3.25,
+    3.5,
+    3.75,
+    4.75,
+    5.0,
+    5.25,
+    5.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [0, 3] + [1, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        0,
+        3
+       ],
+       "values": []
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    0,
+    3
+   ],
+   "values": [],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add [2, 1, 2] + [1, 3, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1,
+        2
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    2
+   ],
+   "values": [
+    -1.0,
+    -0.25,
+    -0.75,
+    0.0,
+    -0.5,
+    0.25,
+    0.5,
+    1.25,
+    0.75,
+    1.5,
+    1.0,
+    1.75
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add with declared shapes",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3.0,
+    4.0,
+    5.0,
+    4.5,
+    5.5,
+    6.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add with an untyped composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3.0,
+    4.0,
+    5.0,
+    4.5,
+    5.5,
+    6.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [2, 3] - [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0,
+        -0.75,
+        -0.5,
+        -0.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [2, 3] - [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    0.0,
+    0.5,
+    1.75,
+    2.25,
+    2.75
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [3] - [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0,
+        -0.75,
+        -0.5,
+        -0.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    0.0,
+    0.5,
+    -1.25,
+    -0.75,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [2, 1] - [1, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        4
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0,
+        -0.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    -0.5,
+    -0.75,
+    -1.0,
+    -1.25,
+    0.25,
+    0.0,
+    -0.25,
+    -0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [4, 1, 3] - [2, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4,
+        1,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75,
+        2.5,
+        3.25,
+        4.0,
+        4.75,
+        5.5,
+        6.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        -1.5,
+        -1.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    0.25,
+    1.0,
+    -0.75,
+    0.0,
+    0.75,
+    1.75,
+    2.5,
+    3.25,
+    1.5,
+    2.25,
+    3.0,
+    4.0,
+    4.75,
+    5.5,
+    3.75,
+    4.5,
+    5.25,
+    6.25,
+    7.0,
+    7.75,
+    6.0,
+    6.75,
+    7.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [1] - [2, 2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1
+       ],
+       "values": [
+        -2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0,
+        -0.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    -0.5,
+    -0.75,
+    -1.0,
+    -1.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [2, 3, 1] - [3, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        4
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0,
+        -0.75,
+        -0.5,
+        -0.25,
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    4
+   ],
+   "values": [
+    -0.5,
+    -0.75,
+    -1.0,
+    -1.25,
+    -0.75,
+    -1.0,
+    -1.25,
+    -1.5,
+    -1.0,
+    -1.25,
+    -1.5,
+    -1.75,
+    1.75,
+    1.5,
+    1.25,
+    1.0,
+    1.5,
+    1.25,
+    1.0,
+    0.75,
+    1.25,
+    1.0,
+    0.75,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [0, 3] - [1, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        0,
+        3
+       ],
+       "values": []
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    0,
+    3
+   ],
+   "values": [],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub [2, 1, 2] - [1, 3, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1,
+        2
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3,
+        1
+       ],
+       "values": [
+        -1.5,
+        -1.25,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    2
+   ],
+   "values": [
+    -0.5,
+    0.25,
+    -0.75,
+    0.0,
+    -1.0,
+    -0.25,
+    1.0,
+    1.75,
+    0.75,
+    1.5,
+    0.5,
+    1.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub with declared shapes",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    -1.0,
+    -1.0,
+    0.5,
+    0.5,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub with an untyped composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    -1.0,
+    -1.0,
+    0.5,
+    0.5,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [2, 3] * [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.5625,
+    -0.75,
+    0.4375,
+    2.0,
+    3.9375
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [2, 3] * [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.5625,
+    -0.75,
+    0.25,
+    1.25,
+    2.625
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [3] * [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.5625,
+    -0.75,
+    -3.5,
+    -2.5,
+    -1.125
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [2, 1] * [1, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    -2.0,
+    -2.5,
+    -3.0,
+    -3.5,
+    -1.25,
+    -1.5625,
+    -1.875,
+    -2.1875
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [4, 1, 3] * [2, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4,
+        1,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75,
+        2.5,
+        3.25,
+        4.0,
+        4.75,
+        5.5,
+        6.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.25,
+    -0.5,
+    -2.5,
+    -1.5625,
+    -0.625,
+    0.25,
+    1.0,
+    1.75,
+    0.3125,
+    1.25,
+    2.1875,
+    2.5,
+    3.25,
+    4.0,
+    3.125,
+    4.0625,
+    5.0,
+    4.75,
+    5.5,
+    6.25,
+    5.9375,
+    6.875,
+    7.8125
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [1] * [2, 2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1
+       ],
+       "values": [
+        -2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    -2.0,
+    -2.5,
+    -3.0,
+    -3.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [2, 3, 1] * [3, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25,
+        2.5,
+        2.75,
+        3.0,
+        3.25,
+        3.5,
+        3.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    4
+   ],
+   "values": [
+    -2.0,
+    -2.5,
+    -3.0,
+    -3.5,
+    -2.5,
+    -2.8125,
+    -3.125,
+    -3.4375,
+    -1.5,
+    -1.625,
+    -1.75,
+    -1.875,
+    0.25,
+    0.3125,
+    0.375,
+    0.4375,
+    2.0,
+    2.25,
+    2.5,
+    2.75,
+    5.25,
+    5.6875,
+    6.125,
+    6.5625
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [0, 3] * [1, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        0,
+        3
+       ],
+       "values": []
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    0,
+    3
+   ],
+   "values": [],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul [2, 1, 2] * [1, 3, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1,
+        2
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    2
+   ],
+   "values": [
+    -2.0,
+    -1.25,
+    -2.5,
+    -1.5625,
+    -3.0,
+    -1.875,
+    -0.5,
+    0.25,
+    -0.625,
+    0.3125,
+    -0.75,
+    0.375
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul with declared shapes",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.0,
+    3.75,
+    6.0,
+    5.0,
+    7.5,
+    10.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul with an untyped composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.0,
+    3.75,
+    6.0,
+    5.0,
+    7.5,
+    10.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [2, 3] / [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.0,
+    -0.3333333432674408,
+    0.1428571492433548,
+    0.5,
+    0.7777777910232544
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [2, 3] / [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.0,
+    -0.3333333432674408,
+    0.25,
+    0.800000011920929,
+    1.1666666269302368
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [3] / [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.0,
+    -0.3333333432674408,
+    -1.1428571939468384,
+    -0.625,
+    -0.2222222238779068
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [2, 1] / [1, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    -2.0,
+    -1.600000023841858,
+    -1.3333333730697632,
+    -1.1428571939468384,
+    -1.25,
+    -1.0,
+    -0.8333333134651184,
+    -0.7142857313156128
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [4, 1, 3] / [2, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4,
+        1,
+        3
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75,
+        2.5,
+        3.25,
+        4.0,
+        4.75,
+        5.5,
+        6.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    -1.25,
+    -0.5,
+    -1.600000023841858,
+    -1.0,
+    -0.4000000059604645,
+    0.25,
+    1.0,
+    1.75,
+    0.20000000298023224,
+    0.800000011920929,
+    1.399999976158142,
+    2.5,
+    3.25,
+    4.0,
+    2.0,
+    2.5999999046325684,
+    3.200000047683716,
+    4.75,
+    5.5,
+    6.25,
+    3.799999952316284,
+    4.400000095367432,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [1] / [2, 2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1
+       ],
+       "values": [
+        -2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    -2.0,
+    -1.600000023841858,
+    -1.3333333730697632,
+    -1.1428571939468384
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [2, 3, 1] / [3, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3,
+        1
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25,
+        1.0,
+        1.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        4
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0,
+        2.25,
+        2.5,
+        2.75,
+        3.0,
+        3.25,
+        3.5,
+        3.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    4
+   ],
+   "values": [
+    -2.0,
+    -1.600000023841858,
+    -1.3333333730697632,
+    -1.1428571939468384,
+    -0.625,
+    -0.5555555820465088,
+    -0.5,
+    -0.4545454680919647,
+    -0.1666666716337204,
+    -0.1538461595773697,
+    -0.1428571492433548,
+    -0.13333334028720856,
+    0.25,
+    0.20000000298023224,
+    0.1666666716337204,
+    0.1428571492433548,
+    0.5,
+    0.4444444477558136,
+    0.4000000059604645,
+    0.3636363744735718,
+    0.5833333134651184,
+    0.5384615659713745,
+    0.5,
+    0.46666666865348816
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [0, 3] / [1, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        0,
+        3
+       ],
+       "values": []
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    0,
+    3
+   ],
+   "values": [],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div [2, 1, 2] / [1, 3, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1,
+        2
+       ],
+       "values": [
+        -2.0,
+        -1.25,
+        -0.5,
+        0.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3,
+        1
+       ],
+       "values": [
+        1.0,
+        1.25,
+        1.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    2
+   ],
+   "values": [
+    -2.0,
+    -1.25,
+    -1.600000023841858,
+    -1.0,
+    -1.3333333730697632,
+    -0.8333333134651184,
+    -0.5,
+    0.25,
+    -0.4000000059604645,
+    0.20000000298023224,
+    -0.3333333432674408,
+    0.1666666716337204
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div with declared shapes",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    0.6000000238418579,
+    0.6666666865348816,
+    1.25,
+    1.2000000476837158,
+    1.1666666269302368
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div with an untyped composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    0.6000000238418579,
+    0.6666666865348816,
+    1.25,
+    1.2000000476837158,
+    1.1666666269302368
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [2, 3] ** [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25,
+        3.0,
+        3.75,
+        4.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8660253882408142,
+    1.2884187698364258,
+    1.837117314338684,
+    2.6150565147399902,
+    3.75,
+    5.430803298950195
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [2, 3] ** [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25,
+        3.0,
+        3.75,
+        4.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8660253882408142,
+    1.2884187698364258,
+    1.837117314338684,
+    1.7320507764816284,
+    2.284386157989502,
+    3.0896506309509277
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [3] ** [2, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8660253882408142,
+    1.2884187698364258,
+    1.837117314338684,
+    0.7774609923362732,
+    1.5,
+    2.490034341812134
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [2, 1] ** [1, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        0.75,
+        1.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        4
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75,
+        0.875
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    0.8660253882408142,
+    0.835436224937439,
+    0.8059274554252625,
+    0.7774609923362732,
+    1.2247449159622192,
+    1.2884187698364258,
+    1.355402946472168,
+    1.4258697032928467
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [4, 1, 3] ** [2, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4,
+        1,
+        3
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25,
+        3.0,
+        3.75,
+        4.5,
+        5.25,
+        6.0,
+        6.75,
+        7.5,
+        8.25,
+        9.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        0.5,
+        0.625
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2,
+    3
+   ],
+   "values": [
+    0.8660253882408142,
+    1.2247449159622192,
+    1.5,
+    0.835436224937439,
+    1.2884187698364258,
+    1.6600228548049927,
+    1.7320507764816284,
+    1.9364917278289795,
+    2.1213202476501465,
+    1.987013339996338,
+    2.284386157989502,
+    2.560105323791504,
+    2.291287899017334,
+    2.4494898319244385,
+    2.598076105117798,
+    2.8190290927886963,
+    3.0643935203552246,
+    3.298487663269043,
+    2.7386128902435303,
+    2.872281312942505,
+    3.0,
+    3.523005247116089,
+    3.739243268966675,
+    3.9482219219207764
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [1] ** [2, 2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1
+       ],
+       "values": [
+        0.75
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75,
+        0.875
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    0.8660253882408142,
+    0.835436224937439,
+    0.8059274554252625,
+    0.7774609923362732
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [2, 3, 1] ** [3, 4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3,
+        1
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25,
+        3.0,
+        3.75,
+        4.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        4
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    4
+   ],
+   "values": [
+    0.8660253882408142,
+    0.835436224937439,
+    0.8059274554252625,
+    0.7774609923362732,
+    1.5,
+    1.5779842138290405,
+    1.6600228548049927,
+    1.7463266849517822,
+    3.375,
+    3.735051393508911,
+    4.133513927459717,
+    4.5744853019714355,
+    1.7320507764816284,
+    1.987013339996338,
+    2.2795071601867676,
+    2.6150565147399902,
+    3.75,
+    4.423695087432861,
+    5.218420505523682,
+    6.155920505523682,
+    9.545941352844238,
+    11.52047348022461,
+    13.903428077697754,
+    16.779285430908203
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [0, 3] ** [1, 3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        0,
+        3
+       ],
+       "values": []
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    0,
+    3
+   ],
+   "values": [],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow [2, 1, 2] ** [1, 3, 1]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        1,
+        2
+       ],
+       "values": [
+        0.75,
+        1.5,
+        2.25,
+        3.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        1,
+        3,
+        1
+       ],
+       "values": [
+        0.5,
+        0.625,
+        0.75
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3,
+    2
+   ],
+   "values": [
+    0.8660253882408142,
+    1.2247449159622192,
+    0.835436224937439,
+    1.2884187698364258,
+    0.8059274554252625,
+    1.355402946472168,
+    1.5,
+    1.7320507764816284,
+    1.6600228548049927,
+    1.987013339996338,
+    1.837117314338684,
+    2.2795071601867676
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow with declared shapes",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.755676031112671,
+    8.0,
+    6.25,
+    15.588457107543945,
+    42.875
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow with an untyped composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        2.5,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.755676031112671,
+    8.0,
+    6.25,
+    15.588457107543945,
+    42.875
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub keeps operand order",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    6.0,
+    -3.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub keeps operand order reversed",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    -6.0,
+    3.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div keeps operand order",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    4.0,
+    0.25,
+    0.6666666865348816
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div keeps operand order reversed",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0.25,
+    4.0,
+    1.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow keeps operand order",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    64.0,
+    1.0,
+    8.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow keeps operand order reversed",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        2.0,
+        4.0,
+        3.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        8.0,
+        1.0,
+        2.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    256.0,
+    4.0,
+    9.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ }
+]

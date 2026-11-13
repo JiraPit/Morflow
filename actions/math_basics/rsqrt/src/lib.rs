@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -25,30 +25,48 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `1 / sqrt(x + eps)`, with the radicand floored at `eps`; NaN is kept.
+struct Op {
+    eps32: f32,
+    eps64: f64,
+}
 
-    let mut eps = 1e-8f32;
-    if let Some(args) = &args_opt {
-        if let Some(e_str) = args
-            .get_named("eps")
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(e) = prepared.args.parse::<f32>(e_str) {
-                eps = e;
-            }
+impl FloatUnary for Op {
+    #[inline]
+    fn apply<T: FloatElement>(&self, x: T) -> T {
+        if x.is_nan() {
+            return x;
+        }
+        let eps = T::lit(self.eps32, self.eps64);
+        T::one() / (x + eps).max(eps).sqrt()
+    }
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let _ = &prepared;
+    let mut op = Op {
+        eps32: 1e-8f32,
+        eps64: 1e-8f64,
+    };
+    let args = &prepared.args;
+    if let Some(e_str) = args
+        .get_named("eps")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(e) = prepared.args.parse::<f32>(e_str) {
+            op.eps32 = e;
+        }
+        if let Ok(e) = e_str.parse::<f64>() {
+            op.eps64 = e;
         }
     }
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice
-                .par_iter_mut()
-                .for_each(|x| *x = 1.0 / (*x + eps).max(eps).sqrt());
-            Payload::from_tensor(tensor)
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_float_unary(tensor, &op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'rsqrt\' requires a tensor or scalar value",

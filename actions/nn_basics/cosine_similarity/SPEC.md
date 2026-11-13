@@ -5,7 +5,13 @@ Computes the cosine similarity between two tensors along a specified axis: $\fra
 ## Interface
 - **Input Type**: `DataType::Composite` (`Payload::Composite([Tensor, Tensor])`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: `F32`
+- **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
+
+## DTypes
+- The two tensors are combined like the two-tensor arithmetic actions: the same dtype stays the same; with a float involved the result is `F64` if either side is `F64`, otherwise `F32`; two integers give the wider (or smallest common signed) integer type.
+- An `F32` result is computed in single precision exactly as before, `F64` in double precision, and an integer result is turned into `F64`.
+- A single Tensor input is passed through, with integer tensors converted to `F64`.
+- NaN values in the input behave like NumPy (they propagate through the result).
 
 ## Parameters
 | Parameter | Type | Default | Description |

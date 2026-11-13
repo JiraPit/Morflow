@@ -1,5 +1,6 @@
+use core_types::numeric::{self, Element, FloatElement, IntMoments};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -125,52 +126,64 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// Floats keep their dtype; integers give an exactly computed F64.
 fn reduce_mean(
     tensor: &Tensor,
     axis: Option<usize>,
     out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-
-    if let Some(ax) = axis {
-        let outer_size: usize = tensor.shape[0..ax].iter().product();
-        let axis_len = tensor.shape[ax];
-
-        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
-
-        let out_len = outer_size * inner_size;
-        if out_len == 0 {
-            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-        }
-        let mut out_vals = vec![0.0f32; out_len];
-        let inv_len = 1.0 / axis_len as f32;
-
-        out_vals
-            .par_chunks_mut(inner_size)
-            .enumerate()
-            .for_each(|(outer_idx, slice)| {
-                for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                    let mut acc = 0.0f32;
-                    for a in 0..axis_len {
-                        let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                        acc += vals[in_idx];
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            let out = match axis {
+                Some(ax) => numeric::reduce_axis(&vals, &tensor.shape, ax, |lane: &[I]| {
+                    if lane.is_empty() {
+                        return f64::NAN;
                     }
-                    *slot = acc * inv_len;
+                    let mut moments = IntMoments::default();
+                    lane.iter().for_each(|v| moments.push(v.to_i128()));
+                    moments.mean()
+                }),
+                None => {
+                    let mut moments = IntMoments::default();
+                    vals.iter().for_each(|v| moments.push(v.to_i128()));
+                    vec![moments.mean()]
                 }
-            });
+            };
+            Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+        },
+        float F => mean_float::<F>(tensor.to_vec_of::<F>().unwrap_or_default(), &tensor.shape, axis, out_shape),
+    )
+}
 
-        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
-    } else {
-        let total: f32 = vals.par_iter().sum();
-        let mean = if !vals.is_empty() {
-            total / vals.len() as f32
-        } else {
-            0.0
-        };
-        let shape = out_shape;
-        Tensor::from_f32_vec(vec![mean], shape).map_err(|e| e.to_string())
-    }
+fn mean_float<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    axis: Option<usize>,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
+    let out = match axis {
+        Some(ax) => {
+            let inv_len = T::one() / T::from_i128(shape[ax] as i128);
+            numeric::reduce_axis(&vals, shape, ax, |lane: &[T]| {
+                let mut acc = T::zero();
+                for &v in lane {
+                    acc = acc + v;
+                }
+                acc * inv_len
+            })
+        }
+        None => {
+            let total: T = vals.par_iter().copied().sum();
+            let mean = if !vals.is_empty() {
+                total / T::from_i128(vals.len() as i128)
+            } else {
+                T::zero()
+            };
+            vec![mean]
+        }
+    };
+    Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

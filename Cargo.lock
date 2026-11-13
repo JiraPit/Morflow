@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "abs"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "add"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "argmax"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "argmin"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "avg_pool2d"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "clamp"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -648,7 +648,7 @@ checksum = "533d38ecd2709b7608fb8e18e4504deb99e9a72879e6aa66373a76d8dc4259ea"
 
 [[package]]
 name = "cos"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -656,7 +656,7 @@ dependencies = [
 
 [[package]]
 name = "cosine_similarity"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "cumsum"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -879,7 +879,7 @@ dependencies = [
 
 [[package]]
 name = "div"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -954,7 +954,7 @@ dependencies = [
 
 [[package]]
 name = "exp"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1090,8 +1090,9 @@ dependencies = [
 
 [[package]]
 name = "gelu"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
+ "libm",
  "morflow-core-types",
  "rayon",
 ]
@@ -1523,7 +1524,7 @@ dependencies = [
 
 [[package]]
 name = "layer_norm"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1531,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "leaky_relu"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1687,7 +1688,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1701,7 +1702,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "log_softmax"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1745,7 +1746,7 @@ dependencies = [
 
 [[package]]
 name = "max"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1753,7 +1754,7 @@ dependencies = [
 
 [[package]]
 name = "max_pool2d"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1771,7 +1772,7 @@ dependencies = [
 
 [[package]]
 name = "mean"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1794,7 +1795,7 @@ dependencies = [
 
 [[package]]
 name = "min"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1834,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "morflow"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "abi_stable",
  "ariadne",
@@ -1856,15 +1857,18 @@ dependencies = [
 
 [[package]]
 name = "morflow-core-types"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "abi_stable",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
  "rayon",
 ]
 
 [[package]]
 name = "morflow-jni"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "abi_stable",
  "jni",
@@ -1874,7 +1878,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -1886,7 +1890,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-parser"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "chumsky",
  "serde",
@@ -1911,7 +1915,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -1940,7 +1944,7 @@ dependencies = [
 
 [[package]]
 name = "mul"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2038,7 +2042,7 @@ dependencies = [
 
 [[package]]
 name = "neg"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2084,7 +2088,7 @@ checksum = "0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8"
 
 [[package]]
 name = "norm"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2419,7 +2423,7 @@ dependencies = [
 
 [[package]]
 name = "pow"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2803,7 +2807,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "relu"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2894,7 +2898,7 @@ dependencies = [
 
 [[package]]
 name = "rms_norm"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2918,7 +2922,7 @@ dependencies = [
 
 [[package]]
 name = "rsqrt"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3116,7 +3120,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "sigmoid"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3124,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "sign"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3163,7 +3167,7 @@ dependencies = [
 
 [[package]]
 name = "silu"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3186,7 +3190,7 @@ dependencies = [
 
 [[package]]
 name = "sin"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3200,7 +3204,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "softmax"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3208,7 +3212,7 @@ dependencies = [
 
 [[package]]
 name = "sqrt"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3243,7 +3247,7 @@ dependencies = [
 
 [[package]]
 name = "std"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3283,7 +3287,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "sub"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3297,7 +3301,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "sum"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3349,7 +3353,7 @@ dependencies = [
 
 [[package]]
 name = "tan"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3357,7 +3361,7 @@ dependencies = [
 
 [[package]]
 name = "tanh"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3536,7 +3540,7 @@ dependencies = [
 
 [[package]]
 name = "to_tensor"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3711,7 +3715,7 @@ dependencies = [
 
 [[package]]
 name = "var"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "morflow-core-types",
  "rayon",

@@ -3,8 +3,7 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use abi_stable::std_types::{RBox, RString, RVec, Tuple2};
 use core_types::{
-    scalar_number, tensor_scalar_text, ActionArgs, Audio, AudioChannelLayout, AudioLayout, Image,
-    ImageLayout, Payload,
+    tensor_scalar_text, ActionArgs, Audio, AudioChannelLayout, AudioLayout, Image, Payload,
 };
 use parser::ast::{
     ActionCall, BinaryOp, Condition, FlowChain, FlowStep, SliceItem, Statement, Value, VarRef,
@@ -244,7 +243,7 @@ impl AutoParallelScheduler {
                     current = Some(out);
                 }
                 FlowStep::IfElse(branch) => {
-                    let cond_met = eval_condition(&branch.condition, env, current.as_ref());
+                    let cond_met = eval_condition(&branch.condition, env, current.as_ref())?;
 
                     let target_branch = if cond_met {
                         Some(&branch.then_branch)
@@ -279,7 +278,7 @@ impl AutoParallelScheduler {
                     // loop iterates channels for images and multi-channel audio,
                     // and preserves the payload type on every iteration.
                     let (_, num_slices) = payload_in
-                        .each_axis()
+                        .each_axis_at(each_loop.axis)
                         .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?;
 
                     // AUTO-PARALLELIZATION:
@@ -292,7 +291,7 @@ impl AutoParallelScheduler {
                             // Zero-copy slice view for this iteration, carrying the
                             // original payload variant where the shape allows it.
                             let slice_payload = payload_in
-                                .each_slice(i)
+                                .each_slice_at(each_loop.axis, i)
                                 .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?;
 
                             // The env holds the loop variable, so it needs its own
@@ -337,14 +336,14 @@ impl AutoParallelScheduler {
                     // rather than silently dropping iterations.
                     current = Some(
                         payload_in
-                            .each_restack(&collected)
+                            .each_restack_at(each_loop.axis, &collected)
                             .map_err(|e| MorflowError::TypeMismatch(e.to_string()))?,
                     );
                 }
                 FlowStep::Route(route_block) => {
                     let mut matched_branch = None;
                     for arm in &route_block.arms {
-                        if eval_condition(&arm.condition, env, current.as_ref()) {
+                        if eval_condition(&arm.condition, env, current.as_ref())? {
                             matched_branch = Some(&arm.body);
                             break;
                         }
@@ -433,7 +432,7 @@ impl AutoParallelScheduler {
         Ok(payload)
     }
 
-    fn slice_payload(
+    pub(crate) fn slice_payload(
         mut base_payload: Payload,
         slices: &[SliceItem],
         name: &str,
@@ -471,92 +470,11 @@ impl AutoParallelScheduler {
         let base_payload = base_payload.unwrap_payload().clone();
         match base_payload {
             Payload::Tensor(tensor) => {
-                let mut sliced = tensor;
-                let mut current_axis = 0usize;
-
-                for slice_item in &slices {
-                    match slice_item {
-                        SliceItem::NamedDim { dim_name, index } => {
-                            let axis = match dim_name.as_str() {
-                                "dim" | "axis" => *index as usize,
-                                _ => 0,
-                            };
-                            sliced = sliced
-                                .slice_axis_index(axis, *index as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Range { start, end, step } => {
-                            let s = start.unwrap_or(0) as usize;
-                            let e = end.map(|x| x as usize).unwrap_or_else(|| {
-                                sliced.shape.get(current_axis).copied().unwrap_or(0)
-                            });
-                            let st = step.unwrap_or(1) as usize;
-                            sliced = sliced
-                                .slice_range(current_axis, s, e, st)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                            current_axis += 1;
-                        }
-                        SliceItem::Index(idx) => {
-                            sliced = sliced
-                                .slice_axis_index(current_axis, *idx as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Full => {
-                            current_axis += 1;
-                        }
-                    }
-                }
+                let sliced = slice_tensor(tensor, &slices, name)?;
                 Ok(Payload::from_tensor(sliced))
             }
             Payload::Image(image) => {
-                let mut sliced = image.tensor;
-                let mut current_axis = 0usize;
-
-                for slice_item in &slices {
-                    match slice_item {
-                        SliceItem::NamedDim { dim_name, index } => {
-                            let axis = match dim_name.as_str() {
-                                "dim" | "axis" => *index as usize,
-                                "y" | "row" | "height" => match image.layout {
-                                    ImageLayout::Hwc => 0,
-                                    ImageLayout::Chw => 1,
-                                },
-                                "x" | "col" | "width" => match image.layout {
-                                    ImageLayout::Hwc => 1,
-                                    ImageLayout::Chw => 2,
-                                },
-                                "c" | "channel" | "channels" => match image.layout {
-                                    ImageLayout::Hwc => 2,
-                                    ImageLayout::Chw => 0,
-                                },
-                                _ => 0,
-                            };
-                            sliced = sliced
-                                .slice_axis_index(axis, *index as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Range { start, end, step } => {
-                            let s = start.unwrap_or(0) as usize;
-                            let e = end.map(|x| x as usize).unwrap_or_else(|| {
-                                sliced.shape.get(current_axis).copied().unwrap_or(0)
-                            });
-                            let st = step.unwrap_or(1) as usize;
-                            sliced = sliced
-                                .slice_range(current_axis, s, e, st)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                            current_axis += 1;
-                        }
-                        SliceItem::Index(idx) => {
-                            sliced = sliced
-                                .slice_axis_index(current_axis, *idx as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Full => {
-                            current_axis += 1;
-                        }
-                    }
-                }
-
+                let sliced = slice_tensor(image.tensor, &slices, name)?;
                 // Slicing an image must leave something an Image can still hold,
                 // so a slice that drops below rank 2 is refused rather than
                 // silently changing the payload's type.
@@ -569,50 +487,7 @@ impl AutoParallelScheduler {
                 }
             }
             Payload::Audio(audio) => {
-                let mut sliced = audio.tensor;
-                let mut current_axis = 0usize;
-
-                for slice_item in &slices {
-                    match slice_item {
-                        SliceItem::NamedDim { dim_name, index } => {
-                            let axis = match dim_name.as_str() {
-                                "dim" | "axis" => *index as usize,
-                                "ch" | "channel" | "channels" => match audio.layout {
-                                    AudioLayout::Planar => 0,
-                                    AudioLayout::Interleaved => 1,
-                                },
-                                "t" | "time" | "sample" | "samples" => match audio.layout {
-                                    AudioLayout::Planar => 1,
-                                    AudioLayout::Interleaved => 0,
-                                },
-                                _ => 0,
-                            };
-                            sliced = sliced
-                                .slice_axis_index(axis, *index as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Range { start, end, step } => {
-                            let s = start.unwrap_or(0) as usize;
-                            let e = end.map(|x| x as usize).unwrap_or_else(|| {
-                                sliced.shape.get(current_axis).copied().unwrap_or(0)
-                            });
-                            let st = step.unwrap_or(1) as usize;
-                            sliced = sliced
-                                .slice_range(current_axis, s, e, st)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                            current_axis += 1;
-                        }
-                        SliceItem::Index(idx) => {
-                            sliced = sliced
-                                .slice_axis_index(current_axis, *idx as usize)
-                                .map_err(|e| MorflowError::Execution(e.to_string()))?;
-                        }
-                        SliceItem::Full => {
-                            current_axis += 1;
-                        }
-                    }
-                }
-
+                let sliced = slice_tensor(audio.tensor, &slices, name)?;
                 let rank = sliced.rank();
                 // A single sample is a rank-0 value, which Audio cannot hold, so
                 // it becomes a Scalar rather than changing the type to a tensor.
@@ -648,33 +523,26 @@ impl AutoParallelScheduler {
                         "Bytes support one range slice per bracket group".into(),
                     ));
                 }
-                if let Some(SliceItem::Range {
-                    start,
-                    end,
-                    step: _,
-                }) = slices.first()
-                {
-                    let s = start.unwrap_or(0) as usize;
-                    let e = end
-                        .map(|x| x as usize)
-                        .unwrap_or(buffer.len())
-                        .min(buffer.len());
-                    if s <= e && s <= buffer.len() {
-                        let sub_buf = buffer[s..e].to_vec();
-                        Ok(Payload::Data {
-                            buffer: RVec::from(sub_buf),
-                        })
-                    } else {
-                        Err(MorflowError::Execution(format!(
-                            "Slice out of bounds for buffer of len {}",
-                            buffer.len()
-                        )))
+                let (start, end, step) = match &slices[0] {
+                    SliceItem::Range { start, end, step } => (*start, *end, *step),
+                    SliceItem::Full => (None, None, None),
+                    SliceItem::Index(_) => {
+                        return Err(MorflowError::Execution(
+                            "Bytes support range slices only".into(),
+                        ))
                     }
-                } else {
-                    Err(MorflowError::Execution(
-                        "Bytes support range slices only".into(),
-                    ))
-                }
+                };
+                let (first, step, len) =
+                    core_types::resolve_python_slice(buffer.len(), start, end, step).map_err(
+                        |e| MorflowError::Execution(format!("Cannot slice ${}: {}", name, e)),
+                    )?;
+                let bytes = buffer.as_slice();
+                let sub_buf: Vec<u8> = (0..len)
+                    .map(|i| bytes[(first as isize + i as isize * step) as usize])
+                    .collect();
+                Ok(Payload::Data {
+                    buffer: RVec::from(sub_buf),
+                })
             }
             // Arguments are plain values and scalars are rank-0, so neither has
             // a dimension to slice.
@@ -734,6 +602,45 @@ impl AutoParallelScheduler {
             }
         }
     }
+}
+
+/// Applies one bracket group of basic indexes to a tensor with Python/NumPy
+/// semantics: integer indexes remove their axis, ranges keep it, and negative
+/// positions count from the end.
+fn slice_tensor(
+    tensor: core_types::Tensor,
+    items: &[SliceItem],
+    name: &str,
+) -> Result<core_types::Tensor, MorflowError> {
+    let original_rank = tensor.rank();
+    let mut sliced = tensor;
+    let mut axis = 0usize;
+    for item in items {
+        if axis >= sliced.rank() {
+            return Err(MorflowError::Execution(format!(
+                "Too many indices for ${}: it has rank {} but {} indexes were given",
+                name,
+                original_rank,
+                items.len()
+            )));
+        }
+        let error = |e: RString| MorflowError::Execution(format!("Cannot slice ${}: {}", name, e));
+        match item {
+            SliceItem::Index(index) => {
+                sliced = sliced.index_python(axis, *index).map_err(error)?;
+            }
+            SliceItem::Range { start, end, step } => {
+                sliced = sliced
+                    .slice_python(axis, *start, *end, *step)
+                    .map_err(error)?;
+                axis += 1;
+            }
+            SliceItem::Full => {
+                axis += 1;
+            }
+        }
+    }
+    Ok(sliced)
 }
 
 pub(crate) fn extract_dependencies(stmt: &Statement) -> HashSet<String> {
@@ -855,122 +762,257 @@ pub(crate) fn extract_writes(stmt: &Statement) -> HashSet<String> {
     writes
 }
 
-fn eval_condition(cond: &Condition, env: &EnvRef<'_>, current: Option<&Payload>) -> bool {
-    let left_num = resolve_number_or_field(&cond.left, env, current);
-    let right_num = resolve_number_or_field(&cond.right, env, current);
+/// An exact number read from a condition operand.
+#[derive(Debug, Clone, Copy)]
+enum Number {
+    Int(i128),
+    Float(f64),
+}
 
-    if let (Some(l), Some(r)) = (left_num, right_num) {
-        match cond.op {
-            BinaryOp::Eq => (l - r).abs() < f64::EPSILON,
-            BinaryOp::NotEq => (l - r).abs() >= f64::EPSILON,
-            BinaryOp::Lt => l < r,
-            BinaryOp::LtEq => l <= r,
-            BinaryOp::Gt => l > r,
-            BinaryOp::GtEq => l >= r,
+impl Number {
+    /// Exact comparison across integers and floats; `None` involves a NaN.
+    fn compare(self, other: Number) -> Option<std::cmp::Ordering> {
+        use std::cmp::Ordering;
+        match (self, other) {
+            (Number::Int(a), Number::Int(b)) => Some(a.cmp(&b)),
+            (Number::Float(a), Number::Float(b)) => a.partial_cmp(&b),
+            (Number::Int(a), Number::Float(b)) => compare_int_float(a, b),
+            (Number::Float(a), Number::Int(b)) => compare_int_float(b, a).map(Ordering::reverse),
         }
-    } else {
-        true
     }
 }
 
-fn resolve_number_or_field(
+/// Compares an integer with a float without rounding either.
+fn compare_int_float(int: i128, float: f64) -> Option<std::cmp::Ordering> {
+    use std::cmp::Ordering;
+    if float.is_nan() {
+        return None;
+    }
+    // Every i128 lies strictly inside (-2^127 - 1, 2^127).
+    if float >= 170141183460469231731687303715884105728.0 {
+        return Some(Ordering::Less);
+    }
+    if float < -170141183460469231731687303715884105728.0 {
+        return Some(Ordering::Greater);
+    }
+    let whole = float.trunc();
+    let whole_int = whole as i128;
+    match int.cmp(&whole_int) {
+        Ordering::Equal => {
+            let frac = float - whole;
+            Some(if frac > 0.0 {
+                Ordering::Less
+            } else if frac < 0.0 {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            })
+        }
+        other => Some(other),
+    }
+}
+
+fn eval_condition(
+    cond: &Condition,
+    env: &EnvRef<'_>,
+    current: Option<&Payload>,
+) -> Result<bool, MorflowError> {
+    let left = resolve_condition_number(&cond.left, env, current)?;
+    let right = resolve_condition_number(&cond.right, env, current)?;
+    let ordering = left.compare(right);
+    use std::cmp::Ordering::*;
+    Ok(match cond.op {
+        BinaryOp::Eq => ordering == Some(Equal),
+        BinaryOp::NotEq => ordering != Some(Equal),
+        BinaryOp::Lt => ordering == Some(Less),
+        BinaryOp::LtEq => matches!(ordering, Some(Less | Equal)),
+        BinaryOp::Gt => ordering == Some(Greater),
+        BinaryOp::GtEq => matches!(ordering, Some(Greater | Equal)),
+    })
+}
+
+/// Reads text as an exact number: integers stay integers, anything else that
+/// parses is a float.
+fn parse_number_text(text: &str) -> Option<Number> {
+    let text = text.trim();
+    if let Ok(i) = text.parse::<i128>() {
+        return Some(Number::Int(i));
+    }
+    text.parse::<f64>().ok().map(Number::Float)
+}
+
+/// The exact value of a rank-0 tensor of any dtype.
+fn tensor_number(t: &core_types::Tensor) -> Option<Number> {
+    if t.num_elements() != 1 || t.rank() != 0 {
+        return None;
+    }
+    use core_types::numeric::Element;
+    Some(core_types::match_dtype!(t.dtype,
+        int I => Number::Int(t.to_vec_of::<I>()?[0].to_i128()),
+        float F => Number::Float(t.to_vec_of::<F>()?[0].to_f64()),
+    ))
+}
+
+/// Every field a condition operand can read, e.g. `$audio.sample_rate`.
+pub(crate) const CONDITION_FIELDS: &[&str] = &[
+    "sample_rate",
+    "rate",
+    "duration",
+    "duration_seconds",
+    "num_samples",
+    "samples",
+    "width",
+    "height",
+    "channels",
+    "peak",
+    "peak_abs",
+    "rms",
+    "mean",
+    "len",
+    "length",
+];
+
+fn resolve_condition_number(
     val: &Value,
     env: &EnvRef<'_>,
     current: Option<&Payload>,
-) -> Option<f64> {
-    match val {
-        Value::Float(f) => Some(*f),
-        Value::Int(i) => Some(*i as f64),
-        Value::Var(var_ref) => {
-            let payload_opt = if var_ref.name.is_empty() || var_ref.name == "payload" {
-                current.cloned()
-            } else {
-                env.get(&var_ref.name)
-            };
-
-            if let Some(payload) = payload_opt {
-                match var_ref.field.as_deref() {
-                    Some("sample_rate") | Some("rate") => match payload.unwrap_payload() {
-                        Payload::Audio(aud) => Some(aud.sample_rate as f64),
-                        _ => None,
-                    },
-                    Some("duration") | Some("duration_seconds") => match payload.unwrap_payload() {
-                        Payload::Audio(aud) => Some(aud.duration_seconds()),
-                        _ => None,
-                    },
-                    Some("num_samples") | Some("samples") => match payload.unwrap_payload() {
-                        Payload::Audio(aud) => Some(aud.num_samples() as f64),
-                        _ => None,
-                    },
-                    Some("width") => match payload.unwrap_payload() {
-                        Payload::Image(img) => Some(img.width() as f64),
-                        Payload::Tensor(t) if t.rank() >= 2 => Some(t.shape[1] as f64),
-                        _ => None,
-                    },
-                    Some("height") => match payload.unwrap_payload() {
-                        Payload::Image(img) => Some(img.height() as f64),
-                        Payload::Tensor(t) if t.rank() >= 2 => Some(t.shape[0] as f64),
-                        _ => None,
-                    },
-                    Some("channels") => match payload.unwrap_payload() {
-                        Payload::Audio(aud) => Some(aud.channels() as f64),
-                        Payload::Image(img) => Some(img.channels() as f64),
-                        Payload::Tensor(t) if t.rank() >= 3 => Some(t.shape[2] as f64),
-                        _ => None,
-                    },
-                    Some("peak") | Some("peak_abs") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.peak_abs()),
-                        Payload::Image(img) => Some(img.tensor.peak_abs()),
-                        Payload::Audio(aud) => Some(aud.tensor.peak_abs()),
-                        _ => None,
-                    },
-                    Some("rms") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.rms()),
-                        Payload::Image(img) => Some(img.tensor.rms()),
-                        Payload::Audio(aud) => Some(aud.tensor.rms()),
-                        _ => None,
-                    },
-                    Some("mean") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.mean()),
-                        Payload::Image(img) => Some(img.tensor.mean()),
-                        Payload::Audio(aud) => Some(aud.tensor.mean()),
-                        _ => None,
-                    },
-                    Some("len") | Some("length") => match payload.unwrap_payload() {
-                        Payload::Tensor(t) | Payload::Scalar(t) => Some(t.num_elements() as f64),
-                        Payload::Image(img) => Some(img.tensor.num_elements() as f64),
-                        Payload::Audio(aud) => Some(aud.tensor.num_elements() as f64),
-                        Payload::Data { buffer } => Some(buffer.len() as f64),
-                        Payload::Arg(bytes) => Some(bytes.len() as f64),
-                        _ => None,
-                    },
-                    _ => match payload.unwrap_payload() {
-                        Payload::Data { buffer } => {
-                            if let Ok(s) = std::str::from_utf8(buffer.as_slice()) {
-                                s.trim().parse::<f64>().ok()
-                            } else if buffer.len() == 4 {
-                                Some(f32::from_ne_bytes(buffer.as_slice().try_into().unwrap())
-                                    as f64)
-                            } else if buffer.len() == 8 {
-                                Some(f64::from_ne_bytes(buffer.as_slice().try_into().unwrap()))
-                            } else {
-                                None
-                            }
-                        }
-                        // An argument parameter is readable as a number when it
-                        // holds one.
-                        Payload::Arg(bytes) => std::str::from_utf8(bytes.as_slice())
-                            .ok()
-                            .and_then(|s| s.trim().parse::<f64>().ok()),
-                        // A scalar is a single number of whatever dtype it holds.
-                        Payload::Scalar(t) => scalar_number(t),
-                        _ => None,
-                    },
-                }
-            } else {
-                None
-            }
+) -> Result<Number, MorflowError> {
+    let var_ref = match val {
+        Value::Float(f) => return Ok(Number::Float(*f)),
+        Value::Int(i) => return Ok(Number::Int(*i as i128)),
+        Value::String(s) => {
+            return Err(MorflowError::TypeMismatch(format!(
+                "Condition operand \"{}\" is a string; both sides of a condition must be numbers",
+                s
+            )))
         }
-        _ => None,
+        Value::Bool(b) => {
+            return Err(MorflowError::TypeMismatch(format!(
+                "Condition operand {} is a boolean; both sides of a condition must be numbers",
+                b
+            )))
+        }
+        Value::Var(var_ref) => var_ref,
+    };
+    let label = format!("${}", var_ref.name);
+    let mut payload = if var_ref.name.is_empty() || var_ref.name == "payload" {
+        current.cloned().ok_or_else(|| {
+            MorflowError::Execution(format!(
+                "Condition operand {} refers to the stream payload, but there is none",
+                label
+            ))
+        })?
+    } else {
+        env.get(&var_ref.name).ok_or_else(|| {
+            MorflowError::Execution(format!("Condition operand {} is not defined", label))
+        })?
+    };
+    for group in &var_ref.slices {
+        payload = AutoParallelScheduler::slice_payload(payload, group, &var_ref.name)?;
     }
+    let inner = payload.unwrap_payload();
+    let kind = core_types::payload_kind_name(inner);
+
+    let Some(field) = var_ref.field.as_deref() else {
+        let number = match inner {
+            Payload::Scalar(t) | Payload::Tensor(t) => tensor_number(t),
+            Payload::Arg(bytes) => std::str::from_utf8(bytes.as_slice())
+                .ok()
+                .and_then(parse_number_text),
+            Payload::Data { buffer } => match std::str::from_utf8(buffer.as_slice()) {
+                Ok(text) => parse_number_text(text),
+                Err(_) if buffer.len() == 4 => Some(Number::Float(f32::from_ne_bytes(
+                    buffer.as_slice().try_into().unwrap(),
+                ) as f64)),
+                Err(_) if buffer.len() == 8 => Some(Number::Float(f64::from_ne_bytes(
+                    buffer.as_slice().try_into().unwrap(),
+                ))),
+                Err(_) => None,
+            },
+            _ => None,
+        };
+        return number.ok_or_else(|| {
+            MorflowError::TypeMismatch(format!(
+                "Condition operand {} is a {} that is not a number; both sides of a condition must be numbers",
+                label, kind
+            ))
+        });
+    };
+
+    if !CONDITION_FIELDS.contains(&field) {
+        return Err(MorflowError::TypeMismatch(format!(
+            "Condition operand {}.{} uses an unknown field '{}' (known fields: {})",
+            label,
+            field,
+            field,
+            CONDITION_FIELDS.join(", ")
+        )));
+    }
+    let value = match field {
+        "sample_rate" | "rate" => match inner {
+            Payload::Audio(aud) => Some(Number::Int(aud.sample_rate as i128)),
+            _ => None,
+        },
+        "duration" | "duration_seconds" => match inner {
+            Payload::Audio(aud) => Some(Number::Float(aud.duration_seconds())),
+            _ => None,
+        },
+        "num_samples" | "samples" => match inner {
+            Payload::Audio(aud) => Some(Number::Int(aud.num_samples() as i128)),
+            _ => None,
+        },
+        "width" => match inner {
+            Payload::Image(img) => Some(Number::Int(img.width() as i128)),
+            Payload::Tensor(t) if t.rank() >= 2 => Some(Number::Int(t.shape[1] as i128)),
+            _ => None,
+        },
+        "height" => match inner {
+            Payload::Image(img) => Some(Number::Int(img.height() as i128)),
+            Payload::Tensor(t) if t.rank() >= 2 => Some(Number::Int(t.shape[0] as i128)),
+            _ => None,
+        },
+        "channels" => match inner {
+            Payload::Audio(aud) => Some(Number::Int(aud.channels() as i128)),
+            Payload::Image(img) => Some(Number::Int(img.channels() as i128)),
+            Payload::Tensor(t) if t.rank() >= 3 => Some(Number::Int(t.shape[2] as i128)),
+            _ => None,
+        },
+        "peak" | "peak_abs" => match inner {
+            Payload::Tensor(t) | Payload::Scalar(t) => Some(Number::Float(t.peak_abs())),
+            Payload::Image(img) => Some(Number::Float(img.tensor.peak_abs())),
+            Payload::Audio(aud) => Some(Number::Float(aud.tensor.peak_abs())),
+            _ => None,
+        },
+        "rms" => match inner {
+            Payload::Tensor(t) | Payload::Scalar(t) => Some(Number::Float(t.rms())),
+            Payload::Image(img) => Some(Number::Float(img.tensor.rms())),
+            Payload::Audio(aud) => Some(Number::Float(aud.tensor.rms())),
+            _ => None,
+        },
+        "mean" => match inner {
+            Payload::Tensor(t) | Payload::Scalar(t) => Some(Number::Float(t.mean())),
+            Payload::Image(img) => Some(Number::Float(img.tensor.mean())),
+            Payload::Audio(aud) => Some(Number::Float(aud.tensor.mean())),
+            _ => None,
+        },
+        "len" | "length" => match inner {
+            Payload::Tensor(t) | Payload::Scalar(t) => Some(Number::Int(t.num_elements() as i128)),
+            Payload::Image(img) => Some(Number::Int(img.tensor.num_elements() as i128)),
+            Payload::Audio(aud) => Some(Number::Int(aud.tensor.num_elements() as i128)),
+            Payload::Data { buffer } => Some(Number::Int(buffer.len() as i128)),
+            Payload::Arg(bytes) => Some(Number::Int(bytes.len() as i128)),
+            _ => None,
+        },
+        _ => unreachable!("field names are checked above"),
+    };
+    value.ok_or_else(|| {
+        let detail = match inner {
+            Payload::Tensor(t) => format!("a rank-{} Tensor", t.rank()),
+            _ => format!("a {}", kind),
+        };
+        MorflowError::TypeMismatch(format!(
+            "Condition operand {}.{}: {} has no field '{}'",
+            label, field, detail, field
+        ))
+    })
 }

@@ -68,6 +68,15 @@ impl ShapeCoverage {
         loaded: &HashMap<String, Arc<LoadedAction>>,
         path: &str,
     ) -> Result<Option<PType>, String> {
+        let conditions: Vec<&Condition> = match step {
+            FlowStep::IfElse(b) => vec![&b.condition],
+            FlowStep::Route(b) => b.arms.iter().map(|a| &a.condition).collect(),
+            _ => Vec::new(),
+        };
+        for condition in conditions {
+            check_condition(condition, current.as_ref(), vars)
+                .map_err(|e| format!("{path}: {e}"))?;
+        }
         let branches: Vec<(&str, &[Statement])> = match step {
             FlowStep::IfElse(b) => vec![
                 ("then", &b.then_branch),
@@ -204,15 +213,7 @@ impl ShapeCoverage {
                     let input = current
                         .clone()
                         .ok_or_else(|| format!("{location}: each requires input"))?;
-                    let element = input
-                        .each_loop_var()
-                        .or_else(|e| {
-                            if matches!(input.spec(), Some(ShapeSpec::AnyRank)) {
-                                Ok(unranked_like(&input))
-                            } else {
-                                Err(e)
-                            }
-                        })
+                    let element = each_loop_element(&input, loop_.axis)
                         .map_err(|e| format!("{location}: {e}"))?;
                     let mut env = vars.clone();
                     env.insert(loop_.var_name.clone(), element.clone());
@@ -232,7 +233,7 @@ impl ShapeCoverage {
                             ));
                         }
                     }
-                    current = output.map(|body| each_output_type(&input, &body));
+                    current = output.map(|body| each_output_type(&input, &body, loop_.axis));
                 }
                 FlowStep::IfElse(_) | FlowStep::Route(_) => {
                     current = self.branch(step, current, vars, loaded, &location)?

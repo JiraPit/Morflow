@@ -1,0 +1,1753 @@
+[
+ {
+  "name": "if ($x[1, -1] == 6)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[1, -1] == 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[0][1] > 1)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[0][1] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[-1, 0] < $x[0, -1])",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[-1, 0] < $x[0, -1]) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[-2, -3] == -1)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[-2, -3] == -1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[1][::-1][0] == 6)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[1][::-1][0] == 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[::-1, ::-1][0, 0] == 6)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[::-1, ::-1][0, 0] == 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[0, 1] != 2)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[0, 1] != 2) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[-1, -2] >= -5)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[-1, -2] >= -5) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x[1, 1] > $x[0, 0])",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x[1, 1] > $x[0, 0]) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($a[1, -1, 0] == 8) on i64 [2,3,4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[1, -1, 0] == 8) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($a[-1][-1][-1] > 10) on i64 [2,3,4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[-1][-1][-1] > 10) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($a[0, ::-1, 1][0] == -3) on i64 [2,3,4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[0, ::-1, 1][0] == -3) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($a[0, 0, 0] < $a[1, 2, 3]) on i64 [2,3,4]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[0, 0, 0] < $a[1, 2, 3]) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3,
+      4
+     ],
+     "values": [
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($au[-1] > 0.5) on mono audio",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Audio $au\n$x >> if ($au[-1] > 0.5) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($au[1] < 0) on mono audio",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Audio $au\n$x >> if ($au[1] < 0) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($p[0] > 6) on a composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Composite $p\n$x >> if ($p[0] > 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "composite": [
+     {
+      "scalar": {
+       "dtype": "i32",
+       "shape": [],
+       "values": [
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.0,
+        2.0,
+        -3.0,
+        4.0,
+        -5.0,
+        6.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($p[1][1, 2] == 6) on a composite",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Composite $p\n$x >> if ($p[1][1, 2] == 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "composite": [
+     {
+      "scalar": {
+       "dtype": "i32",
+       "shape": [],
+       "values": [
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.0,
+        2.0,
+        -3.0,
+        4.0,
+        -5.0,
+        6.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "each(axis=1) with if ($v[0] > 0)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=1) ($v) { $v >> if ($v[0] > 0) {\nneg\n} else {\nabs\n} } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "each(axis=0) with if ($v[-1] > 0)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=0) ($v) { $v >> if ($v[-1] > 0) {\nneg\n} else {\nabs\n} } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "each(axis=-1) with if ($v[1] > 0)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each(axis=-1) ($v) { $v >> if ($v[1] > 0) {\nneg\n} else {\nabs\n} } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "each without an axis with if ($row[-1] > 0)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> each ($row) { $row >> if ($row[-1] > 0) {\nneg\n} else {\nabs\n} } >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($a[0] > 1) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($a[5, 0] > 1) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[5, 0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($a[0, ::0] > 1) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[0, ::0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($a[0, 1:2] > 1) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[0, 1:2] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($a[-3, 0] > 1) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if ($a[-3, 0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if (1 < $a[:, 0]) on an undeclared [2,3] tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor $a\n$x >> if (1 < $a[:, 0]) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($a[0] > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor[2,3] $a\n$x >> if ($a[0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($a[2, 0] > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor[2,3] $a\n$x >> if ($a[2, 0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($a[0, 1:2] > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor[2,3] $a\n$x >> if ($a[0, 1:2] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($a[0, -4] > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor[2,3] $a\n$x >> if ($a[0, -4] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($a[::-1] == 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Tensor[2,3] $a\n$x >> if ($a[::-1] == 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($a[0] > 1) on an Image",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Image $a\n$x >> if ($a[0] > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3,
+      3
+     ],
+     "values": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[1, -1] > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[1, -1] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[*,3]: if ($a[0, 2] > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[*,3] $a\n$a >> if ($a[0, 2] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor: if ($a[0] > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor $a\n$a >> if ($a[0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[-1][0] == 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[-1][0] == 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Audio[*]: if ($a[-1] > 0) checks",
+  "type": "check",
+  "morf": "accept Audio[*] $a\n$a >> if ($a[-1] > 0) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[4]: if ($a[::-1][0] > 1) checks",
+  "type": "check",
+  "morf": "accept Tensor[4] $a\n$a >> if ($a[::-1][0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3,4]: if ($a[1, -1, -4] <= 0) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3,4] $a\n$a >> if ($a[1, -1, -4] <= 0) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Composite[Scalar, Tensor]: if ($a[0] > 1) checks",
+  "type": "check",
+  "morf": "accept Composite[Scalar, Tensor] $a\n$a >> if ($a[0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[0, 0] < $a[-1, -1]) checks",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[0, 0] < $a[-1, -1]) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[0] > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[-3, 0] > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[-3, 0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[0, 3] > 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[0, 3] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3]: if ($a[:, 0] == 1) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3] $a\n$a >> if ($a[:, 0] == 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Image: if ($a[0] > 1) is rejected",
+  "type": "check",
+  "morf": "accept Image $a\n$a >> if ($a[0] > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "Tensor[2,3,4]: if (1 < $a[0, 0]) is rejected",
+  "type": "check",
+  "morf": "accept Tensor[2,3,4] $a\n$a >> if (1 < $a[0, 0]) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "ok": false
+ }
+]

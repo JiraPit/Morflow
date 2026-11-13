@@ -1,0 +1,7666 @@
+[
+ {
+  "name": "abs f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    2.0,
+    0.5,
+    3.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "neg f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.5,
+    "nan",
+    2.0,
+    -0.5,
+    -3.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sign f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    -1.0,
+    1.0,
+    1.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sqrt f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.2247449159622192,
+    "nan",
+    0.0,
+    0.7071067690849304,
+    1.7320507764816284,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "rsqrt f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8164965510368347,
+    "nan",
+    10000.0,
+    1.4142135381698608,
+    0.5773502588272095,
+    10000.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "log f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.40546512603759766,
+    "nan",
+    -18.42068099975586,
+    -0.6931471824645996,
+    1.0986123085021973,
+    -18.42068099975586
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "exp f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4.481688976287842,
+    "nan",
+    0.1353352814912796,
+    1.6487212181091309,
+    20.08553695678711,
+    0.3678794503211975
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sin f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.9974949955940247,
+    "nan",
+    -0.9092974066734314,
+    0.4794255495071411,
+    0.14112000167369843,
+    -0.8414709568023682
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cos f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.07073719799518585,
+    "nan",
+    -0.416146844625473,
+    0.8775825500488281,
+    -0.9899924993515015,
+    0.5403022766113281
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "tan f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    14.101420402526855,
+    "nan",
+    2.185039758682251,
+    0.5463024973869324,
+    -0.14254654943943024,
+    -1.5574077367782593
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "clamp(min=-1.0, max=1.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-1.0, max=1.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    -1.0,
+    0.5,
+    1.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "clamp(min=0.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    0.0,
+    0.5,
+    3.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "clamp(max=0.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    "nan",
+    -2.0,
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add(value=1.5) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3.0,
+    "nan",
+    -0.5,
+    2.0,
+    4.5,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub(value=2.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    "nan",
+    -4.0,
+    -1.5,
+    1.0,
+    -3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul(value=-3.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=-3.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4.5,
+    "nan",
+    6.0,
+    -1.5,
+    -9.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div(value=4.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.375,
+    "nan",
+    -0.5,
+    0.125,
+    0.75,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow(exponent=2.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.25,
+    "nan",
+    4.0,
+    0.25,
+    9.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow(exponent=0.0) f32 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "abs of a NaN f32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f32",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "clamp(min=-1.0, max=1.0) of a NaN f32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> clamp(min=-1.0, max=1.0) >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f32",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sqrt of a NaN f32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f32",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sum f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sum(axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    2.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mean f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mean(axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    0.8333333134651184
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "var f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "var(axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    4.083333492279053
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0.7071067690849304,
+    "nan",
+    0.7071067690849304
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "min f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "min(axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max(axis=0) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max(axis=1, keepdim=true) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=1, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    1
+   ],
+   "values": [
+    "nan",
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "argmin f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    1,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "norm f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    4.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "norm(p=\"inf\") f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cumsum f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -2.0,
+    2.0,
+    "nan",
+    -3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cumsum(axis=1) f32 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    "nan",
+    0.5,
+    3.5,
+    2.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "min(axis=1) f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max(axis=1) f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "argmin(axis=1) f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=1) f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=1) f32 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "argmax(axis=1) f32 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=1) f32 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0) f32 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    4
+   ],
+   "values": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin f32 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax f32 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "relu f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    0.0,
+    0.5,
+    3.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "gelu f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.3997890949249268,
+    "nan",
+    -0.045500125735998154,
+    0.3457312285900116,
+    2.9959499835968018,
+    -0.15865527093410492
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.3995715379714966,
+    "nan",
+    -0.04540230706334114,
+    0.3457140028476715,
+    2.9963626861572266,
+    -0.15880800783634186
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "silu f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.2263617515563965,
+    "nan",
+    -0.23840583860874176,
+    0.3112296760082245,
+    2.857722282409668,
+    -0.2689414322376251
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sigmoid f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8175745010375977,
+    "nan",
+    0.11920291930437088,
+    0.622459352016449,
+    0.9525741338729858,
+    0.2689414322376251
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "tanh f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.9051482677459717,
+    "nan",
+    -0.9640275835990906,
+    0.46211716532707214,
+    0.9950547814369202,
+    -0.7615941762924194
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "leaky_relu f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -0.019999999552965164,
+    0.5,
+    3.0,
+    -0.009999999776482582
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -0.4000000059604645,
+    0.5,
+    3.0,
+    -0.20000000298023224
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "softmax f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    0.07459555566310883,
+    0.9087599515914917,
+    0.016644518822431564
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "softmax(axis=0) f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.7310585975646973,
+    "nan",
+    0.2689414322376251,
+    0.2689414322376251,
+    "nan",
+    0.7310585975646973
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "log_softmax f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    -2.5956742763519287,
+    -0.09567432850599289,
+    -4.095674514770508
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "layer_norm f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    -0.20203013718128204,
+    1.3131959438323975,
+    -1.1111657619476318
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "rms_norm f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    0.2705004811286926,
+    1.6230030059814453,
+    -0.5410009622573853
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "relu f32 with NaN first and last",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    2.0,
+    0.0,
+    4.0,
+    0.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max_pool2d f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    2.0,
+    8.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "avg_pool2d f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    -0.5,
+    5.5,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "max_pool2d(kernel_size=3, stride=1) f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    "nan",
+    9.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "avg_pool2d(kernel_size=3, stride=1) f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    "nan",
+    4.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "cosine_similarity f32 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    -0.40895891189575195
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add f32 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.5,
+    "nan",
+    -1.5,
+    2.5,
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add f32 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.5,
+    "nan",
+    -1.5,
+    2.5,
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub f32 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    "nan",
+    -2.5,
+    -1.5,
+    4.0,
+    -5.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub f32 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    "nan",
+    2.5,
+    1.5,
+    -4.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul f32 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0,
+    1.0,
+    -3.0,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul f32 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0,
+    1.0,
+    -3.0,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div f32 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -4.0,
+    0.25,
+    -3.0,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div f32 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.6666666865348816,
+    "nan",
+    -0.25,
+    4.0,
+    -0.3333333432674408,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow f32 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    "nan",
+    0.25,
+    0.3333333432674408,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow f32 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    4.0,
+    1.4142135381698608,
+    -1.0,
+    0.25
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow f32 NaN ** 0 and 1 ** NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        "nan",
+        1.0,
+        "nan"
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        0.0,
+        "nan",
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    1.0,
+    1.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add f32 NaN broadcast over [2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3
+       ],
+       "values": [
+        "nan",
+        1.0,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    2.0,
+    3.0,
+    "nan",
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul f32 NaN with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2
+       ],
+       "values": [
+        "nan",
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2
+       ],
+       "values": [
+        3,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub NaN f32 scalar with tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Scalar, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "scalar": {
+       "dtype": "f32",
+       "shape": [],
+       "values": [
+        "nan"
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2
+       ],
+       "values": [
+        1.0,
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "abs f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    2.0,
+    0.5,
+    3.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "neg f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.5,
+    "nan",
+    2.0,
+    -0.5,
+    -3.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sign f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    -1.0,
+    1.0,
+    1.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.224744871391589,
+    "nan",
+    0.0,
+    0.7071067811865476,
+    1.7320508075688772,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8164965782060708,
+    "nan",
+    10000.0,
+    1.4142135482309597,
+    0.5773502682273753,
+    10000.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.405465114774831,
+    "nan",
+    -18.420680743952367,
+    -0.6931471605599454,
+    1.098612292001443,
+    -18.420680743952367
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4.4816890703380645,
+    "nan",
+    0.1353352832366127,
+    1.6487212707001282,
+    20.085536923187668,
+    0.36787944117144233
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.9974949866040544,
+    "nan",
+    -0.9092974268256817,
+    0.479425538604203,
+    0.1411200080598672,
+    -0.8414709848078965
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0707372016677029,
+    "nan",
+    -0.4161468365471424,
+    0.8775825618903728,
+    -0.9899924966004454,
+    0.5403023058681398
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    14.101419947171719,
+    "nan",
+    2.185039863261519,
+    0.5463024898437905,
+    -0.1425465430742778,
+    -1.5574077246549023
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp(min=-1.0, max=1.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-1.0, max=1.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    -1.0,
+    0.5,
+    1.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp(min=0.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    0.0,
+    0.5,
+    3.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp(max=0.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    "nan",
+    -2.0,
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add(value=1.5) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3.0,
+    "nan",
+    -0.5,
+    2.0,
+    4.5,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub(value=2.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    "nan",
+    -4.0,
+    -1.5,
+    1.0,
+    -3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul(value=-3.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=-3.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4.5,
+    "nan",
+    6.0,
+    -1.5,
+    -9.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value=4.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.375,
+    "nan",
+    -0.5,
+    0.125,
+    0.75,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent=2.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.25,
+    "nan",
+    4.0,
+    0.25,
+    9.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent=0.0) f64 with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=0.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs of a NaN f64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f64",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp(min=-1.0, max=1.0) of a NaN f64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> clamp(min=-1.0, max=1.0) >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f64",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt of a NaN f64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f64",
+     "shape": [],
+     "values": [
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum(axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    2.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    0.8333333333333334
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    4.083333333333333
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0.7071067811865476,
+    "nan",
+    0.7071067811865476
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min(axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max(axis=0) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max(axis=1, keepdim=true) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=1, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    1
+   ],
+   "values": [
+    "nan",
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "argmin f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    1,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "norm f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    4.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\") f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cumsum f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -2.0,
+    2.0,
+    "nan",
+    -3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cumsum(axis=1) f64 with NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    "nan",
+    0.5,
+    3.5,
+    2.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min(axis=1) f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max(axis=1) f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "argmin(axis=1) f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=1) f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    "nan"
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=1) f64 with NaN first and last",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "argmax(axis=1) f64 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=1) f64 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0) f64 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    4
+   ],
+   "values": [
+    1,
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin f64 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax f64 picks the first NaN",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      2.0,
+      "nan",
+      7.0,
+      "nan",
+      "nan",
+      "nan",
+      -1.0,
+      9.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "relu f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    0.0,
+    0.5,
+    3.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "gelu f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.3997891535352465,
+    "nan",
+    -0.04550012577451279,
+    0.3457312313619969,
+    2.995950098156056,
+    -0.15865526383236372
+   ],
+   "kind": "tensor",
+   "rtol": 1e-06,
+   "atol": 5e-07
+  }
+ },
+ {
+  "name": "gelu(approximate=\"tanh\") f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> gelu(approximate=\"tanh\") >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.3995715769802328,
+    "nan",
+    -0.04540230591222494,
+    0.34571400982514394,
+    2.996362607918227,
+    -0.1588080093917233
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.2263617142904655,
+    "nan",
+    -0.2384058440442351,
+    0.3112296656009273,
+    2.8577223804672998,
+    -0.2689414213699951
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.8175744761936437,
+    "nan",
+    0.11920292202211755,
+    0.6224593312018546,
+    0.9525741268224334,
+    0.2689414213699951
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.9051482536448665,
+    "nan",
+    -0.9640275800758169,
+    0.46211715726000974,
+    0.9950547536867305,
+    -0.7615941559557649
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -0.02,
+    0.5,
+    3.0,
+    -0.01
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu(alpha=0.2) f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu(alpha=0.2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -0.4,
+    0.5,
+    3.0,
+    -0.2
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    0.07459555713221444,
+    0.9087599242585133,
+    0.016644518609272352
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax(axis=0) f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.7310585786300049,
+    "nan",
+    0.2689414213699951,
+    0.2689414213699951,
+    "nan",
+    0.7310585786300049
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    -2.5956743294143823,
+    -0.09567432941438225,
+    -4.095674329414383
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    -0.20203013783501958,
+    1.313195895927627,
+    -1.1111657580926078
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1.5,
+      "nan",
+      -2.0,
+      0.5,
+      3.0,
+      -1.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    "nan",
+    0.27050049454613706,
+    1.6230029672768225,
+    -0.5410009890922741
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu f64 with NaN first and last",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      "nan",
+      2.0,
+      -3.0,
+      4.0,
+      -0.5,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    2.0,
+    0.0,
+    4.0,
+    0.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max_pool2d f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    2.0,
+    8.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    -0.5,
+    5.5,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max_pool2d(kernel_size=3, stride=1) f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> max_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    "nan",
+    9.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "avg_pool2d(kernel_size=3, stride=1) f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> avg_pool2d(kernel_size=3, stride=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "values": [
+      -5.0,
+      "nan",
+      -3.0,
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      "nan"
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    1,
+    2,
+    2
+   ],
+   "values": [
+    "nan",
+    "nan",
+    4.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cosine_similarity f64 with NaN",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> cosine_similarity >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    -0.4089589059545982
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f64 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.5,
+    "nan",
+    -1.5,
+    2.5,
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f64 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.5,
+    "nan",
+    -1.5,
+    2.5,
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f64 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    "nan",
+    -2.5,
+    -1.5,
+    4.0,
+    -5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f64 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    "nan",
+    2.5,
+    1.5,
+    -4.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0,
+    1.0,
+    -3.0,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -1.0,
+    1.0,
+    -3.0,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f64 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    -4.0,
+    0.25,
+    -3.0,
+    -0.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f64 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.6666666666666666,
+    "nan",
+    -0.25,
+    4.0,
+    -0.3333333333333333,
+    -4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 tensors with NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.5,
+    "nan",
+    "nan",
+    0.25,
+    0.3333333333333333,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 with NaN on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        2.0,
+        0.5,
+        2.0,
+        -1.0,
+        4.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.5,
+        "nan",
+        -2.0,
+        0.5,
+        3.0,
+        -1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    "nan",
+    4.0,
+    1.4142135623730951,
+    -1.0,
+    0.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 NaN ** 0 and 1 ** NaN",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        "nan",
+        1.0,
+        "nan"
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        0.0,
+        "nan",
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    1.0,
+    1.0,
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f64 NaN broadcast over [2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        "nan",
+        1.0,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    2.0,
+    3.0,
+    "nan",
+    2.0,
+    3.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 NaN with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2
+       ],
+       "values": [
+        "nan",
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2
+       ],
+       "values": [
+        3,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub NaN f64 scalar with tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Scalar, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "scalar": {
+       "dtype": "f64",
+       "shape": [],
+       "values": [
+        "nan"
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2
+       ],
+       "values": [
+        1.0,
+        1.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f32 NaN with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2
+       ],
+       "values": [
+        "nan",
+        1.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2
+       ],
+       "values": [
+        1.0,
+        "nan"
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    "nan",
+    "nan"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ }
+]

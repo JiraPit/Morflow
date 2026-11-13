@@ -12,6 +12,10 @@ enum ShapeContent {
     Dims(Vec<ParamDim>),
 }
 
+/// Sign, integer digits, optional fraction digits and optional exponent of a
+/// numeric literal.
+type NumberParts = (((bool, String), Option<String>), Option<String>);
+
 fn ws<'a>() -> impl Parser<char, (), Error = Simple<char>> + Clone + 'a {
     let comment = choice((just('#').ignored(), just("//").ignored()))
         .then(take_until(text::newline()))
@@ -32,26 +36,71 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     // Identifiers (e.g. function names, parameter names)
     let ident = text::ident().map(|s: String| s);
 
-    // Integers with optional + or -
-    let signed_int = choice((just('+').to(1i64), just('-').to(-1i64), empty().to(1i64)))
-        .then(text::int(10).map(|s: String| s.parse::<i64>().unwrap()))
-        .map(|(sign, val)| sign * val);
-
-    // Floats / Numbers
-    let number = choice((
-        just('+').to(1.0f64),
-        just('-').to(-1.0f64),
-        empty().to(1.0f64),
-    ))
-    .then(text::digits(10).then(just('.').then(text::digits(10))).map(
-        |(int_part, (_, frac_part)): (String, (char, String))| {
-            format!("{}.{}", int_part, frac_part)
-                .parse::<f64>()
-                .unwrap()
+    // Integers with optional + or -. A literal that does not fit an i64 is a
+    // parse error rather than a crash.
+    let sign = choice((just('+').to(false), just('-').to(true), empty().to(false)));
+    let signed_int = sign.clone().then(text::int(10)).try_map(
+        |(negative, digits): (bool, String), span: std::ops::Range<usize>| {
+            let literal = if negative {
+                format!("-{}", digits)
+            } else {
+                digits
+            };
+            literal.parse::<i64>().map_err(|_| {
+                Simple::custom(
+                    span,
+                    format!(
+                        "integer literal {} is out of range (it must fit a 64-bit signed integer)",
+                        literal
+                    ),
+                )
+            })
         },
-    ))
-    .map(|(sign, val)| Value::Float(sign * val))
-    .or(signed_int.clone().map(Value::Int));
+    );
+
+    // Numbers: digits with a fractional part and/or an exponent (`1.5`,
+    // `1e-5`, `2.5E+3`) are floats; plain digits are integers.
+    let exponent = one_of("eE")
+        .ignore_then(one_of("+-").or_not())
+        .then(text::digits(10))
+        .map(|(sign, digits): (Option<char>, String)| {
+            format!("e{}{}", sign.map(String::from).unwrap_or_default(), digits)
+        });
+    let number = sign
+        .then(text::digits(10))
+        .then(just('.').ignore_then(text::digits(10)).or_not())
+        .then(exponent.or_not())
+        .try_map(
+            |(((negative, int_part), frac), exp): NumberParts, span: std::ops::Range<usize>| {
+                let sign = if negative { "-" } else { "" };
+                if frac.is_none() && exp.is_none() {
+                    let literal = format!("{}{}", sign, int_part);
+                    return literal.parse::<i64>().map(Value::Int).map_err(|_| {
+                        Simple::custom(
+                            span,
+                            format!(
+                                "integer literal {} is out of range (it must fit a 64-bit signed integer)",
+                                literal
+                            ),
+                        )
+                    });
+                }
+                let literal = format!(
+                    "{}{}{}{}",
+                    sign,
+                    int_part,
+                    frac.map(|f| format!(".{}", f)).unwrap_or_default(),
+                    exp.unwrap_or_default()
+                );
+                match literal.parse::<f64>() {
+                    Ok(value) if value.is_finite() => Ok(Value::Float(value)),
+                    _ => Err(Simple::custom(
+                        span,
+                        format!("float literal {} is out of range", literal),
+                    )),
+                }
+            },
+        );
 
     // String literals
     let string_escape = just('\\').ignore_then(choice((
@@ -91,14 +140,6 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     ));
 
     // Slice item parser inside [...]
-    let slice_named_dim = choice((
-        text::keyword("dim").to("dim".to_string()),
-        text::keyword("axis").to("axis".to_string()),
-    ))
-    .then_ignore(padded(just('=')))
-    .then(signed_int.clone())
-    .map(|(dim_name, index)| SliceItem::NamedDim { dim_name, index });
-
     let slice_full = just(':').map(|_| SliceItem::Full);
 
     let slice_range = signed_int
@@ -109,9 +150,9 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
         .then(just(':').ignore_then(signed_int.clone()).or_not())
         .map(|((start, end), step)| SliceItem::Range { start, end, step });
 
-    let slice_index = signed_int.map(SliceItem::Index);
+    let slice_index = signed_int.clone().map(SliceItem::Index);
 
-    let slice_item = choice((slice_named_dim, slice_range, slice_full, slice_index));
+    let slice_item = choice((slice_range, slice_full, slice_index));
 
     let slices = slice_item
         .separated_by(padded(just(',')))
@@ -265,15 +306,28 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
             .repeated()
             .delimited_by(padded(just('{')), padded(just('}')));
 
-        // each ($var) { ... }
+        // each ($var) { ... } or each(axis=N) ($var) { ... }
+        let each_axis = padded(
+            choice((text::keyword("axis"), text::keyword("dim")))
+                .ignore_then(padded(just('=')))
+                .ignore_then(signed_int.clone())
+                .delimited_by(just('('), just(')')),
+        );
         let each_loop = text::keyword("each")
-            .ignore_then(padded(
+            .ignore_then(each_axis.or_not())
+            .then(padded(
                 just('$')
                     .ignore_then(ident)
                     .delimited_by(just('('), just(')')),
             ))
             .then(block.clone())
-            .map(|(var_name, body)| FlowStep::Each(EachLoop { var_name, body }));
+            .map(|((axis, var_name), body)| {
+                FlowStep::Each(EachLoop {
+                    var_name,
+                    axis,
+                    body,
+                })
+            });
 
         // if (cond) { ... } else { ... }
         let if_else = text::keyword("if")
@@ -356,7 +410,11 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     // A dimension inside a declared shape: a wildcard or an exact length.
     let param_dim = choice((
         just('*').to(ParamDim::Any),
-        text::digits(10).map(|s: String| ParamDim::Fixed(s.parse().unwrap())),
+        text::digits(10).try_map(|s: String, span| {
+            s.parse()
+                .map(ParamDim::Fixed)
+                .map_err(|_| Simple::custom(span, format!("dimension {} is out of range", s)))
+        }),
     ));
 
     // The contents of a shape's brackets: either the `rank=n` short form or an
@@ -365,7 +423,10 @@ pub fn parser() -> impl Parser<char, Pipeline, Error = Simple<char>> {
     let shape_content = choice((
         text::keyword("rank")
             .ignore_then(just('='))
-            .ignore_then(text::digits(10).map(|s: String| s.parse::<usize>().unwrap()))
+            .ignore_then(text::digits(10).try_map(|s: String, span| {
+                s.parse::<usize>()
+                    .map_err(|_| Simple::custom(span, format!("rank {} is out of range", s)))
+            }))
             .map(ShapeContent::Rank),
         param_dim
             .separated_by(padded(just(',')))

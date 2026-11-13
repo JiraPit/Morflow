@@ -1,5 +1,6 @@
+use core_types::numeric::{self, Element, FloatElement, IntMoments};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -104,15 +105,12 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
 }
 
 fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
+    let inner_payload = payload.into_unwrapped();
 
     let axis = prepared.unsigned("axis").map(|value| value as usize);
     let mut unbiased = true;
-
-    if let Some(args) = &args_opt {
-        if let Some(unb_str) = args.get_named("unbiased") {
-            unbiased = unb_str != "false" && unb_str != "0";
-        }
+    if let Some(unb_str) = prepared.args.get_named("unbiased") {
+        unbiased = unb_str != "false" && unb_str != "0";
     }
 
     match inner_payload {
@@ -133,74 +131,79 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// Floats keep their dtype; integers give an exactly computed F64.
 fn reduce_std(
     tensor: &Tensor,
     axis: Option<usize>,
     unbiased: bool,
     out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            let moments_of = |lane: &[I]| {
+                let mut moments = IntMoments::default();
+                lane.iter().for_each(|v| moments.push(v.to_i128()));
+                moments.std(unbiased)
+            };
+            let out = match axis {
+                Some(ax) => numeric::reduce_axis(&vals, &tensor.shape, ax, moments_of),
+                None => vec![moments_of(&vals)],
+            };
+            Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+        },
+        float F => std_float::<F>(tensor.to_vec_of::<F>().unwrap_or_default(), &tensor.shape, axis, unbiased, out_shape),
+    )
+}
 
-    if let Some(ax) = axis {
-        let outer_size: usize = tensor.shape[0..ax].iter().product();
-        let axis_len = tensor.shape[ax];
-
-        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
-
-        let out_len = outer_size * inner_size;
-        if out_len == 0 {
-            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-        }
-        let mut out_vals = vec![0.0f32; out_len];
-        let divisor = if unbiased && axis_len > 1 {
-            (axis_len - 1) as f32
-        } else {
-            axis_len as f32
-        };
-
-        out_vals
-            .par_chunks_mut(inner_size)
-            .enumerate()
-            .for_each(|(outer_idx, slice)| {
-                for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                    let mut sum = 0.0f32;
-                    for a in 0..axis_len {
-                        let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                        sum += vals[in_idx];
-                    }
-                    let mean = sum / axis_len as f32;
-
-                    let mut sum_sq_diff = 0.0f32;
-                    for a in 0..axis_len {
-                        let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                        let diff = vals[in_idx] - mean;
-                        sum_sq_diff += diff * diff;
-                    }
-                    *slot = (sum_sq_diff / divisor).sqrt();
+fn std_float<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    axis: Option<usize>,
+    unbiased: bool,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
+    let count = |n: usize| T::from_i128(n as i128);
+    let out = match axis {
+        Some(ax) => {
+            let axis_len = shape[ax];
+            let divisor = if unbiased && axis_len > 1 {
+                count(axis_len - 1)
+            } else {
+                count(axis_len)
+            };
+            numeric::reduce_axis(&vals, shape, ax, |lane: &[T]| {
+                let mut sum = T::zero();
+                for &v in lane {
+                    sum = sum + v;
                 }
-            });
+                let mean = sum / count(axis_len);
 
-        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
-    } else {
-        let n = vals.len();
-        if n == 0 {
-            let shape = out_shape;
-            return Tensor::from_f32_vec(vec![0.0], shape).map_err(|e| e.to_string());
+                let mut sum_sq_diff = T::zero();
+                for &v in lane {
+                    let diff = v - mean;
+                    sum_sq_diff = sum_sq_diff + diff * diff;
+                }
+                (sum_sq_diff / divisor).sqrt()
+            })
         }
-        let sum: f32 = vals.par_iter().sum();
-        let mean = sum / n as f32;
-        let sum_sq_diff: f32 = vals.par_iter().map(|&x| (x - mean) * (x - mean)).sum();
-        let divisor = if unbiased && n > 1 {
-            (n - 1) as f32
-        } else {
-            n as f32
-        };
-        let std_dev = (sum_sq_diff / divisor).sqrt();
-
-        let shape = out_shape;
-        Tensor::from_f32_vec(vec![std_dev], shape).map_err(|e| e.to_string())
-    }
+        None => {
+            let n = vals.len();
+            if n == 0 {
+                return Tensor::from_vec_of(vec![T::zero()], out_shape).map_err(|e| e.to_string());
+            }
+            let sum: T = vals.par_iter().copied().sum();
+            let mean = sum / count(n);
+            let sum_sq_diff: T = vals.par_iter().map(|&x| (x - mean) * (x - mean)).sum();
+            let divisor = if unbiased && n > 1 {
+                count(n - 1)
+            } else {
+                count(n)
+            };
+            vec![(sum_sq_diff / divisor).sqrt()]
+        }
+    };
+    Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

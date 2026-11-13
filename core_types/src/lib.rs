@@ -2,6 +2,7 @@ pub mod audio;
 pub mod composite_contract;
 pub mod contract;
 pub mod image;
+pub mod numeric;
 pub mod plugins;
 pub mod shape;
 pub mod shapecheck;
@@ -22,7 +23,10 @@ pub use shape::{
     arg_text, reducer_axis_reason, scalar_number, scalar_text, tensor_scalar_text, ArgKind, Dim,
     Dimension, GetComponentsFn, GetShapeFn, OutputComponent, PType, Shape, ShapeResult, ShapeSpec,
 };
-pub use tensor::{compute_c_contiguous_strides, parse_shape_str, Tensor, TensorDType};
+pub use tensor::{
+    compute_c_contiguous_strides, parse_shape_str, resolve_python_index, resolve_python_slice,
+    Tensor, TensorDType,
+};
 
 #[repr(transparent)]
 #[derive(StableAbi, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -331,6 +335,106 @@ impl Payload {
         }
     }
 
+    /// Resolves an `each` loop that may name an explicit axis.
+    ///
+    /// Without an axis this is [`Payload::each_axis`]. An explicit axis only
+    /// applies to tensors (negative values count from the end); images and
+    /// audio always iterate their channels, so giving them an axis is an error.
+    pub fn each_axis_at(&self, axis: Option<i64>) -> Result<(usize, usize), RString> {
+        let Some(raw) = axis else {
+            return self.each_axis();
+        };
+        match self.unwrap_payload() {
+            Payload::Tensor(t) => {
+                let rank = t.rank();
+                if rank == 0 {
+                    return Err(RString::from(
+                        "Cannot loop over a scalar value; 'each' requires a rank >= 1 payload",
+                    ));
+                }
+                let resolved = resolve_each_axis(raw, rank).ok_or_else(|| {
+                    RString::from(format!(
+                        "each(axis={}) is out of bounds for a rank-{} Tensor (valid axes: {} to {})",
+                        raw,
+                        rank,
+                        -(rank as i64),
+                        rank as i64 - 1
+                    ))
+                })?;
+                Ok((resolved, t.shape[resolved]))
+            }
+            Payload::Image(_) | Payload::Audio(_) => Err(RString::from(format!(
+                "each(axis={}) only applies to Tensor values; a loop over {} always iterates its channels, so it cannot take an axis",
+                raw,
+                payload_kind_name(self.unwrap_payload())
+            ))),
+            other => match other.each_axis() {
+                Err(e) => Err(e),
+                Ok(_) => Err(RString::from(format!(
+                    "each(axis={}) only applies to Tensor values, not {}",
+                    raw,
+                    payload_kind_name(other)
+                ))),
+            },
+        }
+    }
+
+    /// Iteration `index` of an `each` loop over an optional explicit axis.
+    pub fn each_slice_at(&self, axis: Option<i64>, index: usize) -> Result<Payload, RString> {
+        if axis.is_none() {
+            return self.each_slice(index);
+        }
+        let (resolved, _) = self.each_axis_at(axis)?;
+        match self.unwrap_payload() {
+            Payload::Tensor(t) => Ok(Payload::from_tensor(t.slice_axis_index(resolved, index)?)),
+            _ => unreachable!("each_axis_at only accepts an axis for tensors"),
+        }
+    }
+
+    /// Restacks the outputs of an `each` loop over an optional explicit axis.
+    /// With an axis the results are stacked back along that same axis.
+    pub fn each_restack_at(
+        &self,
+        axis: Option<i64>,
+        items: &[Payload],
+    ) -> Result<Payload, RString> {
+        if axis.is_none() {
+            return self.each_restack(items);
+        }
+        let (resolved, _) = self.each_axis_at(axis)?;
+        if items.is_empty() {
+            return Err(RString::from(
+                "Cannot restack an 'each' loop that produced no iterations",
+            ));
+        }
+        let Payload::Tensor(parent) = self.unwrap_payload() else {
+            unreachable!("each_axis_at only accepts an axis for tensors");
+        };
+        let rank = parent.rank();
+        let expected = rank - 1;
+        let mut tensors = Vec::with_capacity(items.len());
+        for (i, item) in items.iter().enumerate() {
+            let Some(tensor) = tensor_of(item) else {
+                return Err(RString::from(format!(
+                    "Cannot restack 'each' loop: iteration {} returned {} but the loop input is Tensor, so every iteration must return Tensor",
+                    i,
+                    payload_kind_name(item)
+                )));
+            };
+            if tensor.rank() != expected {
+                return Err(RString::from(format!(
+                    "Cannot restack 'each' loop: iteration {} returned a rank-{} value, but iterating a rank-{} Tensor produces rank-{} slices",
+                    i,
+                    tensor.rank(),
+                    rank,
+                    expected
+                )));
+            }
+            tensors.push(tensor.clone());
+        }
+        Ok(Payload::Tensor(Tensor::stack(&tensors, resolved)?))
+    }
+
     /// Produces iteration `index` of an `each` loop as a payload of the same
     /// type where the slice shape permits it.
     ///
@@ -538,6 +642,15 @@ impl Payload {
             ))),
         }
     }
+}
+
+/// Resolves an `each(axis=…)` value against a rank, counting negative axes
+/// from the end.
+pub fn resolve_each_axis(axis: i64, rank: usize) -> Option<usize> {
+    let rank_i = rank as i128;
+    let axis = axis as i128;
+    let resolved = if axis < 0 { axis + rank_i } else { axis };
+    (0..rank_i).contains(&resolved).then_some(resolved as usize)
 }
 
 /// Human-readable payload variant name for error messages.

@@ -1,0 +1,8226 @@
+[
+ {
+  "name": "abs f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.718281828459045,
+    1.3333333333333333,
+    0.0,
+    0.1,
+    1.2345678901234567,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "neg f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2.718281828459045,
+    1.3333333333333333,
+    -0.0,
+    -0.1,
+    -1.2345678901234567,
+    -100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sign f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    -1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      0.5,
+      1.2345678901234567,
+      2.0,
+      9.75,
+      100.125
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.31622776601683794,
+    0.7071067811865476,
+    1.111111106111111,
+    1.4142135623730951,
+    3.122498999199199,
+    10.00624804809475
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt f64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.25,
+      2.0,
+      7.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    0.5,
+    1.4142135623730951,
+    2.7386127875258306
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      0.5,
+      1.2345678901234567,
+      2.0,
+      9.75,
+      100.125
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3.1622775020545077,
+    1.4142135482309597,
+    0.900000000405,
+    0.7071067794187805,
+    0.32025630744594025,
+    0.09993755852779089
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt f64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.25,
+      2.0,
+      7.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    10000.0,
+    10000.0,
+    1.9999999600000011,
+    0.7071067794187805,
+    0.3651483714266785
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      0.5,
+      1.2345678901234567,
+      2.0,
+      9.75,
+      100.125
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.3025849929940505,
+    -0.6931471605599454,
+    0.21072103041565246,
+    0.6931471855599453,
+    2.277267286035397,
+    4.606419405488398
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log f64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.25,
+      2.0,
+      7.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    -18.420680743952367,
+    -18.420680743952367,
+    -1.3862943211198915,
+    0.6931471855599453,
+    2.014903021875598
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.22313016014842982,
+    0.9048374180359595,
+    1.0,
+    1.3498588075760032,
+    3.4903429574618414,
+    7.38905609893065
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9974949866040544,
+    -0.09983341664682815,
+    0.0,
+    0.29552020666133955,
+    0.9489846193555862,
+    0.9092974268256817
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0707372016677029,
+    0.9950041652780258,
+    1.0,
+    0.955336489125606,
+    0.3153223623952687,
+    -0.4161468365471424
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -14.101419947171719,
+    -0.10033467208545055,
+    0.0,
+    0.3093362496096232,
+    3.0095696738628313,
+    -2.185039863261519
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-0.75, max=1.1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.75,
+    -0.1,
+    0.0,
+    0.3,
+    1.1,
+    1.1
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp f64 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-0.75) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.75,
+    -0.1,
+    0.0,
+    0.3,
+    1.25,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp f64 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=1.1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.5,
+    -0.1,
+    0.0,
+    0.3,
+    1.1,
+    1.1
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add(value) f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=0.3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.4182818284590453,
+    -1.0333333333333332,
+    0.3,
+    0.4,
+    1.5345678901234567,
+    100.55
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub(value) f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=0.3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.018281828459045,
+    -1.6333333333333333,
+    -0.3,
+    -0.19999999999999998,
+    0.9345678901234566,
+    99.95
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul(value) f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=0.3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.8154845485377135,
+    -0.39999999999999997,
+    0.0,
+    0.03,
+    0.370370367037037,
+    30.075
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6795704571147613,
+    -0.3333333333333333,
+    0.0,
+    0.025,
+    0.3086419725308642,
+    25.0625
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) f64 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.6,
+    -0.04,
+    0.0,
+    0.12,
+    0.5,
+    0.8
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.375,
+    -0.0010000000000000002,
+    0.0,
+    0.026999999999999996,
+    1.953125,
+    8.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) f64 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    7.3890560989306495,
+    1.7777777777777777,
+    0.0,
+    0.010000000000000002,
+    1.5241578753238834,
+    10050.0625
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs of a f64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f64",
+     "shape": [],
+     "values": [
+      -1.3333333333333333
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    1.3333333333333333
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt of a f64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "f64",
+     "shape": [],
+     "values": [
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    1.4142135623730951
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    100,
+    128,
+    200,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    253,
+    156,
+    128,
+    56,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt u8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    1.4142135623730951,
+    1.7320508075688772,
+    3.1622776601683795,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.5773502682273753,
+    0.31622776585872403,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.098612292001443,
+    2.302585093994046,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    20.085536923187668,
+    54.598150033144236,
+    148.4131591025766
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    0.1411200080598672,
+    -0.7568024953079282,
+    -0.9589242746631385
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.9899924966004454,
+    -0.6536436208636119,
+    0.28366218546322625
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    -0.1425465430742778,
+    1.1578212823495775,
+    -3.380515006246586
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2, max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    3,
+    50,
+    50,
+    50,
+    50
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u8 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    2,
+    2,
+    3,
+    4,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u8 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3,
+    6,
+    103,
+    131,
+    203,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    253,
+    0,
+    97,
+    125,
+    197,
+    252
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    9,
+    44,
+    128,
+    88,
+    253
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.75,
+    25.0,
+    32.0,
+    50.0,
+    63.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) u8 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.4,
+    0.8,
+    1.2,
+    1.6,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    8,
+    27,
+    64,
+    125
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) u8 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    9,
+    16,
+    0,
+    64,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a u8 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u8",
+     "shape": [],
+     "values": [
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [],
+   "values": [
+    3
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a u8 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u8",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    100,
+    3,
+    0,
+    100,
+    127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    100,
+    3,
+    0,
+    -100,
+    -127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1,
+    -1,
+    -1,
+    0,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt i8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.4142135623730951,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    10000.0,
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i8 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    -18.420680743952367,
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.049787068367863944,
+    0.36787944117144233,
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    54.598150033144236
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.1411200080598672,
+    -0.8414709848078965,
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    -0.7568024953079282
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9899924966004454,
+    0.5403023058681398,
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.6536436208636119
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1425465430742778,
+    -1.5574077246549023,
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    1.1578212823495775
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2, max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -2,
+    -2,
+    0,
+    3,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i8 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i8 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    -1,
+    0,
+    1,
+    2,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -125,
+    -97,
+    0,
+    3,
+    103,
+    -126
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    125,
+    -103,
+    -6,
+    -3,
+    97,
+    124
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    -44,
+    -9,
+    0,
+    44,
+    125
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32.0,
+    -25.0,
+    -0.75,
+    0.0,
+    25.0,
+    31.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) i8 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2,
+    -0.4,
+    0.0,
+    0.4,
+    0.8,
+    1.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    -1,
+    0,
+    1,
+    8,
+    64
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) i8 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    16,
+    9,
+    0,
+    16,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a i8 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i8",
+     "shape": [],
+     "values": [
+      -100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [],
+   "values": [
+    100
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a i8 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i8",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    300,
+    2,
+    0,
+    1000,
+    32767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    300,
+    2,
+    0,
+    -1000,
+    -32767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1,
+    -1,
+    -1,
+    0,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt i16 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.4142135623730951,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i16 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    10000.0,
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i16 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    -18.420680743952367,
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.049787068367863944,
+    0.36787944117144233,
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    54.598150033144236
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.1411200080598672,
+    -0.8414709848078965,
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    -0.7568024953079282
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9899924966004454,
+    0.5403023058681398,
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.6536436208636119
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1425465430742778,
+    -1.5574077246549023,
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    1.1578212823495775
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2, max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -2,
+    -2,
+    0,
+    3,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i16 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i16 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    -1,
+    0,
+    1,
+    2,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32765,
+    -297,
+    1,
+    3,
+    1003,
+    -32766
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    32765,
+    -303,
+    -5,
+    -3,
+    997,
+    32764
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    -900,
+    -6,
+    0,
+    3000,
+    32765
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -8192.0,
+    -75.0,
+    -0.5,
+    0.0,
+    250.0,
+    8191.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) i16 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2,
+    -0.4,
+    0.0,
+    0.4,
+    0.8,
+    1.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    -1,
+    0,
+    1,
+    8,
+    64
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) i16 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    24464,
+    4,
+    0,
+    16960,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a i16 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i16",
+     "shape": [],
+     "values": [
+      -300
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [],
+   "values": [
+    300
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a i16 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i16",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648,
+    70000,
+    5,
+    0,
+    65536,
+    2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648,
+    70000,
+    5,
+    0,
+    -65536,
+    -2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1,
+    -1,
+    -1,
+    0,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt i32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.4142135623730951,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    10000.0,
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    -18.420680743952367,
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.049787068367863944,
+    0.36787944117144233,
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    54.598150033144236
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.1411200080598672,
+    -0.8414709848078965,
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    -0.7568024953079282
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9899924966004454,
+    0.5403023058681398,
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.6536436208636119
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1425465430742778,
+    -1.5574077246549023,
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    1.1578212823495775
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2, max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -2,
+    -2,
+    0,
+    3,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i32 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i32 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    -1,
+    0,
+    1,
+    2,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483645,
+    -69997,
+    -2,
+    3,
+    65539,
+    -2147483646
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2147483645,
+    -70003,
+    -8,
+    -3,
+    65533,
+    2147483644
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648,
+    -210000,
+    -15,
+    0,
+    196608,
+    2147483645
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -536870912.0,
+    -17500.0,
+    -1.25,
+    0.0,
+    16384.0,
+    536870911.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) i32 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2,
+    -0.4,
+    0.0,
+    0.4,
+    0.8,
+    1.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    -1,
+    0,
+    1,
+    8,
+    64
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) i32 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    605032704,
+    25,
+    0,
+    0,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a i32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i32",
+     "shape": [],
+     "values": [
+      -70000
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [],
+   "values": [
+    70000
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a i32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i32",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4611686018427387907,
+    9,
+    0,
+    11,
+    9007199254740993,
+    4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4611686018427387907,
+    9,
+    0,
+    -11,
+    -9007199254740993,
+    -4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1,
+    -1,
+    0,
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt i64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.4142135623730951,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt i64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    10000.0,
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log i64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4,
+      -1,
+      0,
+      1,
+      2,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    -18.420680743952367,
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.049787068367863944,
+    0.36787944117144233,
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    54.598150033144236
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.1411200080598672,
+    -0.8414709848078965,
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    -0.7568024953079282
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.9899924966004454,
+    0.5403023058681398,
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.6536436208636119
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1425465430742778,
+    -1.5574077246549023,
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    1.1578212823495775
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2, max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -2,
+    0,
+    3,
+    3,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i64 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp i64 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    -1,
+    0,
+    1,
+    2,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4611686018427387904,
+    -6,
+    3,
+    14,
+    9007199254740996,
+    4611686018427387912
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4611686018427387910,
+    -12,
+    -3,
+    8,
+    9007199254740990,
+    4611686018427387906
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4611686018427387895,
+    -27,
+    0,
+    33,
+    27021597764222979,
+    -4611686018427387889
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.152921504606847e+18,
+    -2.25,
+    0.0,
+    2.75,
+    2251799813685248.0,
+    1.152921504606847e+18
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) i64 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.2,
+    -0.4,
+    0.0,
+    0.4,
+    0.8,
+    1.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    -1,
+    0,
+    1,
+    8,
+    64
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) i64 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -9223372036854775799,
+    81,
+    0,
+    121,
+    18014398509481985,
+    -9223372036854775783
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a i64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i64",
+     "shape": [],
+     "values": [
+      -9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    9
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a i64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "i64",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    70000,
+    2147483648,
+    4000000000,
+    4294967295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    4294967293,
+    4294897296,
+    2147483648,
+    294967296,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt u32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    1.4142135623730951,
+    1.7320508075688772,
+    3.1622776601683795,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.5773502682273753,
+    0.31622776585872403,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u32 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.098612292001443,
+    2.302585093994046,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    20.085536923187668,
+    148.4131591025766,
+    1096.6331584284585
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    0.1411200080598672,
+    -0.9589242746631385,
+    0.6569865987187891
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.9899924966004454,
+    0.28366218546322625,
+    0.7539022543433046
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    -0.1425465430742778,
+    -3.380515006246586,
+    0.8714479827243188
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2, max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    3,
+    50,
+    50,
+    50,
+    50
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u32 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    2,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u32 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3,
+    6,
+    70003,
+    2147483651,
+    4000000003,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    4294967293,
+    0,
+    69997,
+    2147483645,
+    3999999997,
+    4294967292
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    9,
+    210000,
+    2147483648,
+    3410065408,
+    4294967293
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.75,
+    17500.0,
+    536870912.0,
+    1000000000.0,
+    1073741823.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) u32 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.4,
+    0.8,
+    1.2,
+    2.0,
+    2.8
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    8,
+    27,
+    125,
+    343
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) u32 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    9,
+    605032704,
+    0,
+    1983905792,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a u32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u32",
+     "shape": [],
+     "values": [
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [],
+   "values": [
+    3
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a u32 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u32",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    5,
+    9007199254740993,
+    9223372036854775808,
+    18446744073709551614,
+    18446744073709551615
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    18446744073709551611,
+    18437736874454810623,
+    9223372036854775808,
+    2,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sign u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sign >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sqrt u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    1.4142135623730951,
+    2.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt u64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    1.4142135623730951,
+    1.7320508075688772,
+    3.1622776601683795,
+    7.0710678118654755
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.999999995,
+    0.7071067794187805,
+    0.49999999937500006,
+    0.3333333331481481,
+    0.249999999921875,
+    0.099999999995
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt u64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10000.0,
+    0.999999995,
+    0.7071067794187805,
+    0.5773502682273753,
+    0.31622776585872403,
+    0.14142135622316737
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      1,
+      2,
+      4,
+      9,
+      16,
+      100
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.3862943636198906,
+    2.1972245784473308,
+    2.772588722864781,
+    4.605170186088091
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log u64 at zero and below",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      10,
+      50
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -18.420680743952367,
+    9.999999889225291e-09,
+    0.6931471855599453,
+    1.098612292001443,
+    2.302585093994046,
+    3.912023005628146
+   ],
+   "kind": "tensor",
+   "rtol": 1e-08,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.718281828459045,
+    7.38905609893065,
+    20.085536923187668,
+    148.4131591025766,
+    1096.6331584284585
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.8414709848078965,
+    0.9092974268256817,
+    0.1411200080598672,
+    -0.9589242746631385,
+    0.6569865987187891
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    0.5403023058681398,
+    -0.4161468365471424,
+    -0.9899924966004454,
+    0.28366218546322625,
+    0.7539022543433046
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.5574077246549023,
+    -2.185039863261519,
+    -0.1425465430742778,
+    -3.380515006246586,
+    0.8714479827243188
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2, max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    5,
+    50,
+    50,
+    50,
+    50
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u64 lower bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2,
+    2,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp u64 upper bound only",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=50) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value) u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    3,
+    8,
+    9007199254740996,
+    9223372036854775811,
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value) u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    18446744073709551613,
+    2,
+    9007199254740990,
+    9223372036854775805,
+    18446744073709551611,
+    18446744073709551612
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value) u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    15,
+    27021597764222979,
+    9223372036854775808,
+    18446744073709551610,
+    18446744073709551613
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div(value) u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=4) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.25,
+    2251799813685248.0,
+    2.305843009213694e+18,
+    4.611686018427388e+18,
+    4.611686018427388e+18
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value) u64 by a fraction",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.4,
+    0.8,
+    1.2,
+    2.0,
+    2.8
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent) u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    8,
+    27,
+    125,
+    343
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow(exponent) u64 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    25,
+    18014398509481985,
+    0,
+    4,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "abs of a u64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u64",
+     "shape": [],
+     "values": [
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    5
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sqrt of a u64 scalar",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Scalar $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "scalar": {
+     "dtype": "u64",
+     "shape": [],
+     "values": [
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "abs of i8 -128 is -128",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> abs >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      -128,
+      -127,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    3
+   ],
+   "values": [
+    -128,
+    127,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg of u8 wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      0,
+      1,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    255,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "neg of i64 min wraps",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> neg >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2
+     ],
+     "values": [
+      -9223372036854775808,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -9223372036854775808,
+    -7
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add wraps u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=10) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      250,
+      255,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    3
+   ],
+   "values": [
+    4,
+    9,
+    10
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub wraps u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=10) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2
+     ],
+     "values": [
+      0,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2
+   ],
+   "values": [
+    4294967286,
+    4294967291
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul wraps i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      100,
+      -100,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    3
+   ],
+   "values": [
+    44,
+    -44,
+    6
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "integer value written as 2.0",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2
+     ],
+     "values": [
+      1,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "integer exponent written as 2.0",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=2.0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2
+     ],
+     "values": [
+      3,
+      -4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    9,
+    16
+   ],
+   "kind": "tensor"
+  }
+ }
+]

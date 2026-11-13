@@ -1,0 +1,787 @@
+[
+ {
+  "name": "add Tensor[2,3] with Tensor[3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> add >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "add Tensor[2,3] with Tensor[3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> add >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "add Tensor[2,1] with Tensor[1,4] has 8 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> add >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "add Tensor[2,1] with Tensor[1,4] does not have 9 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> add >> tensor.reshape(shape=\"[9]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "add Tensor[4,1,3] with Tensor[2,1] has 24 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> add >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "add Tensor[4,1,3] with Tensor[2,1] does not have 25 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> add >> tensor.reshape(shape=\"[25]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "add Scalar with Tensor[2,3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> add >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "add Scalar with Tensor[2,3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> add >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "add Tensor[5] with Scalar has 5 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> add >> tensor.reshape(shape=\"[5]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "add Tensor[5] with Scalar does not have 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> add >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "add Tensor[2,3] with Tensor[4] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[4]] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "add Tensor[3,2] with Tensor[2,2] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[3,2], Tensor[2,2]] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "add with a scalar argument still checks",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Tensor[2,3] $x\n$x >> add(value=2.0) >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Tensor[2,3] with Tensor[3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> sub >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Tensor[2,3] with Tensor[3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> sub >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "sub Tensor[2,1] with Tensor[1,4] has 8 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> sub >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Tensor[2,1] with Tensor[1,4] does not have 9 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> sub >> tensor.reshape(shape=\"[9]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "sub Tensor[4,1,3] with Tensor[2,1] has 24 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> sub >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Tensor[4,1,3] with Tensor[2,1] does not have 25 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> sub >> tensor.reshape(shape=\"[25]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "sub Scalar with Tensor[2,3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> sub >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Scalar with Tensor[2,3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> sub >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "sub Tensor[5] with Scalar has 5 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> sub >> tensor.reshape(shape=\"[5]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "sub Tensor[5] with Scalar does not have 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> sub >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "sub Tensor[2,3] with Tensor[4] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[4]] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "sub Tensor[3,2] with Tensor[2,2] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[3,2], Tensor[2,2]] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "sub with a scalar argument still checks",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Tensor[2,3] $x\n$x >> sub(value=2.0) >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Tensor[2,3] with Tensor[3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> mul >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Tensor[2,3] with Tensor[3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> mul >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "mul Tensor[2,1] with Tensor[1,4] has 8 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> mul >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Tensor[2,1] with Tensor[1,4] does not have 9 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> mul >> tensor.reshape(shape=\"[9]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "mul Tensor[4,1,3] with Tensor[2,1] has 24 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> mul >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Tensor[4,1,3] with Tensor[2,1] does not have 25 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> mul >> tensor.reshape(shape=\"[25]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "mul Scalar with Tensor[2,3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> mul >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Scalar with Tensor[2,3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> mul >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "mul Tensor[5] with Scalar has 5 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> mul >> tensor.reshape(shape=\"[5]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "mul Tensor[5] with Scalar does not have 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> mul >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "mul Tensor[2,3] with Tensor[4] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[4]] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "mul Tensor[3,2] with Tensor[2,2] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[3,2], Tensor[2,2]] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "mul with a scalar argument still checks",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Tensor[2,3] $x\n$x >> mul(value=2.0) >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Tensor[2,3] with Tensor[3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> div >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Tensor[2,3] with Tensor[3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> div >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "div Tensor[2,1] with Tensor[1,4] has 8 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> div >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Tensor[2,1] with Tensor[1,4] does not have 9 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> div >> tensor.reshape(shape=\"[9]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "div Tensor[4,1,3] with Tensor[2,1] has 24 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> div >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Tensor[4,1,3] with Tensor[2,1] does not have 25 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> div >> tensor.reshape(shape=\"[25]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "div Scalar with Tensor[2,3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> div >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Scalar with Tensor[2,3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> div >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "div Tensor[5] with Scalar has 5 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> div >> tensor.reshape(shape=\"[5]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "div Tensor[5] with Scalar does not have 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> div >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "div Tensor[2,3] with Tensor[4] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[4]] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "div Tensor[3,2] with Tensor[2,2] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[3,2], Tensor[2,2]] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "div with a scalar argument still checks",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Tensor[2,3] $x\n$x >> div(value=2.0) >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Tensor[2,3] with Tensor[3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> pow >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Tensor[2,3] with Tensor[3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,3], Tensor[3]] $p\n$p >> pow >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "pow Tensor[2,1] with Tensor[1,4] has 8 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> pow >> tensor.reshape(shape=\"[8]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Tensor[2,1] with Tensor[1,4] does not have 9 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[2,1], Tensor[1,4]] $p\n$p >> pow >> tensor.reshape(shape=\"[9]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "pow Tensor[4,1,3] with Tensor[2,1] has 24 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> pow >> tensor.reshape(shape=\"[24]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Tensor[4,1,3] with Tensor[2,1] does not have 25 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[4,1,3], Tensor[2,1]] $p\n$p >> pow >> tensor.reshape(shape=\"[25]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "pow Scalar with Tensor[2,3] has 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> pow >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Scalar with Tensor[2,3] does not have 7 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Scalar, Tensor[2,3]] $p\n$p >> pow >> tensor.reshape(shape=\"[7]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "pow Tensor[5] with Scalar has 5 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> pow >> tensor.reshape(shape=\"[5]\") >> emit\n",
+  "ok": true
+ },
+ {
+  "name": "pow Tensor[5] with Scalar does not have 6 elements",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Composite[Tensor[5], Scalar] $p\n$p >> pow >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": false
+ },
+ {
+  "name": "pow Tensor[2,3] with Tensor[4] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[2,3], Tensor[4]] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        4
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "pow Tensor[3,2] with Tensor[2,2] is rejected before running",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor[3,2], Tensor[2,2]] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        3,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        1.0,
+        1.5,
+        2.0,
+        2.5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "pow with a scalar argument still checks",
+  "type": "check",
+  "morf": "import math_basics/latest\nimport tensor_basics/latest as tensor\naccept Tensor[2,3] $x\n$x >> pow(exponent=2.0) >> tensor.reshape(shape=\"[6]\") >> emit\n",
+  "ok": true
+ }
+]

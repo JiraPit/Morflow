@@ -182,7 +182,7 @@ fn blas_actions_require_a_plugin_declaration() {
         ("tensor_blas", "roll"),
     ] {
         let source = format!(
-            "from {pack}/0.1.1 import {name}\naccept Tensor[2,2] $x\n$x >> {name} >> emit\n"
+            "from {pack}/0.1.2 import {name}\naccept Tensor[2,2] $x\n$x >> {name} >> emit\n"
         );
         let error = Morflow::from_str(&source).err().unwrap().to_string();
         assert!(

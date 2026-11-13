@@ -5,7 +5,12 @@ Computes the minimum value of tensor elements along a specified axis or across a
 ## Interface
 - **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: `F32`
+- **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
+
+## DTypes
+- The output has the same dtype as the input.
+- Reducing an empty integer tensor entirely is an error (there is no identity value); empty float tensors give ±infinity as before.
+- NaN values in the input behave like NumPy (they propagate through the result).
 
 ## Parameters
 | Parameter | Type | Default | Description |

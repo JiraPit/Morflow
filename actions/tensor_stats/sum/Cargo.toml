@@ -1,12 +1,12 @@
 [package]
 publish = false
 name = "sum"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../../core_types" }
+core_types = { package = "morflow-core-types", version = "0.4.3", path = "../../../core_types" }
 rayon = "1.10"

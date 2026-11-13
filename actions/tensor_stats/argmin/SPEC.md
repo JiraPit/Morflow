@@ -5,7 +5,11 @@ Returns the indices of the minimum values along an axis.
 ## Interface
 - **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: Input `F32`, Output `I32`
+- **Supported DTypes**: Input `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`, Output `I32`
+
+## DTypes
+- The output is always `I32`.
+- Ties pick the first matching index. A NaN counts as the extreme value, so the index of the first NaN is returned, like NumPy.
 
 ## Parameters
 | Parameter | Type | Default | Description |
