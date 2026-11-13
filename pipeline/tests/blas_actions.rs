@@ -41,7 +41,7 @@ fn all_blas_contracts_match_basics_and_runtime_outputs_match_the_predictions() {
                 )
                 .unwrap();
             let blas = registry
-                .get_or_load(&ActionIdentity::new(&format!("{pack}_blas"), "0.1.2", name).unwrap())
+                .get_or_load(&ActionIdentity::new(&format!("{pack}_blas"), "0.1.3", name).unwrap())
                 .unwrap();
             let blas = blas.with_plugins(plugins()).unwrap();
             let (input, args) = action_input(name);
@@ -144,7 +144,7 @@ fn missing_openblas_allows_offline_check_and_both_load_signatures_then_fails_on_
 
 #[test]
 fn aliased_basics_and_blas_matmul_coexist_in_one_pipeline() {
-    let mut pipeline=Morflow::from_str("plugin openblas/0.1.1\nimport linalg_basics/latest as basic\nimport linalg_blas/0.1.2 as accelerated\naccept Tensor[2,2] $matrix\n$matrix >> basic/matmul >> emit(\"basic\")\n$matrix >> accelerated/matmul >> emit(\"blas\")").unwrap();
+    let mut pipeline=Morflow::from_str("plugin openblas/0.1.1\nimport linalg_basics/latest as basic\nimport linalg_blas/0.1.3 as accelerated\naccept Tensor[2,2] $matrix\n$matrix >> basic/matmul >> emit(\"basic\")\n$matrix >> accelerated/matmul >> emit(\"blas\")").unwrap();
     let result = pipeline.run(matrix()).unwrap();
     let Payload::Tensor(basic) = result.get("basic").unwrap() else {
         panic!("Expected tensor")
@@ -182,7 +182,7 @@ fn blas_actions_require_a_plugin_declaration() {
         ("tensor_blas", "roll"),
     ] {
         let source = format!(
-            "from {pack}/0.1.2 import {name}\naccept Tensor[2,2] $x\n$x >> {name} >> emit\n"
+            "from {pack}/0.1.3 import {name}\naccept Tensor[2,2] $x\n$x >> {name} >> emit\n"
         );
         let error = Morflow::from_str(&source).err().unwrap().to_string();
         assert!(

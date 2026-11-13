@@ -5,7 +5,7 @@ Standardizes image and audio payloads into unified multi-dimensional tensor repr
 ## Interface
 - **Input Type**: `DataType::Tensor` / `DataType::Image` / `DataType::Audio` (`Payload::Tensor` / `Payload::Image` / `Payload::Audio`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: Input: `U8`, `F32`; Output: `F32`, `U8`
+- **Supported DTypes**: Input `F32`, `U8`; output `F32`, `U8`
 - **Supported Layouts**: `HWC`, `CHW`, `Planar [Channels, Samples]`
 
 ## Parameters

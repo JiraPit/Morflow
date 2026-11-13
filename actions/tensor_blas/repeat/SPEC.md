@@ -5,7 +5,7 @@ Repeats/tiles an input multi-dimensional tensor along specified dimensions.
 ## Interface
 - **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: All
+- **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 
 ## Parameters
 | Parameter | Type | Default | Description |
@@ -16,7 +16,7 @@ Repeats/tiles an input multi-dimensional tensor along specified dimensions.
 - Allocates a new tensor with repeated element tiles along each axis.
 
 ## OpenBLAS backend
-This action belongs to `tensor_blas/0.1.2`. It uses the host's shared LP64 OpenBLAS library during execution. OpenBLAS is not bundled in the action binary. Shapechecking and pipeline loading do not load OpenBLAS. Set `MORFLOW_OPENBLAS_LIBRARY` to select an explicit shared library path. There is no fallback to the basics implementation if the library is missing.
+This action belongs to `tensor_blas/0.1.3`. It uses the host's shared LP64 OpenBLAS library during execution. OpenBLAS is not bundled in the action binary. Shapechecking and pipeline loading do not load OpenBLAS. Set `MORFLOW_OPENBLAS_LIBRARY` to select an explicit shared library path. There is no fallback to the basics implementation if the library is missing.
 
 ## Runtime plugin
 

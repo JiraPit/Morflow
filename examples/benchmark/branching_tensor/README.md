@@ -5,7 +5,7 @@ Compare **NumPy**, **morf-basic**, and **morf-blas** on the same fixed graph: a 
 A shared producer scales and offsets the input. Independent branches roll, multiply, add, and clamp it. Each branch feeds two downstream flows: one transposes and rolls its matrix; the other sums its rows.
 
 - [`morf-basic.morf`](morf-basic.morf) uses the existing basics actions.
-- [`morf-blas.morf`](morf-blas.morf) replaces `roll` with `tensor_blas/0.1.2`. Transpose, arithmetic, and reductions keep their existing actions. This graph does not contain linear algebra operations, so it does not use `linalg_blas`.
+- [`morf-blas.morf`](morf-blas.morf) replaces `roll` with `tensor_blas/0.1.3`. Transpose, arithmetic, and reductions keep their existing actions. This graph does not contain linear algebra operations, so it does not use `linalg_blas`.
 
 The two Morflow graphs perform identical operations in the same order. This comparison measures the OpenBLAS-backed roll implementation within the existing many-flow workload.
 

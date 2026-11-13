@@ -5,7 +5,7 @@ Flattens a contiguous range of dimensions into a single dimension.
 ## Interface
 - **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: All
+- **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 
 ## Parameters
 | Parameter | Type | Default | Description |

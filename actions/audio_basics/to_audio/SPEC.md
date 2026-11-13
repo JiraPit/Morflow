@@ -5,7 +5,7 @@ Converts binary audio file data (e.g. WAV format), raw PCM sample buffers, or mu
 ## Interface
 - **Input Type**: `DataType::Bytes` / `DataType::Tensor` (`Payload::Data` or `Payload::Tensor`)
 - **Output Type**: `DataType::Audio` (`Payload::Audio`)
-- **Supported DTypes**: `F32` (normalized `[-1.0, 1.0]`)
+- **Supported DTypes**: `F32`
 - **Supported Layouts**: Standard `Planar [Channels, Samples]`
 
 ## Parameters
@@ -18,6 +18,7 @@ Converts binary audio file data (e.g. WAV format), raw PCM sample buffers, or mu
 | `normalize` | `bool` | `true` | Scale integer PCM samples to `[-1.0, 1.0]` floating-point range. |
 
 ## Behavior
+- Audio samples are `F32`, normalized to `[-1.0, 1.0]`.
 - **RIFF / WAV Automatic Ingestion**: When input `Payload::Data` contains a valid RIFF/WAVE header, automatically parses chunk headers, sampling rate, channels, bit depth, and decodes interleaved PCM or IEEE float samples into planar float32 channels.
 - **Raw PCM Ingestion**: Decodes raw byte buffers according to `dtype`, `channels`, and `layout` arguments into planar float32.
 - **Tensor Ingestion**: Standardizes 1D `[samples]` (mono) or 2D `[channels, samples]` tensors into `Payload::Audio` with proper channel layout metadata.
