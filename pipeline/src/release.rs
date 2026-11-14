@@ -44,6 +44,13 @@ pub struct PreparedRelease {
     pub catalog: ReleaseCatalog,
     urls: HashMap<String, String>,
 }
+/// An action pack as published in its latest stable release.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PublishedPack {
+    pub name: String,
+    pub version: String,
+    pub actions: Vec<String>,
+}
 pub struct ReleaseClient<T = HttpTransport> {
     pub repository: String,
     pub transport: T,
@@ -66,6 +73,61 @@ impl<T: Transport> ReleaseClient<T> {
     fn api(&self) -> String {
         format!("https://api.github.com/repos/{}", self.repository)
     }
+    /// Every release of the repository, following pagination.
+    fn releases(&self) -> Result<Vec<Release>, String> {
+        let mut all = Vec::new();
+        for page in 1.. {
+            let url = format!("{}/releases?per_page=100&page={page}", self.api());
+            let releases: Vec<Release> =
+                serde_json::from_slice(&self.transport.get(&url)?).map_err(|e| e.to_string())?;
+            let count = releases.len();
+            all.extend(releases);
+            if count < 100 {
+                break;
+            }
+        }
+        Ok(all)
+    }
+    /// The latest stable release of every action pack with actions for `platform`, sorted by pack.
+    pub fn published_packs(&self, platform: &str) -> Result<Vec<PublishedPack>, String> {
+        let mut latest: BTreeMap<String, (Version, Vec<String>)> = BTreeMap::new();
+        for release in self.releases()? {
+            if release.draft || release.prerelease {
+                continue;
+            }
+            let Some((pack, raw)) = release
+                .tag_name
+                .strip_prefix("action_packs/")
+                .and_then(|rest| rest.split_once("/v"))
+            else {
+                continue;
+            };
+            let Ok(version) = Version::parse(raw) else {
+                continue;
+            };
+            if component(pack).is_err()
+                || !version.pre.is_empty()
+                || latest.get(pack).is_some_and(|(v, _)| *v >= version)
+            {
+                continue;
+            }
+            let names: Vec<_> = release.assets.iter().map(|a| a.name.clone()).collect();
+            let actions = action_names(&names, raw, platform);
+            latest.insert(pack.into(), (version, actions));
+        }
+        Ok(latest
+            .into_iter()
+            .filter(|(_, (_, actions))| !actions.is_empty())
+            .map(|(name, (version, mut actions))| {
+                actions.sort_unstable();
+                PublishedPack {
+                    name,
+                    version: version.to_string(),
+                    actions,
+                }
+            })
+            .collect())
+    }
     pub fn resolve(&self, pack: &str, requested: &str) -> Result<PreparedRelease, String> {
         self.resolve_namespace("action_packs", pack, requested)
     }
@@ -82,30 +144,21 @@ impl<T: Transport> ReleaseClient<T> {
         let requested = normalize_version(requested)?;
         let release = if requested == "latest" {
             let mut latest: Option<(Version, Release)> = None;
-            for page in 1.. {
-                let url = format!("{}/releases?per_page=100&page={page}", self.api());
-                let releases: Vec<Release> = serde_json::from_slice(&self.transport.get(&url)?)
-                    .map_err(|e| e.to_string())?;
-                let count = releases.len();
-                for release in releases {
-                    if release.draft || release.prerelease {
-                        continue;
-                    }
-                    if let Some(raw) = release
-                        .tag_name
-                        .strip_prefix(&format!("{namespace}/{pack}/v"))
-                    {
-                        if let Ok(version) = Version::parse(raw) {
-                            if version.pre.is_empty()
-                                && latest.as_ref().is_none_or(|(v, _)| version > *v)
-                            {
-                                latest = Some((version, release));
-                            }
+            for release in self.releases()? {
+                if release.draft || release.prerelease {
+                    continue;
+                }
+                if let Some(raw) = release
+                    .tag_name
+                    .strip_prefix(&format!("{namespace}/{pack}/v"))
+                {
+                    if let Ok(version) = Version::parse(raw) {
+                        if version.pre.is_empty()
+                            && latest.as_ref().is_none_or(|(v, _)| version > *v)
+                        {
+                            latest = Some((version, release));
                         }
                     }
-                }
-                if count < 100 {
-                    break;
                 }
             }
             latest
@@ -638,6 +691,68 @@ mod tests {
                 }
             });
         });
+    }
+    #[test]
+    fn published_packs_lists_the_latest_stable_release_of_each_pack() {
+        let fake = Fake::default();
+        let assets = |pack: &str, version: &str, actions: &[&str]| {
+            let mut assets =
+                vec![serde_json::json!({"name":"checksums.txt","browser_download_url":"test://c"})];
+            for action in actions {
+                for name in [
+                    ActionIdentity::for_platform(pack, version, action, "linux-x86_64")
+                        .unwrap()
+                        .filename(),
+                    format!("{action}_SPEC.md"),
+                ] {
+                    assets.push(serde_json::json!({"name":name,"browser_download_url":"test://a"}));
+                }
+            }
+            serde_json::json!({"tag_name":format!("action_packs/{pack}/v{version}"),"assets":assets})
+        };
+        let mut first: Vec<_> = (0..97)
+            .map(|_| serde_json::json!({"tag_name":"plugins/openblas/v0.1.1","assets":[]}))
+            .collect();
+        first.push(assets("audio", "0.9.0", &["gain"]));
+        first.push(assets("audio", "0.10.0", &["gain", "fade"]));
+        first.push(serde_json::json!({"tag_name":"v0.3.0","assets":[]}));
+        let mut draft = assets("audio", "1.0.0", &["gain", "unreleased"]);
+        draft["draft"] = true.into();
+        let mut pre = assets("base", "0.3.0-rc.1", &["identity", "unreleased"]);
+        pre["prerelease"] = true.into();
+        let second = serde_json::json!([
+            draft,
+            pre,
+            assets("base", "0.2.0", &["identity", "to_tensor"]),
+            assets("windows_only", "0.1.0", &[]),
+        ]);
+        fake.data.lock().unwrap().extend([
+            (
+                "https://api.github.com/repos/owner/repo/releases?per_page=100&page=1".into(),
+                serde_json::to_vec(&first).unwrap(),
+            ),
+            (
+                "https://api.github.com/repos/owner/repo/releases?per_page=100&page=2".into(),
+                serde_json::to_vec(&second).unwrap(),
+            ),
+        ]);
+        let client = ReleaseClient {
+            repository: "owner/repo".into(),
+            transport: fake,
+        };
+        let pack = |name: &str, version: &str, actions: &[&str]| PublishedPack {
+            name: name.into(),
+            version: version.into(),
+            actions: actions.iter().map(|a| a.to_string()).collect(),
+        };
+        assert_eq!(
+            client.published_packs("linux-x86_64").unwrap(),
+            vec![
+                pack("audio", "0.10.0", &["fade", "gain"]),
+                pack("base", "0.2.0", &["identity", "to_tensor"]),
+            ]
+        );
+        assert!(client.published_packs("darwin-arm64").unwrap().is_empty());
     }
     #[test]
     fn plugin_latest_follows_pagination_and_ignores_action_pack_releases() {

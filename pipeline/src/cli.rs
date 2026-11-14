@@ -1,5 +1,5 @@
 use crate::artifact::*;
-use crate::release::{spec_path, PreparedRelease, ReleaseClient};
+use crate::release::{spec_path, PreparedRelease, PublishedPack, ReleaseClient};
 use clap::{Parser, Subcommand};
 use rich_rust::prelude::*;
 use rich_rust::r#box::ROUNDED;
@@ -63,7 +63,7 @@ enum Commands {
         action: String,
     },
 
-    /// Search the shipped action catalog by name
+    /// Search the actions published in the repository's GitHub releases by name
     Search {
         /// Search query (e.g. color, blur, resample, gain)
         query: String,
@@ -71,6 +71,12 @@ enum Commands {
         /// Maximum number of results to return (default: 5)
         #[arg(short, long, default_value_t = 5)]
         limit: usize,
+    },
+
+    /// Lists every action pack published in the repository's GitHub releases, or every action in one pack
+    Catalog {
+        /// Pack to list the actions of (e.g. audio_basics); omit to list every pack
+        pack: Option<String>,
     },
 
     /// Lists all action paths installed locally in the action cache
@@ -154,112 +160,6 @@ enum PluginCommands {
         path: Option<PathBuf>,
     },
 }
-
-// Built-in catalog of Morflow action packs and actions
-pub(crate) const KNOWN_ACTIONS: &[(&str, &str)] = &[
-    ("tensor_blas", "concat"),
-    ("tensor_blas", "repeat"),
-    ("tensor_blas", "roll"),
-    ("linalg_blas", "matmul"),
-    ("linalg_blas", "dot"),
-    ("linalg_blas", "outer"),
-    ("linalg_blas", "inv"),
-    ("linalg_blas", "det"),
-    ("linalg_blas", "qr"),
-    ("linalg_blas", "cholesky"),
-    ("base", "identity"),
-    ("base", "to_tensor"),
-    ("audio_basics", "to_audio"),
-    ("audio_basics", "to_pcm"),
-    ("audio_basics", "to_wav"),
-    ("audio_basics", "gain"),
-    ("audio_basics", "normalize"),
-    ("audio_basics", "biquad_filter"),
-    ("audio_basics", "compressor"),
-    ("audio_basics", "limiter"),
-    ("audio_basics", "noise_gate"),
-    ("audio_basics", "stereo_widen"),
-    ("audio_basics", "resample"),
-    ("audio_basics", "stft"),
-    ("audio_basics", "delay"),
-    ("image_opencv", "resize"),
-    ("image_opencv", "rotate"),
-    ("image_opencv", "gaussian_blur"),
-    ("image_opencv", "morphology"),
-    ("image_opencv", "edge_detect"),
-    ("image_opencv", "sharpen"),
-    ("image_basics", "to_image"),
-    ("image_basics", "resize"),
-    ("image_basics", "crop"),
-    ("image_basics", "pad"),
-    ("image_basics", "color_adjust"),
-    ("image_basics", "gaussian_blur"),
-    ("image_basics", "edge_detect"),
-    ("image_basics", "sharpen"),
-    ("image_basics", "threshold"),
-    ("image_basics", "rotate"),
-    ("image_basics", "flip"),
-    ("image_basics", "blend"),
-    ("image_basics", "morphology"),
-    ("tensor_basics", "reshape"),
-    ("tensor_basics", "transpose"),
-    ("tensor_basics", "permute"),
-    ("tensor_basics", "squeeze"),
-    ("tensor_basics", "unsqueeze"),
-    ("tensor_basics", "flatten"),
-    ("tensor_basics", "concat"),
-    ("tensor_basics", "cast"),
-    ("tensor_basics", "repeat"),
-    ("tensor_basics", "roll"),
-    ("math_basics", "add"),
-    ("math_basics", "sub"),
-    ("math_basics", "mul"),
-    ("math_basics", "div"),
-    ("math_basics", "clamp"),
-    ("math_basics", "pow"),
-    ("math_basics", "abs"),
-    ("math_basics", "sign"),
-    ("math_basics", "sqrt"),
-    ("math_basics", "rsqrt"),
-    ("math_basics", "exp"),
-    ("math_basics", "log"),
-    ("math_basics", "sin"),
-    ("math_basics", "cos"),
-    ("math_basics", "tan"),
-    ("math_basics", "neg"),
-    ("tensor_stats", "sum"),
-    ("tensor_stats", "mean"),
-    ("tensor_stats", "var"),
-    ("tensor_stats", "std"),
-    ("tensor_stats", "min"),
-    ("tensor_stats", "max"),
-    ("tensor_stats", "argmin"),
-    ("tensor_stats", "argmax"),
-    ("tensor_stats", "norm"),
-    ("tensor_stats", "cumsum"),
-    ("nn_basics", "relu"),
-    ("nn_basics", "gelu"),
-    ("nn_basics", "silu"),
-    ("nn_basics", "sigmoid"),
-    ("nn_basics", "softmax"),
-    ("nn_basics", "log_softmax"),
-    ("nn_basics", "tanh"),
-    ("nn_basics", "leaky_relu"),
-    ("nn_basics", "layer_norm"),
-    ("nn_basics", "rms_norm"),
-    ("nn_basics", "cosine_similarity"),
-    ("nn_basics", "max_pool2d"),
-    ("nn_basics", "avg_pool2d"),
-    ("linalg_basics", "matmul"),
-    ("linalg_basics", "dot"),
-    ("linalg_basics", "outer"),
-    ("linalg_basics", "trace"),
-    ("linalg_basics", "diag"),
-    ("linalg_basics", "inv"),
-    ("linalg_basics", "det"),
-    ("linalg_basics", "qr"),
-    ("linalg_basics", "cholesky"),
-];
 
 pub(crate) fn get_host_platform() -> (&'static str, &'static str) {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -359,7 +259,7 @@ where
 {
     let args: Vec<std::ffi::OsString> = args.into_iter().map(Into::into).collect();
     let rich_errors = match args.get(1).and_then(|arg| arg.to_str()) {
-        Some("check" | "list" | "search") => true,
+        Some("catalog" | "check" | "list" | "search") => true,
         Some("plugins") => matches!(
             args.get(2).and_then(|arg| arg.to_str()),
             Some("list" | "search")
@@ -616,24 +516,10 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Search { query, limit } => {
             let query = query.to_lowercase();
-            let mut matches: Vec<_> = KNOWN_ACTIONS
-                .iter()
-                .filter_map(|&(pack, action)| {
-                    action
-                        .find(&query)
-                        .map(|pos| (pack, action, pos, action.len()))
-                })
-                .collect();
-            matches.sort_by(|a, b| {
-                a.2.cmp(&b.2)
-                    .then(a.3.cmp(&b.3))
-                    .then(a.1.cmp(b.1))
-                    .then(a.0.cmp(b.0))
-            });
-            let rows = matches
+            let packs = published_packs()?;
+            let rows = search_actions(&packs, &query, limit)
                 .into_iter()
-                .take(limit)
-                .map(|(pack, action, _, _)| {
+                .map(|(pack, action)| {
                     vec![
                         action.into(),
                         pack.into(),
@@ -647,6 +533,53 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 &["Action", "Pack", "Import path"],
                 rows,
                 "No matching actions. Try a broader search.",
+            );
+        }
+        Commands::Catalog { pack: None } => {
+            let rows = published_packs()?
+                .into_iter()
+                .map(|pack| {
+                    vec![
+                        pack.name.clone(),
+                        pack.version,
+                        pack.actions.len().to_string(),
+                        format!("{}/latest", pack.name),
+                    ]
+                })
+                .collect();
+            print_catalog(
+                "Action packs",
+                &format!(
+                    "Repository: {} · Run morflow catalog <pack> to list a pack's actions",
+                    resolve_repo()
+                ),
+                &["Pack", "Latest", "Actions", "Import path"],
+                rows,
+                "No action packs are published for this platform.",
+            );
+        }
+        Commands::Catalog { pack: Some(pack) } => {
+            let name = pack.to_lowercase();
+            let pack = published_packs()?
+                .into_iter()
+                .find(|pack| pack.name == name)
+                .ok_or_else(|| {
+                    format!("Unknown pack '{name}'. Run morflow catalog to see every pack.")
+                })?;
+            let rows = pack
+                .actions
+                .iter()
+                .map(|action| vec![action.clone(), format!("{name}/latest/{action}")])
+                .collect();
+            print_catalog(
+                "Pack actions",
+                &format!(
+                    "Pack: {name} {} · Run morflow spec <import path> for an action's parameters",
+                    pack.version
+                ),
+                &["Action", "Import path"],
+                rows,
+                "No actions in this pack.",
             );
         }
         Commands::Clean { path } => {
@@ -749,7 +682,40 @@ fn installed_receipts(root: &Path) -> Result<Vec<ArtifactReceipt>, String> {
     Ok(receipts)
 }
 
-// Like action search, plugin search uses the shipped catalog and works offline.
+/// The action packs published in the repository's releases for the host platform.
+fn published_packs() -> Result<Vec<PublishedPack>, String> {
+    ReleaseClient::new(resolve_repo())?.published_packs(get_host_platform().0)
+}
+
+/// Actions whose names contain `query`, earliest and shortest match first, as (pack, action).
+fn search_actions<'a>(
+    packs: &'a [PublishedPack],
+    query: &str,
+    limit: usize,
+) -> Vec<(&'a str, &'a str)> {
+    let mut matches: Vec<_> = packs
+        .iter()
+        .flat_map(|pack| pack.actions.iter().map(move |action| (pack, action)))
+        .filter_map(|(pack, action)| {
+            action
+                .find(query)
+                .map(|pos| (pack.name.as_str(), action.as_str(), pos, action.len()))
+        })
+        .collect();
+    matches.sort_by(|a, b| {
+        a.2.cmp(&b.2)
+            .then(a.3.cmp(&b.3))
+            .then(a.1.cmp(b.1))
+            .then(a.0.cmp(b.0))
+    });
+    matches
+        .into_iter()
+        .take(limit)
+        .map(|(pack, action, _, _)| (pack, action))
+        .collect()
+}
+
+// Plugin search uses the shipped catalog and works offline.
 const KNOWN_PLUGINS: &[&str] = &["openblas", "opencv-bridge"];
 
 fn search_plugins(query: &str, limit: usize) -> Vec<&'static str> {
@@ -945,5 +911,36 @@ mod tests {
         }
         assert!(parse_target_path("base/identity").is_err());
         assert!(parse_target_path("base/../identity").is_err());
+    }
+
+    #[test]
+    fn action_search_ranks_earliest_and_shortest_matches_first() {
+        let pack = |name: &str, actions: &[&str]| PublishedPack {
+            name: name.into(),
+            version: "0.1.0".into(),
+            actions: actions.iter().map(|a| a.to_string()).collect(),
+        };
+        let packs = [
+            pack("audio_basics", &["gain", "resample"]),
+            pack("image_basics", &["sample_grid", "color_adjust"]),
+            pack("math_basics", &["add"]),
+        ];
+        assert_eq!(
+            search_actions(&packs, "sample", 5),
+            [
+                ("image_basics", "sample_grid"),
+                ("audio_basics", "resample")
+            ]
+        );
+        assert_eq!(
+            search_actions(&packs, "a", 2),
+            [("math_basics", "add"), ("audio_basics", "gain")]
+        );
+        assert!(search_actions(&packs, "blur", 5).is_empty());
+
+        let cli = Cli::try_parse_from(["morflow", "catalog"]).unwrap();
+        assert!(matches!(cli.command, Commands::Catalog { pack: None }));
+        let cli = Cli::try_parse_from(["morflow", "catalog", "audio_basics"]).unwrap();
+        assert!(matches!(cli.command, Commands::Catalog { pack: Some(_) }));
     }
 }
