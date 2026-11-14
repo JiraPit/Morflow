@@ -6,13 +6,36 @@ use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+use std::sync::Mutex;
 
 pub trait Transport {
     fn get(&self, url: &str) -> Result<Vec<u8>, String>;
 }
 pub struct HttpTransport;
+static PROGRESS: Mutex<Option<&'static str>> = Mutex::new(None);
+/// Show `message` with a spinner on stderr while requests are in flight; the CLI sets this, library callers do not.
+pub fn show_progress(message: Option<&'static str>) {
+    *PROGRESS.lock().unwrap_or_else(|e| e.into_inner()) = message;
+}
+/// A transient spinner on stderr, only when it is an interactive terminal; cleared on drop.
+fn spinner() -> Option<rich_rust::prelude::Status> {
+    use rich_rust::prelude::{Console, Status};
+    use std::io::IsTerminal;
+    let message = (*PROGRESS.lock().unwrap_or_else(|e| e.into_inner()))?;
+    if !std::io::stderr().is_terminal() {
+        return None;
+    }
+    let console = std::sync::Arc::new(
+        Console::builder()
+            .file(Box::new(std::io::stderr()))
+            .force_terminal(true)
+            .build(),
+    );
+    Status::new(&console, message).ok()
+}
 impl Transport for HttpTransport {
     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+        let _spinner = spinner();
         let response = ureq::get(url)
             .set("User-Agent", "Morflow-CLI")
             .call()

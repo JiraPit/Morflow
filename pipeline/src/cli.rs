@@ -277,6 +277,7 @@ where
             return e.exit_code();
         }
     };
+    crate::release::show_progress(progress_message(&cli.command));
     match run_command(cli.command) {
         Ok(()) => 0,
         Err(e) => {
@@ -287,6 +288,21 @@ where
             }
             1
         }
+    }
+}
+/// The spinner text shown while a command waits on GitHub.
+fn progress_message(command: &Commands) -> Option<&'static str> {
+    match command {
+        Commands::Catalog { .. } => Some("Loading catalog..."),
+        Commands::Spec { .. } => Some("Loading spec..."),
+        Commands::Search { .. } => Some("Searching..."),
+        Commands::Install { .. }
+        | Commands::Plugins {
+            command: PluginCommands::Install { .. },
+        } => Some("Installing..."),
+        Commands::Prep { .. } => Some("Preparing..."),
+        Commands::Check { .. } => Some("Checking..."),
+        _ => None,
     }
 }
 /// Rich command failures use stderr and preserve diagnostic text literally.
