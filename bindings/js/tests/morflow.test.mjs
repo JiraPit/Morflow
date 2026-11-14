@@ -430,7 +430,7 @@ test('Morflow - declared plugin works through file and string APIs', {skip: !pro
   const os = await import('node:os');
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'morflow-plugin-'));
   const source = `plugin opencv-bridge/0.1.2
-from image_opencv/0.1.2 import resize
+from image_opencv/0.1.3 import resize
 accept Tensor[6,8,3] $image
 $image >> resize(4,3,filter="nearest") >> emit`;
   const file = path.join(directory, 'plugin.morf');

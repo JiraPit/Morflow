@@ -25,7 +25,26 @@ fn shape_impl(input: Shape, _args: PreparedArgs) -> ShapeResult {
 
 pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
     let args = args.into();
+    // An unknown channel order can never run.
+    if let Ok(Some(name)) = core_types::contract::value(&args, &["color", "color_space"], None) {
+        if let Err(reason) = luma_weights(name) {
+            return ShapeResult::Invalid(reason.into());
+        }
+    }
     shape_impl(input, args)
+}
+
+/// BT.601 luma weights for the first three channels in the order `name`
+/// stores them.
+fn luma_weights(name: &str) -> Result<[f32; 3], String> {
+    match name.to_ascii_lowercase().as_str() {
+        "rgb" | "rgba" => Ok([0.299, 0.587, 0.114]),
+        "bgr" | "bgra" => Ok([0.114, 0.587, 0.299]),
+        _ => Err(format!(
+            "Unknown color_adjust color '{}' (expected one of: rgb, rgba, bgr, bgra)",
+            name
+        )),
+    }
 }
 
 #[no_mangle]
@@ -44,8 +63,18 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     let mut gamma = 1.0f32;
     let mut saturation = 1.0f32;
     let mut exposure = 0.0f32;
+    let mut weights = [0.299f32, 0.587, 0.114];
 
     if let Some(args) = &args_opt {
+        if let Some(c_str) = args
+            .get_named("color")
+            .or_else(|| args.get_named("color_space"))
+        {
+            weights = match luma_weights(c_str) {
+                Ok(weights) => weights,
+                Err(reason) => return Payload::Error(reason.into()),
+            };
+        }
         if let Some(b_str) = args.get_named("brightness") {
             if let Ok(b) = prepared.args.parse::<f32>(b_str) {
                 brightness = b;
@@ -93,6 +122,7 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
                 gamma,
                 saturation,
                 exposure,
+                weights,
             );
             Payload::Tensor(tensor)
         }
@@ -110,6 +140,7 @@ fn adjust_color_tensor(
     gamma: f32,
     saturation: f32,
     exposure: f32,
+    weights: [f32; 3],
 ) {
     let shape = tensor.shape.as_slice();
     let (height, width, channels) = match (shape.len(), layout) {
@@ -140,7 +171,7 @@ fn adjust_color_tensor(
                         }
 
                         if saturation != 1.0 {
-                            let luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                            let luma = weights[0] * r + weights[1] * g + weights[2] * b;
                             r = luma + (r - luma) * saturation;
                             g = luma + (g - luma) * saturation;
                             b = luma + (b - luma) * saturation;
@@ -188,7 +219,8 @@ fn adjust_color_tensor(
                             }
 
                             if saturation != 1.0 {
-                                let luma = 0.299 * r_val + 0.587 * g_val + 0.114 * b_val;
+                                let luma =
+                                    weights[0] * r_val + weights[1] * g_val + weights[2] * b_val;
                                 r_val = luma + (r_val - luma) * saturation;
                                 g_val = luma + (g_val - luma) * saturation;
                                 b_val = luma + (b_val - luma) * saturation;
@@ -230,7 +262,7 @@ fn adjust_color_tensor(
                         }
 
                         if saturation != 1.0 {
-                            let luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                            let luma = weights[0] * r + weights[1] * g + weights[2] * b;
                             r = luma + (r - luma) * saturation;
                             g = luma + (g - luma) * saturation;
                             b = luma + (b - luma) * saturation;
@@ -311,6 +343,90 @@ mod tests {
             assert!((slice[0] - 0.7).abs() < 1e-4);
         } else {
             panic!("Expected Payload::Tensor");
+        }
+    }
+
+    fn adjust(pixels: &[f32], shape: Vec<usize>, args: &[(&str, &str)]) -> Payload {
+        let mut named = core_types::RVec::new();
+        for (name, value) in args {
+            named.push(Tuple2(RString::from(*name), RString::from(*value)));
+        }
+        process(Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(
+                Tensor::from_f32_shape(pixels, shape).unwrap(),
+            )),
+            args: ActionArgs {
+                positional: core_types::RVec::new(),
+                named,
+            },
+        })
+    }
+
+    fn values(payload: Payload) -> Vec<f32> {
+        match payload {
+            Payload::Tensor(t) => t.as_f32_slice().unwrap().to_vec(),
+            other => panic!(
+                "expected a tensor, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+    }
+
+    #[test]
+    fn test_saturation_follows_the_channel_order() {
+        let rgb = [0.8f32, 0.2, 0.1];
+        let bgr = [0.1f32, 0.2, 0.8];
+        let from_rgb = values(adjust(&rgb, vec![1, 1, 3], &[("saturation", "0.5")]));
+        let from_bgr = values(adjust(
+            &bgr,
+            vec![1, 1, 3],
+            &[("saturation", "0.5"), ("color", "bgr")],
+        ));
+        let reversed: Vec<f32> = from_bgr.iter().rev().copied().collect();
+        for (a, b) in from_rgb.iter().zip(&reversed) {
+            assert!((a - b).abs() < 1e-6, "{from_rgb:?} vs {reversed:?}");
+        }
+        // Treating BGR data as RGB weights the wrong channels.
+        let as_rgb = values(adjust(&bgr, vec![1, 1, 3], &[("saturation", "0.5")]));
+        assert!((as_rgb[0] - from_bgr[0]).abs() > 1e-3);
+
+        // The planar (CHW) path uses the same weights.
+        let planes: Vec<f32> = bgr.iter().flat_map(|&v| [v; 25]).collect();
+        let chw = values(adjust(
+            &planes,
+            vec![3, 5, 5],
+            &[("saturation", "0.5"), ("color", "bgra")],
+        ));
+        for (channel, expected) in from_bgr.iter().enumerate() {
+            assert!((chw[channel * 25] - expected).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_unknown_color_is_rejected() {
+        let tensor = Tensor::from_f32_shape(&[0.5f32, 0.5, 0.5], vec![1, 1, 3]).unwrap();
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("color"), RString::from("cmyk")));
+        let args = ActionArgs {
+            positional: core_types::RVec::new(),
+            named,
+        };
+        let payload = Payload::Tensor(tensor);
+        match shapecheck(core_types::InputDescriptor::from_payload(&payload), args) {
+            core_types::ShapeCheckResult::Invalid { reason } => {
+                assert!(
+                    reason.contains("Unknown color_adjust color 'cmyk'"),
+                    "{reason}"
+                );
+            }
+            _ => panic!("an unknown color should be rejected by the shape check"),
+        }
+        match adjust(&[0.5, 0.5, 0.5], vec![1, 1, 3], &[("color", "cmyk")]) {
+            Payload::Error(reason) => assert!(reason.contains("Unknown color_adjust color")),
+            other => panic!(
+                "expected an error, got {}",
+                core_types::payload_kind_name(&other)
+            ),
         }
     }
 }

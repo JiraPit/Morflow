@@ -368,7 +368,7 @@ def test_plugin_file_and_string_loading(tmp_path):
     if not os.environ.get("MORFLOW_PLUGINS_PATH"):
         pytest.skip("Requires prepared OpenCV plugin and its runtime libraries")
     source = """plugin opencv-bridge/0.1.2
-from image_opencv/0.1.2 import resize
+from image_opencv/0.1.3 import resize
 accept Tensor[6,8,3] $image
 $image >> resize(4,3,filter="nearest") >> emit
 """

@@ -1364,42 +1364,42 @@ dependencies = [
 
 [[package]]
 name = "image_opencv_edge_detect"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]
 
 [[package]]
 name = "image_opencv_gaussian_blur"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]
 
 [[package]]
 name = "image_opencv_morphology"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]
 
 [[package]]
 name = "image_opencv_resize"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]
 
 [[package]]
 name = "image_opencv_rotate"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]
 
 [[package]]
 name = "image_opencv_sharpen"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "morflow-core-types",
 ]

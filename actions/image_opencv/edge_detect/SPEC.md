@@ -11,7 +11,7 @@ Spatial gradient convolution and edge detection (Sobel, Prewitt, Laplacian).
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `mode` / `filter` | `string` | `"sobel"` | Gradient operator: `"sobel"`, `"sobel_x"`, `"sobel_y"`, `"prewitt"`, `"laplacian"` (positional arg 0). |
+| `mode` / `filter` | `string` | `"sobel"` | Gradient operator: `"sobel"`, `"sobel_x"`, `"sobel_y"`, `"prewitt"`, `"laplacian"` (positional arg 0). An unknown value is an error. |
 | `strength` / `scale` | `float` | `1.0` | Output gradient scaling multiplier. |
 
 ## Behavior

@@ -25,6 +25,12 @@ fn shape_impl(input: Shape, _args: PreparedArgs) -> ShapeResult {
 
 pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
     let args = args.into();
+    // An unknown mode can never run.
+    if let Ok(Some(name)) = core_types::contract::value(&args, &["mode", "filter"], Some(0)) {
+        if let Err(reason) = edge_mode(name) {
+            return ShapeResult::Invalid(reason.into());
+        }
+    }
     shape_impl(input, args)
 }
 
@@ -35,6 +41,19 @@ enum EdgeMode {
     SobelY,
     Laplacian,
     Prewitt,
+}
+
+fn edge_mode(name: &str) -> Result<EdgeMode, String> {
+    match name.to_lowercase().as_str() {
+        "sobel" => Ok(EdgeMode::Sobel),
+        "sobel_x" | "sobelx" | "dx" => Ok(EdgeMode::SobelX),
+        "sobel_y" | "sobely" | "dy" => Ok(EdgeMode::SobelY),
+        "laplacian" | "laplace" => Ok(EdgeMode::Laplacian),
+        "prewitt" => Ok(EdgeMode::Prewitt),
+        _ => Err(format!(
+            "Unknown edge_detect mode '{name}' (expected one of: sobel, sobel_x, sobel_y, prewitt, laplacian)"
+        )),
+    }
 }
 
 #[no_mangle]
@@ -57,12 +76,9 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
             .or_else(|| args.get_named("filter"))
             .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
-            mode = match m_str.to_lowercase().as_str() {
-                "sobel_x" | "sobelx" | "dx" => EdgeMode::SobelX,
-                "sobel_y" | "sobely" | "dy" => EdgeMode::SobelY,
-                "laplacian" | "laplace" => EdgeMode::Laplacian,
-                "prewitt" => EdgeMode::Prewitt,
-                _ => EdgeMode::Sobel,
+            mode = match edge_mode(m_str) {
+                Ok(mode) => mode,
+                Err(reason) => return Payload::Error(reason.into()),
             };
         }
         if let Some(st_str) = args
@@ -366,5 +382,40 @@ mod tests {
         } else {
             panic!("Expected Payload::Tensor");
         }
+    }
+
+    #[test]
+    fn test_edge_detect_rejects_an_unknown_mode() {
+        let tensor = Tensor::from_f32_shape(&[0.0f32; 9], vec![3, 3]).unwrap();
+        let mut named = core_types::RVec::new();
+        named.push(Tuple2(RString::from("mode"), RString::from("canny")));
+        let args = ActionArgs {
+            positional: core_types::RVec::new(),
+            named,
+        };
+        let payload = Payload::Tensor(tensor.clone());
+        match shapecheck(
+            core_types::InputDescriptor::from_payload(&payload),
+            args.clone(),
+        ) {
+            core_types::ShapeCheckResult::Invalid { reason } => {
+                assert!(
+                    reason.contains("Unknown edge_detect mode 'canny'"),
+                    "{reason}"
+                );
+            }
+            _ => panic!("an unknown mode should be rejected by the shape check"),
+        }
+        match process(Payload::WithArgs {
+            payload: RBox::new(Payload::Tensor(tensor)),
+            args,
+        }) {
+            Payload::Error(reason) => assert!(reason.contains("Unknown edge_detect mode")),
+            other => panic!(
+                "expected an error, got {}",
+                core_types::payload_kind_name(&other)
+            ),
+        }
+        assert_eq!(edge_mode("SOBEL").unwrap(), EdgeMode::Sobel);
     }
 }

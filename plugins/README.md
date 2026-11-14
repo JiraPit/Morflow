@@ -8,7 +8,7 @@ Declare an exact version or write `latest` explicitly:
 
 ```perl
 plugin opencv-bridge/0.1.2
-from image_opencv/0.1.2 import resize
+from image_opencv/0.1.3 import resize
 
 accept Tensor[480,640,3] $image
 $image >> resize(320,240) >> emit

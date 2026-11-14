@@ -121,11 +121,17 @@ fn options(args: &PreparedArgs) -> Result<Options, RString> {
         .to_lowercase()
         .as_str()
     {
+        "sobel" => 0,
         "sobel_x" | "sobelx" | "dx" => 1,
         "sobel_y" | "sobely" | "dy" => 2,
         "laplacian" | "laplace" => 3,
         "prewitt" => 4,
-        _ => 0,
+        other => {
+            return Err(format!(
+                "Unknown edge_detect mode '{other}' (expected one of: sobel, sobel_x, sobel_y, prewitt, laplacian)"
+            )
+            .into())
+        }
     };
 
     Ok(o)
@@ -330,5 +336,30 @@ fn run(payload: Payload, prepared: PreparedData) -> Result<Tensor, RString> {
         result.permute(&[2, 0, 1])
     } else {
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mode(name: &str) -> Result<i32, RString> {
+        let args = ActionArgs {
+            positional: vec![RString::from(name)].into(),
+            named: Default::default(),
+        };
+        options(&PreparedArgs::from(args)).map(|o| o.mode)
+    }
+
+    #[test]
+    fn known_modes_are_parsed_and_unknown_modes_rejected() {
+        assert_eq!(mode("sobel").unwrap(), 0);
+        assert_eq!(mode("Sobel_X").unwrap(), 1);
+        assert_eq!(mode("prewitt").unwrap(), 4);
+        let error = mode("canny").unwrap_err();
+        assert!(
+            error.contains("Unknown edge_detect mode 'canny'"),
+            "{error}"
+        );
     }
 }

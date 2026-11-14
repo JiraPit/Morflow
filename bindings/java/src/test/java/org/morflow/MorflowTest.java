@@ -421,7 +421,7 @@ public class MorflowTest {
         org.junit.jupiter.api.Assumptions.assumeTrue(System.getenv("MORFLOW_PLUGINS_PATH") != null);
         String source = """
             plugin opencv-bridge/0.1.2
-            from image_opencv/0.1.2 import resize
+            from image_opencv/0.1.3 import resize
             accept Tensor[6,8,3] $image
             $image >> resize(4,3,filter="nearest") >> emit
         """;
