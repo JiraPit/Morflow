@@ -290,6 +290,16 @@ where
         }
     }
 }
+/// Parse a spec target, which must name one action as pack/version/action.
+fn spec_target(action: &str) -> Result<ActionIdentity, String> {
+    match parse_target_path(action) {
+        Ok(TargetPath::Action(id)) => Ok(id),
+        Err(e) if action.split('/').count() == 3 => Err(e),
+        _ => Err(format!(
+            "Invalid action '{action}'; spec requires pack/version/action, e.g. image_basics/latest/resize. Run morflow search <name> to find an action's pack."
+        )),
+    }
+}
 /// The spinner text shown while a command waits on GitHub.
 fn progress_message(command: &Commands) -> Option<&'static str> {
     match command {
@@ -489,10 +499,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         Commands::Spec { action } => {
-            let id = match parse_target_path(&action)? {
-                TargetPath::Action(id) => id,
-                _ => return Err("spec requires pack/version/action".into()),
-            };
+            let id = spec_target(&action)?;
             let root = resolve_action_cache_dir(None);
             let path = id.path(&root);
             let (cached, installed_version) = {
@@ -958,5 +965,20 @@ mod tests {
         assert!(matches!(cli.command, Commands::Catalog { pack: None }));
         let cli = Cli::try_parse_from(["morflow", "catalog", "audio_basics"]).unwrap();
         assert!(matches!(cli.command, Commands::Catalog { pack: Some(_) }));
+    }
+
+    #[test]
+    fn spec_requires_a_full_action_path() {
+        assert_eq!(
+            spec_target("image_basics/latest/resize").unwrap().action,
+            "resize"
+        );
+        for bad in ["resize", "image_basics/latest", "a/b/c/d"] {
+            let err = spec_target(bad).unwrap_err();
+            assert!(err.contains("spec requires pack/version/action"), "{err}");
+            assert!(!err.contains("use pack/version or"), "{err}");
+        }
+        let err = spec_target("image_basics/nope/resize").unwrap_err();
+        assert!(err.contains("semantic version"), "{err}");
     }
 }
