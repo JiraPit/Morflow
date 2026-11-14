@@ -3,8 +3,8 @@
 Computes the maximum value of tensor elements along a specified axis or across all elements.
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Input Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
+- **Output Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
 - **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 
 ## DTypes

@@ -11,8 +11,8 @@ Converts binary audio file data (e.g. WAV format), raw PCM sample buffers, or mu
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `sample_rate` | `int` | `44100` (or inferred from WAV header) | Sampling rate in Hz. Auto-detected when input is WAV. |
-| `channels` | `int` | `2` (or inferred from WAV / tensor shape) | Number of audio channels. Auto-detected when input is WAV. |
+| `sample_rate` / `rate` | `int` | `44100` (or inferred from WAV header) | Sampling rate in Hz. Auto-detected when input is WAV. (Positional arg 0). |
+| `channels` / `channel_count` | `int` | `2` (or inferred from WAV / tensor shape) | Number of audio channels. Auto-detected when input is WAV. |
 | `dtype` / `format` | `string` | `"i16"` | Sample encoding format for raw PCM bytes: `"i16"`, `"f32"`, `"i24"`, `"i32"`, `"u8"`. |
 | `layout` | `string` | `"interleaved"` | Memory ordering for raw PCM bytes: `"interleaved"` or `"planar"`. |
 | `normalize` | `bool` | `true` | Scale integer PCM samples to `[-1.0, 1.0]` floating-point range. |

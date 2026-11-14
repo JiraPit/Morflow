@@ -22,4 +22,4 @@ Spatial image resampling using interpolation algorithms (Nearest Neighbor, Bilin
 ## Behavior
 - Automatically computes target dimensions from explicit dimensions, scaling factors, or aspect ratio constraints.
 - Processes rows in parallel across Rayon worker threads.
-- Clamps pixel values to valid dynamic ranges (`[0.0, 1.0]` for `F32`, `[0, 255]` for `U8`).
+- Clamps `U8` outputs to `[0, 255]`. `F32` outputs are not clamped, so `"bicubic"` can overshoot the input range slightly at sharp edges.

@@ -11,8 +11,8 @@ Encodes structured `Audio` or multidimensional sample `Tensor` directly into a c
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `dtype` / `format` / `bits` | `string` | `"i16"` | Target audio encoding in the WAV header: `"i16"` (16-bit PCM), `"f32"` (32-bit float), `"i24"` (24-bit PCM), `"i32"` (32-bit PCM), `"u8"` (8-bit PCM). |
-| `sample_rate` | `int` | *Audio sample rate* or `44100` | Optional sample rate override written to the WAV header. |
+| `dtype` / `format` / `bits` | `string` | `"i16"` | Target audio encoding in the WAV header: `"i16"` (16-bit PCM), `"f32"` (32-bit float), `"i24"` (24-bit PCM), `"i32"` (32-bit PCM), `"u8"` (8-bit PCM). (Positional arg 0). |
+| `sample_rate` / `rate` | `int` | *Audio sample rate* or `44100` | Optional sample rate override written to the WAV header. |
 | `clip` | `bool` | `true` | Clamp float samples to `[-1.0, 1.0]` before quantization to prevent integer overflow. |
 
 ## Behavior

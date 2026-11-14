@@ -17,8 +17,8 @@
 
 ## Behavior
 - Implements separable 1D horizontal and vertical convolution passes for $O(K \times W \times H)$ efficiency.
-- Normalizes kernel weights dynamically: $G(x) = \frac{1}{\sqrt{2\pi}\sigma} e^{-x^2 / (2\sigma^2)}$.
-- Replicates edge boundary pixels; parallelized per row across Rayon worker threads.
+- Uses kernel weights $e^{-x^2 / (2\sigma^2)}$ for $x \in [-\text{radius}, \text{radius}]$, normalized to sum to 1.
+- Replicates edge boundary pixels; OpenCV manages its own threading.
 
 ## OpenCV backend
 Uses shared OpenCV through the versioned `opencv-bridge` plugin. Declare `plugin opencv-bridge/0.1.2` in the pipeline and run `morflow prep`. Shape checking does not load OpenCV. See `actions/image_opencv/README.md` for installation, layout rules and numerical differences.

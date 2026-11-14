@@ -11,7 +11,7 @@ Converts structured `Audio` or multidimensional sample `Tensor` into a raw PCM b
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `dtype` / `format` | `string` | `"i16"` | Target integer or float PCM format: `"i16"`, `"f32"`, `"i24"`, `"i32"`, `"u8"`. |
+| `dtype` / `format` | `string` | `"i16"` | Target integer or float PCM format: `"i16"`, `"f32"`, `"i24"`, `"i32"`, `"u8"`. (Positional arg 0). |
 | `layout` | `string` | `"interleaved"` | Output memory buffer ordering: `"interleaved"` (packed frames) or `"planar"`. |
 | `clip` | `bool` | `true` | Clamp float samples to `[-1.0, 1.0]` before quantization to prevent integer overflow. |
 

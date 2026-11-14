@@ -4,7 +4,7 @@ Computes the matrix determinant $\det(A)$ of a square 2D matrix or batched matri
 
 ## Interface
 - **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Output Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Scalar` for a single matrix, `Payload::Tensor` for a batch)
 - **Supported DTypes**: Input `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`; output `F32`
 
 ## Parameters

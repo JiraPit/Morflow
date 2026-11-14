@@ -15,6 +15,6 @@ Short-Time Fourier Transform computing magnitude spectrograms via Radix-2 Cooley
 | `hop_size` / `hop_length` | `int` | `256` | Hop length in samples between successive STFT frames. |
 
 ## Behavior
-- Windows overlapping time frames using a periodic Hann window: $w[n] = 0.5(1 - \cos(2\pi n / (N - 1)))$.
-- Computes single-sided $(N/2 + 1)$ magnitude spectrum bins using in-place Radix-2 Cooley-Tukey FFT.
+- Windows overlapping `n_fft`-sample frames using a symmetric Hann window: $w[n] = 0.5(1 - \cos(2\pi n / (n_{fft} - 1)))$. Frames start at multiples of `hop_size` without padding.
+- Computes single-sided $(N/2 + 1)$ magnitude spectrum bins using in-place Radix-2 Cooley-Tukey FFT, where $N$ is the smallest power of two at least $\max(n_{fft}, 16)$; each frame is zero-padded to $N$.
 - Analysis frames computed concurrently across Rayon worker threads.

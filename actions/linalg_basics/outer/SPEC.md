@@ -3,7 +3,7 @@
 Computes the outer product between two 1D vectors ($u \otimes v = u v^T$, shape $[M, N]$).
 
 ## Interface
-- **Input Type**: `DataType::Composite` (`Payload::Composite([u, v])`)
+- **Input Type**: `DataType::Composite | DataType::Tensor` (`Payload::Composite([u, v])`, or a single `Payload::Tensor` `u` computed as `outer(u, u)`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`
 

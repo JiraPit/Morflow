@@ -11,11 +11,11 @@ Fast peak limiter and soft-clipping saturation for peak ceiling enforcement and 
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `ceiling_db` / `ceiling` | `float` | `-0.1` | Peak output ceiling in dBFS ($\le 0.0$, positional arg 0). |
+| `ceiling_db` / `ceiling` | `float` | `-0.1` | Peak output ceiling in dBFS ($\le 0.0$). |
 | `release_ms` / `release` | `float` | `50.0` | Peak envelope recovery release time in milliseconds. |
 | `mode` | `string` | `"brickwall"` | Limiting algorithm: `"brickwall"` or `"soft_clip"` (`"clip"`, `"saturate"`). |
 | `drive` | `float` | `1.0` | Saturation drive multiplier for soft-clipping mode. |
-| `sample_rate` | `float` | `44100.0` | Sampling rate in Hz (automatically read from `Payload::Audio` if present). |
+| `sample_rate` / `rate` | `float` | *Audio sample rate* | Sampling rate in Hz; overrides the rate read from the input `Payload::Audio`. |
 
 ## Behavior
 - In `"brickwall"` mode, tracks peak envelope with exponential release decay and clamps peaks strictly at the ceiling.

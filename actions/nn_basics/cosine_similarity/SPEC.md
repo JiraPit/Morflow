@@ -3,7 +3,7 @@
 Computes the cosine similarity between two tensors along a specified axis: $\frac{A \cdot B}{\|A\|_2 \|B\|_2}$.
 
 ## Interface
-- **Input Type**: `DataType::Composite` (`Payload::Composite([Tensor, Tensor])`)
+- **Input Type**: `DataType::Composite | DataType::Tensor` (`Payload::Composite([Tensor, Tensor])`, or a single `Payload::Tensor`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
 - **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 

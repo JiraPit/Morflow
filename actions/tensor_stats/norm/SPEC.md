@@ -3,8 +3,8 @@
 Computes the matrix or vector $p$-norm ($L_1$, $L_2$ Euclidean, or $L_\infty$).
 
 ## Interface
-- **Input Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
+- **Input Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
+- **Output Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
 - **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 
 ## DTypes
@@ -17,7 +17,7 @@ Computes the matrix or vector $p$-norm ($L_1$, $L_2$ Euclidean, or $L_\infty$).
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `p` | `float` / `string` | `2.0` | Order of the norm (`1.0`, `2.0`, `"inf"`). (Positional arg 0). |
-| `axis` / `dim` | `int` | *None* | Axis along which norm is computed. |
+| `axis` / `dim` | `int` | *None* | Axis along which norm is computed. (Positional arg 1). |
 | `keepdim` | `bool` | `false` | Whether to retain reduced dimension with size 1. |
 
 ## Behavior

@@ -18,7 +18,7 @@ Given a two-component `Composite` `[a, b]` the action computes `a / b`, broadcas
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `value` | `float` / `int` | `1.0` | Scalar divisor. (Positional arg 0). Must be omitted for a Composite input. |
+| `value` / `val` / `scalar` / `by` / `amount` | `float` / `int` | `1.0` | Scalar divisor. (Positional arg 0). Must be omitted for a Composite input. |
 
 ## Behavior
 - Parallel in-place COW division using Rayon across CPU cores.

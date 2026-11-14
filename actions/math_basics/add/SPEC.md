@@ -18,7 +18,7 @@ Given a two-component `Composite` `[a, b]` the action computes `a + b`, broadcas
 ## Parameters
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `value` | `float` / `int` | `0.0` | Scalar value added to every element. (Positional arg 0). Must be omitted for a Composite input. |
+| `value` / `val` / `scalar` / `amount` | `float` / `int` | `0.0` | Scalar value added to every element. (Positional arg 0). Must be omitted for a Composite input. |
 
 ## Behavior
 - Parallel in-place COW mutation using Rayon across CPU cores.
