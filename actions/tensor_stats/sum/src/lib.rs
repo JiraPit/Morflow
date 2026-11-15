@@ -1,5 +1,6 @@
+use core_types::numeric::{self, FloatElement, IntElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -119,45 +120,63 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// Floats keep their dtype; signed integers sum into I64 and unsigned ones
+/// into U64, wrapping on overflow like NumPy.
 fn reduce_sum(
     tensor: &Tensor,
     axis: Option<usize>,
     out_shape: Vec<usize>,
 ) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            if I::SIGNED {
+                sum_int::<I, i64>(&vals, &tensor.shape, axis, out_shape)
+            } else {
+                sum_int::<I, u64>(&vals, &tensor.shape, axis, out_shape)
+            }
+        },
+        float F => sum_float::<F>(tensor.to_vec_of::<F>().unwrap_or_default(), &tensor.shape, axis, out_shape),
+    )
+}
 
-    if let Some(ax) = axis {
-        let outer_size: usize = tensor.shape[0..ax].iter().product();
-        let axis_len = tensor.shape[ax];
-        let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
+fn sum_float<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    axis: Option<usize>,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
+    let out = match axis {
+        Some(ax) => numeric::reduce_axis(&vals, shape, ax, |lane: &[T]| {
+            let mut acc = T::zero();
+            for &v in lane {
+                acc = acc + v;
+            }
+            acc
+        }),
+        None => vec![vals.par_iter().copied().sum::<T>()],
+    };
+    Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
+}
 
-        let out_len = outer_size * inner_size;
-        if out_len == 0 {
-            return Tensor::from_f32_vec(Vec::new(), out_shape).map_err(|e| e.to_string());
-        }
-        let mut out_vals = vec![0.0f32; out_len];
-
-        out_vals
-            .par_chunks_mut(inner_size)
-            .enumerate()
-            .for_each(|(outer_idx, slice)| {
-                for (inner_idx, slot) in slice.iter_mut().enumerate() {
-                    let mut acc = 0.0f32;
-                    for a in 0..axis_len {
-                        let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                        acc += vals[in_idx];
-                    }
-                    *slot = acc;
-                }
-            });
-
-        Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
-    } else {
-        let total: f32 = vals.par_iter().sum();
-        let shape = out_shape;
-        Tensor::from_f32_vec(vec![total], shape).map_err(|e| e.to_string())
-    }
+fn sum_int<I: IntElement, A: IntElement>(
+    vals: &[I],
+    shape: &[usize],
+    axis: Option<usize>,
+    out_shape: Vec<usize>,
+) -> Result<Tensor, String> {
+    let zero = A::from_i128(0);
+    let out = match axis {
+        Some(ax) => numeric::reduce_axis(vals, shape, ax, |lane: &[I]| {
+            lane.iter()
+                .fold(zero, |acc, v| acc.wrapping_add(A::from_i128(v.to_i128())))
+        }),
+        None => vec![vals
+            .par_iter()
+            .map(|v| A::from_i128(v.to_i128()))
+            .reduce(|| zero, |a, b| a.wrapping_add(b))],
+    };
+    Tensor::from_vec_of(out, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

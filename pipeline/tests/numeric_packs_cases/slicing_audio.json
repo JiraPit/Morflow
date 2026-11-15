@@ -1,0 +1,1082 @@
+[
+ {
+  "name": "1-channel planar audio [-4:]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-4:] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4
+   ],
+   "values": [
+    -0.5,
+    0.0,
+    0.25,
+    -0.125
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [::-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    10
+   ],
+   "values": [
+    -0.125,
+    0.25,
+    0.0,
+    -0.5,
+    0.75,
+    -1.0,
+    1.0,
+    0.125,
+    -0.25,
+    0.5
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    -0.125
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [::-3]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-3] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4
+   ],
+   "values": [
+    -0.125,
+    -0.5,
+    1.0,
+    0.5
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [-20:3]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-20:3] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0.5,
+    -0.25,
+    0.125
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [7:3:-2]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[7:3:-2] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.0,
+    0.75
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "1-channel planar audio [-3:][-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-3:][-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    -0.125
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [:, -3:]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[:, -3:] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.1875,
+    -0.125,
+    -0.0625,
+    0.3125,
+    0.375,
+    0.4375
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [::-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    8
+   ],
+   "values": [
+    0.0,
+    0.0625,
+    0.125,
+    0.1875,
+    0.25,
+    0.3125,
+    0.375,
+    0.4375,
+    -0.5,
+    -0.4375,
+    -0.375,
+    -0.3125,
+    -0.25,
+    -0.1875,
+    -0.125,
+    -0.0625
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    8
+   ],
+   "values": [
+    0.0,
+    0.0625,
+    0.125,
+    0.1875,
+    0.25,
+    0.3125,
+    0.375,
+    0.4375
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [:, ::-2]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[:, ::-2] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    4
+   ],
+   "values": [
+    -0.0625,
+    -0.1875,
+    -0.3125,
+    -0.4375,
+    0.4375,
+    0.3125,
+    0.1875,
+    0.0625
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [-1, -2:]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-1, -2:] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.375,
+    0.4375
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [-1, -1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-1, -1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    0.4375
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "2-channel planar audio [::-1, -1:-9:-3]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-1, -1:-9:-3] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.4375,
+    0.25,
+    0.0625,
+    -0.0625,
+    -0.25,
+    -0.4375
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "planar"
+  }
+ },
+ {
+  "name": "2-channel interleaved audio [-3:]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-3:] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8,
+      2
+     ],
+     "values": [
+      -0.25,
+      -0.21875,
+      -0.1875,
+      -0.15625,
+      -0.125,
+      -0.09375,
+      -0.0625,
+      -0.03125,
+      0.0,
+      0.03125,
+      0.0625,
+      0.09375,
+      0.125,
+      0.15625,
+      0.1875,
+      0.21875
+     ],
+     "rate": 16000,
+     "layout": "interleaved"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3,
+    2
+   ],
+   "values": [
+    0.0625,
+    0.09375,
+    0.125,
+    0.15625,
+    0.1875,
+    0.21875
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "interleaved"
+  }
+ },
+ {
+  "name": "2-channel interleaved audio [::-2, :]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-2, :] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8,
+      2
+     ],
+     "values": [
+      -0.25,
+      -0.21875,
+      -0.1875,
+      -0.15625,
+      -0.125,
+      -0.09375,
+      -0.0625,
+      -0.03125,
+      0.0,
+      0.03125,
+      0.0625,
+      0.09375,
+      0.125,
+      0.15625,
+      0.1875,
+      0.21875
+     ],
+     "rate": 16000,
+     "layout": "interleaved"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    4,
+    2
+   ],
+   "values": [
+    0.1875,
+    0.21875,
+    0.0625,
+    0.09375,
+    -0.0625,
+    -0.03125,
+    -0.1875,
+    -0.15625
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "interleaved"
+  }
+ },
+ {
+  "name": "2-channel interleaved audio [::-1, ::-1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::-1, ::-1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8,
+      2
+     ],
+     "values": [
+      -0.25,
+      -0.21875,
+      -0.1875,
+      -0.15625,
+      -0.125,
+      -0.09375,
+      -0.0625,
+      -0.03125,
+      0.0,
+      0.03125,
+      0.0625,
+      0.09375,
+      0.125,
+      0.15625,
+      0.1875,
+      0.21875
+     ],
+     "rate": 16000,
+     "layout": "interleaved"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    8,
+    2
+   ],
+   "values": [
+    0.21875,
+    0.1875,
+    0.15625,
+    0.125,
+    0.09375,
+    0.0625,
+    0.03125,
+    0.0,
+    -0.03125,
+    -0.0625,
+    -0.09375,
+    -0.125,
+    -0.15625,
+    -0.1875,
+    -0.21875,
+    -0.25
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "interleaved"
+  }
+ },
+ {
+  "name": "2-channel interleaved audio [-1, -1]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-1, -1] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8,
+      2
+     ],
+     "values": [
+      -0.25,
+      -0.21875,
+      -0.1875,
+      -0.15625,
+      -0.125,
+      -0.09375,
+      -0.0625,
+      -0.03125,
+      0.0,
+      0.03125,
+      0.0625,
+      0.09375,
+      0.125,
+      0.15625,
+      0.1875,
+      0.21875
+     ],
+     "rate": 16000,
+     "layout": "interleaved"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [],
+   "values": [
+    0.21875
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "2-channel interleaved audio [-100:-5]",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-100:-5] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8,
+      2
+     ],
+     "values": [
+      -0.25,
+      -0.21875,
+      -0.1875,
+      -0.15625,
+      -0.125,
+      -0.09375,
+      -0.0625,
+      -0.03125,
+      0.0,
+      0.03125,
+      0.0625,
+      0.09375,
+      0.125,
+      0.15625,
+      0.1875,
+      0.21875
+     ],
+     "rate": 16000,
+     "layout": "interleaved"
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    3,
+    2
+   ],
+   "values": [
+    -0.25,
+    -0.21875,
+    -0.1875,
+    -0.15625,
+    -0.125,
+    -0.09375
+   ],
+   "kind": "audio",
+   "rate": 16000,
+   "layout": "interleaved"
+  }
+ },
+ {
+  "name": "planar audio [10] is an error",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[10] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "planar audio [-11] is an error",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-11] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "planar audio [::0] is an error",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[::0] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      10
+     ],
+     "values": [
+      0.5,
+      -0.25,
+      0.125,
+      1.0,
+      -1.0,
+      0.75,
+      -0.5,
+      0.0,
+      0.25,
+      -0.125
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "planar audio [-3] is an error",
+  "type": "run",
+  "morf": "accept Audio $x\n$x[-3] >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      8
+     ],
+     "values": [
+      -0.5,
+      -0.4375,
+      -0.375,
+      -0.3125,
+      -0.25,
+      -0.1875,
+      -0.125,
+      -0.0625,
+      0.0,
+      0.0625,
+      0.125,
+      0.1875,
+      0.25,
+      0.3125,
+      0.375,
+      0.4375
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ }
+]

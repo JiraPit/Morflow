@@ -28,6 +28,38 @@ impl TensorDType {
             TensorDType::I64 | TensorDType::U64 | TensorDType::F64 => 8,
         }
     }
+
+    /// Short lowercase name used by the host bindings: `"f32"`, `"i64"`, …
+    pub const fn name(&self) -> &'static str {
+        match self {
+            TensorDType::U8 => "u8",
+            TensorDType::I8 => "i8",
+            TensorDType::I16 => "i16",
+            TensorDType::I32 => "i32",
+            TensorDType::I64 => "i64",
+            TensorDType::U32 => "u32",
+            TensorDType::U64 => "u64",
+            TensorDType::F32 => "f32",
+            TensorDType::F64 => "f64",
+        }
+    }
+
+    /// Parses a dtype name, accepting the short names from [`TensorDType::name`]
+    /// and the NumPy-style long names (`"float32"`, `"int64"`, `"uint8"`, …).
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name.to_ascii_lowercase().as_str() {
+            "u8" | "uint8" | "byte" => Some(TensorDType::U8),
+            "i8" | "int8" => Some(TensorDType::I8),
+            "i16" | "int16" => Some(TensorDType::I16),
+            "i32" | "int32" => Some(TensorDType::I32),
+            "i64" | "int64" => Some(TensorDType::I64),
+            "u32" | "uint32" => Some(TensorDType::U32),
+            "u64" | "uint64" => Some(TensorDType::U64),
+            "f32" | "float32" | "float" => Some(TensorDType::F32),
+            "f64" | "float64" | "double" => Some(TensorDType::F64),
+            _ => None,
+        }
+    }
 }
 
 /// A high-performance, zero-copy, multi-dimensional tensor view across FFI boundaries.
@@ -342,14 +374,91 @@ impl Tensor {
                 });
         }
 
-        let strides = compute_c_contiguous_strides(&new_shape, elem_size);
-        Ok(Self {
+        // The blocks above are laid out with the new axis first. For any
+        // other axis, move it into place and materialise the C-order layout.
+        let mut leading_shape = base_shape.to_vec();
+        leading_shape.insert(0, tensors.len());
+        let strides = compute_c_contiguous_strides(&leading_shape, elem_size);
+        let stacked = Self {
             storage: RArc::new(RVec::from(combined_bytes)),
             byte_offset: 0,
-            shape: RVec::from(new_shape),
+            shape: RVec::from(leading_shape),
             strides,
             dtype,
-        })
+        };
+        if insert_axis == 0 {
+            return Ok(stacked);
+        }
+        let mut order: Vec<usize> = (1..new_shape.len()).collect();
+        order.insert(insert_axis, 0);
+        let moved = stacked.permute(&order)?;
+        Self::from_rvec_u8(moved.to_contiguous_bytes(), new_shape, dtype)
+    }
+
+    /// Slices `axis` with Python/NumPy semantics: negative positions count
+    /// from the end, out-of-range bounds are clamped, and a negative step walks
+    /// backwards. Returns a zero-copy view for positive steps and a contiguous
+    /// copy for negative ones.
+    pub fn slice_python(
+        &self,
+        axis: usize,
+        start: Option<i64>,
+        stop: Option<i64>,
+        step: Option<i64>,
+    ) -> Result<Self, RString> {
+        if axis >= self.shape.len() {
+            return Err(RString::from(format!(
+                "Axis {} out of bounds for tensor of rank {}",
+                axis,
+                self.shape.len()
+            )));
+        }
+        let (first, step, len) = resolve_python_slice(self.shape[axis], start, stop, step)?;
+        let axis_stride = self.strides[axis];
+        let mut new_shape = self.shape.clone();
+        new_shape[axis] = len;
+        let mut new_strides = self.strides.clone();
+        new_strides[axis] = if len <= 1 {
+            axis_stride
+        } else {
+            axis_stride * step
+        };
+        let byte_offset = if len == 0 {
+            self.byte_offset
+        } else {
+            (self.byte_offset as isize + first as isize * axis_stride) as usize
+        };
+        let view = Self {
+            storage: self.storage.clone(),
+            byte_offset,
+            shape: new_shape,
+            strides: new_strides,
+            dtype: self.dtype,
+        };
+        if step < 0 {
+            let shape = view.shape.to_vec();
+            return Self::from_rvec_u8(view.to_contiguous_bytes(), shape, self.dtype);
+        }
+        Ok(view)
+    }
+
+    /// Selects one position of `axis` with Python semantics (negative counts
+    /// from the end), removing the axis.
+    pub fn index_python(&self, axis: usize, index: i64) -> Result<Self, RString> {
+        if axis >= self.shape.len() {
+            return Err(RString::from(format!(
+                "Too many indices: axis {} does not exist for a rank-{} value",
+                axis,
+                self.shape.len()
+            )));
+        }
+        let position = resolve_python_index(self.shape[axis], index).ok_or_else(|| {
+            RString::from(format!(
+                "Index {} is out of bounds for axis {} with size {}",
+                index, axis, self.shape[axis]
+            ))
+        })?;
+        self.slice_axis_index(axis, position)
     }
 
     /// Access contiguous byte slice if this view is contiguous in memory.
@@ -683,63 +792,40 @@ impl Tensor {
         self.reshape(new_shape)
     }
 
-    /// Casts the tensor data type to `target_dtype`.
+    /// Casts the tensor data type to `target_dtype`, for any pair of dtypes.
+    ///
+    /// Into a float, each value is rounded at most once. Into an integer,
+    /// floats are rounded to the nearest whole number (NaN becomes 0), and
+    /// every value is clamped to the target's range.
     pub fn cast(&self, target_dtype: TensorDType) -> Result<Self, RString> {
+        use crate::numeric::{Element, IntElement};
+
         if self.dtype == target_dtype {
             return Ok(self.clone());
         }
 
-        let total = self.num_elements();
-        let f32_vals = self.to_vec_f32();
-
-        match target_dtype {
-            TensorDType::F32 => Self::from_f32_vec(f32_vals, self.shape.to_vec()),
-            TensorDType::U8 => {
-                let u8_vec: Vec<u8> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(0.0, 255.0).round() as u8)
-                    .collect();
-                Self::from_rvec_u8(RVec::from(u8_vec), self.shape.to_vec(), TensorDType::U8)
-            }
-            TensorDType::I32 => {
-                let i32_vec: Vec<i32> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32)
-                    .collect();
-                Self::from_i32_vec(i32_vec, self.shape.to_vec())
-            }
-            TensorDType::F64 => {
-                let f64_vec: Vec<f64> = f32_vals.par_iter().map(|&x| x as f64).collect();
-                let byte_len = total * 8;
-                let mut bytes = vec![0u8; byte_len];
-                bytes
-                    .par_chunks_exact_mut(8)
-                    .zip(f64_vec.par_iter())
-                    .for_each(|(chunk, &val)| {
-                        chunk.copy_from_slice(&val.to_ne_bytes());
-                    });
-                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::F64)
-            }
-            TensorDType::I16 => {
-                let i16_vec: Vec<i16> = f32_vals
-                    .par_iter()
-                    .map(|&x| x.clamp(i16::MIN as f32, i16::MAX as f32).round() as i16)
-                    .collect();
-                let byte_len = total * 2;
-                let mut bytes = vec![0u8; byte_len];
-                bytes
-                    .par_chunks_exact_mut(2)
-                    .zip(i16_vec.par_iter())
-                    .for_each(|(chunk, &val)| {
-                        chunk.copy_from_slice(&val.to_ne_bytes());
-                    });
-                Self::from_rvec_u8(RVec::from(bytes), self.shape.to_vec(), TensorDType::I16)
-            }
-            _ => Err(RString::from(format!(
-                "Unsupported cast to target dtype {:?}",
-                target_dtype
-            ))),
+        fn to_int<I: IntElement>(source: &Tensor) -> Vec<I> {
+            crate::match_dtype!(source.dtype,
+                int S => source
+                    .to_vec_of::<S>()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|v| I::from_i128(v.to_i128().clamp(I::MIN_I128, I::MAX_I128)))
+                    .collect(),
+                float F => source
+                    .to_vec_of::<F>()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|v| I::from_f64(v.to_f64().round()))
+                    .collect(),
+            )
         }
+
+        let shape = self.shape.to_vec();
+        crate::match_dtype!(target_dtype,
+            int I => Self::from_vec_of(to_int::<I>(self), shape),
+            float F => Self::from_vec_of(self.to_vec_as::<F>(), shape),
+        )
     }
 
     /// Concatenates multiple tensors along `axis`.
@@ -1069,6 +1155,76 @@ impl Tensor {
 }
 
 /// Helper to compute C-contiguous (row-major) byte strides for a given shape and element size.
+/// Resolves a Python index against a dimension of length `len`.
+pub fn resolve_python_index(len: usize, index: i64) -> Option<usize> {
+    let len = len as i128;
+    let index = index as i128;
+    let resolved = if index < 0 { index + len } else { index };
+    (0..len).contains(&resolved).then_some(resolved as usize)
+}
+
+/// Resolves a Python slice `start:stop:step` against a dimension of length
+/// `len`, returning the first position, the step and the number of elements.
+pub fn resolve_python_slice(
+    len: usize,
+    start: Option<i64>,
+    stop: Option<i64>,
+    step: Option<i64>,
+) -> Result<(usize, isize, usize), RString> {
+    let step = step.unwrap_or(1) as i128;
+    if step == 0 {
+        return Err(RString::from("Slice step cannot be zero"));
+    }
+    let n = len as i128;
+    let adjust = |value: Option<i64>, default: i128| -> i128 {
+        match value {
+            None => default,
+            Some(v) => {
+                let v = v as i128;
+                if v < 0 {
+                    let v = v + n;
+                    if v < 0 {
+                        if step < 0 {
+                            -1
+                        } else {
+                            0
+                        }
+                    } else {
+                        v
+                    }
+                } else if v >= n {
+                    if step < 0 {
+                        n - 1
+                    } else {
+                        n
+                    }
+                } else {
+                    v
+                }
+            }
+        }
+    };
+    let (start, stop) = if step > 0 {
+        (adjust(start, 0), adjust(stop, n))
+    } else {
+        (adjust(start, n - 1), adjust(stop, -1))
+    };
+    let count = if step > 0 {
+        if start < stop {
+            (stop - start - 1) / step + 1
+        } else {
+            0
+        }
+    } else if stop < start {
+        (start - stop - 1) / (-step) + 1
+    } else {
+        0
+    };
+    let first = if count == 0 { 0 } else { start as usize };
+    let step = isize::try_from(step).map_err(|_| RString::from("Slice step is too large"))?;
+    Ok((first, step, count as usize))
+}
+
 pub fn compute_c_contiguous_strides(shape: &[usize], elem_size: usize) -> RVec<isize> {
     let mut strides = vec![0isize; shape.len()];
     let mut current_stride = elem_size as isize;

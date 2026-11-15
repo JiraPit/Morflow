@@ -1,0 +1,10 @@
+from audio_basics/0.2.3 import to_audio, resample, biquad_filter, normalize, stft, to_wav
+
+accept Bytes $wav
+
+# Decode, resample to 16 kHz, remove rumble below 80 Hz, and peak-normalize.
+$wav >> to_audio >> resample(to_rate=16000) >> biquad_filter(type="highpass", freq=80.0) >> normalize(mode="peak", target_peak=0.9) >> $clean
+
+# Two consumers of the cleaned audio: a spectrogram and a re-encoded WAV.
+$clean >> stft(n_fft=512, hop_size=160) >> emit("spectrogram")
+$clean >> to_wav >> emit("wav")

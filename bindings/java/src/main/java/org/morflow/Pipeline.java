@@ -82,7 +82,7 @@ public class Pipeline implements AutoCloseable {
      *
      * @param directBuffer Direct byte buffer allocated via {@link ByteBuffer#allocateDirect(int)}.
      * @param shape Dimensions array (e.g. [H, W, C] or [channels, samples]).
-     * @param dtype Data type ("f32", "u8", "i32", "raw").
+     * @param dtype Data type ("f32", "f64", "u8", "i8", "i16", "i32", "i64", "u32", "u64", or "raw" for bytes).
      * @return Single emitted output tensor.
      */
     public MorflowTensor run(ByteBuffer directBuffer, int[] shape, String dtype) {
@@ -97,7 +97,7 @@ public class Pipeline implements AutoCloseable {
      *
      * @param directBuffer Direct byte buffer allocated via {@link ByteBuffer#allocateDirect(int)}.
      * @param shape        Dimensions array (e.g. [H, W, C] or [channels, samples]).
-     * @param dtype        Data type ("f32", "u8", "i32", "raw").
+     * @param dtype        Data type ("f32", "f64", "u8", "i8", "i16", "i32", "i64", "u32", "u64", or "raw" for bytes).
      * @param payloadType  "tensor", "image", or "audio". Null means a plain tensor.
      * @param colorSpace   Color space for "image" ("grayscale", "rgb", "rgba", "bgr", "bgra").
      * @param layout       "hwc"/"chw" for images, "planar"/"interleaved" for audio.
@@ -143,7 +143,8 @@ public class Pipeline implements AutoCloseable {
 
     /**
      * Executes the pipeline with positional parameters bound in declaration
-     * order. Each value is a {@link MorflowTensor}, a {@code byte[]} (raw
+     * order. Each value is a {@link MorflowTensor} (including a
+     * {@link MorflowTensor#composite Composite}), a {@code byte[]} (raw
      * bytes), a number ({@code Scalar} or {@code *Arg}), a {@link String}
      * ({@code StrArg}), or a {@link Boolean} ({@code BoolArg}). Parameters
      * without a supplied value use their declared default.

@@ -1,23 +1,53 @@
+use core_types::numeric::{self, BinaryOp, Element, FloatElement, IntElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
+use core_types::{
+    match_dtype, DataType, Payload, Tensor, TensorDType, ValueShape, ValueShapeResult,
+};
 use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
-    DataType::Tensor | DataType::Scalar
+    DataType::Tensor | DataType::Scalar | DataType::Composite
 }
 
 #[no_mangle]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
-fn shape_impl(input: Shape, _args: PreparedArgs) -> Shape {
-    input
+
+/// The scalar argument, if one was given.
+fn value_arg(args: &core_types::ActionArgs) -> Option<&str> {
+    args.get_named("exponent")
+        .or_else(|| args.get_named("power"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
 }
 
-pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeResult {
+/// A Tensor or Scalar with a scalar argument keeps its shape; a Composite
+/// `[a, b]` broadcasts like NumPy.
+pub fn get_output_value_shape<A: Into<PreparedArgs>>(
+    input: ValueShape,
+    args: A,
+) -> ValueShapeResult {
     let args = args.into();
-    shape_impl(input, args).into()
+    core_types::composite_contract::elementwise(input, value_arg(&args).is_some())
+}
+
+/// `a ** b` between two tensors.
+struct Op;
+
+impl BinaryOp for Op {
+    fn float<T: FloatElement>(&self, a: T, b: T) -> T {
+        a.powf(b)
+    }
+    fn int<I: IntElement>(&self, a: I, b: I) -> I {
+        a.wrapping_pow_u64(b.to_i128() as u64)
+    }
+    fn check_int<I: IntElement>(&self, rhs: &[I]) -> Result<(), String> {
+        if rhs.iter().any(|e| e.to_i128() < 0) {
+            return Err("Action 'pow': integers cannot be raised to a negative exponent".into());
+        }
+        Ok(())
+    }
 }
 
 #[no_mangle]
@@ -26,32 +56,77 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
 }
 
 fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
-
-    let mut exponent = 1.0f32;
-    if let Some(args) = &args_opt {
-        if let Some(exp_str) = args
-            .get_named("exponent")
-            .or_else(|| args.get_named("power"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(exp) = prepared.args.parse::<f32>(exp_str) {
-                exponent = exp;
-            }
-        }
-    }
+    let inner_payload = payload.into_unwrapped();
+    let value = value_arg(&prepared.args);
 
     match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_iter_mut().for_each(|x| *x = x.powf(exponent));
-            Payload::from_tensor(tensor)
+        Payload::Composite(items) => {
+            if value.is_some() {
+                return Payload::Error(
+                    "Action 'pow' cannot combine a Composite input [a, b] with a scalar argument"
+                        .into(),
+                );
+            }
+            match numeric::apply_binary(&items, "pow", &Op) {
+                Ok(out) => out,
+                Err(e) => Payload::Error(e.into()),
+            }
+        }
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match with_scalar(tensor, value, &prepared) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e.into()),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
-            "Action \'pow\' requires a tensor or scalar value",
+            "Action \'pow\' requires a tensor or scalar value, or a Composite [a, b]",
         )),
+    }
+}
+
+/// The scalar-argument form: `x ** value` for every element.
+fn with_scalar(
+    mut tensor: Tensor,
+    value: Option<&str>,
+    prepared: &core_types::PreparedData,
+) -> Result<Tensor, String> {
+    match tensor.dtype {
+        TensorDType::F32 => {
+            let mut exponent = 1.0f32;
+            if let Some(v_str) = value {
+                if let Ok(v) = prepared.args.parse::<f32>(v_str) {
+                    exponent = v;
+                }
+            }
+            let slice = tensor.as_f32_slice_mut();
+            slice.par_iter_mut().for_each(|x| *x = x.powf(exponent));
+            Ok(tensor)
+        }
+        TensorDType::F64 => {
+            let exponent = value.and_then(|v| v.parse::<f64>().ok()).unwrap_or(1.0);
+            tensor
+                .map_same::<f64>(|x| x.powf(exponent))
+                .map_err(|e| e.to_string())
+        }
+        dtype => match_dtype!(dtype,
+            int I => {
+                let exponent: u64 = match value {
+                    Some(text) => {
+                        if numeric::parse_whole(text).is_some_and(|e| e < 0) {
+                            return Err(format!(
+                                "Action 'pow': an integer tensor cannot be raised to a negative exponent ({text})"
+                            ));
+                        }
+                        numeric::int_arg::<I>("pow", "exponent", text)?.to_i128() as u64
+                    }
+                    None => 1,
+                };
+                tensor
+                    .map_same::<I>(|x| x.wrapping_pow_u64(exponent))
+                    .map_err(|e| e.to_string())
+            },
+            float F => unreachable!("float dtypes are handled above"),
+        ),
     }
 }
 
@@ -66,8 +141,8 @@ pub extern "C" fn shapecheck(
         env!("CARGO_PKG_NAME"),
         get_input_type(),
         get_output_type(),
-        Some(get_output_shape),
         None,
+        Some(get_output_value_shape),
     )
 }
 

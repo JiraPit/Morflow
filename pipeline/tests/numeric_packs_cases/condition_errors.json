@@ -1,0 +1,725 @@
+[
+ {
+  "name": "width of a rank-1 tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.width > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      6
+     ],
+     "values": [
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "channels of a rank-2 tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.channels > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "height of a rank-1 tensor",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.height < 100) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      6
+     ],
+     "values": [
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "StrArg that is not a number",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept StrArg $s\n$x >> if ($s > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "abc"
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "StrArg that is not a number on the right",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept StrArg $s\n$x >> if (1 < $s) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "abc"
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "route arm that cannot be evaluated",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept StrArg $s\n$x >> route {\n$s > 1 => { neg }\nelse => { abs }\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "abc"
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "if ($x.bogus > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.bogus > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.widht > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.widht > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if (1 < $x) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if (1 < $x) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if (\"a\" == \"b\") on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if (\"a\" == \"b\") {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.width == \"3\") on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.width == \"3\") {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if (true == 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if (true == 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.sample_rate > 1) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.sample_rate > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.duration > 0) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.duration > 0) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.num_samples > 0) on Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.num_samples > 0) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "width of a declared Tensor[6]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[6] $x\n$x >> if ($x.width > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      6
+     ],
+     "values": [
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      5.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "channels of a declared Tensor[2,3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> if ($x.channels > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "width of an IntArg",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept IntArg $n\n$x >> if ($n.width > 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "3"
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "route arm with an unknown field",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor[2,3] $x\n$x >> route {\n$x.bogus > 1 => { neg }\nelse => { abs }\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.sample_rate > 1) on Image",
+  "type": "run",
+  "morf": "accept Image $x\n$x >> if ($x.sample_rate > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3,
+      3
+     ],
+     "values": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x > 1) on Image",
+  "type": "run",
+  "morf": "accept Image $x\n$x >> if ($x > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "inputs": [
+   {
+    "image": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3,
+      3
+     ],
+     "values": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "color": "rgb",
+     "layout": "hwc"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.width > 1) on Audio",
+  "type": "run",
+  "morf": "accept Audio $x\n$x >> if ($x.width > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x.height > 1) on Audio",
+  "type": "run",
+  "morf": "accept Audio $x\n$x >> if ($x.height > 1) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ },
+ {
+  "name": "if ($x > 0) on Audio",
+  "type": "run",
+  "morf": "accept Audio $x\n$x >> if ($x > 0) {\nbase/latest/identity\n} else {\nbase/latest/identity\n} >> emit\n",
+  "inputs": [
+   {
+    "audio": {
+     "dtype": "f32",
+     "shape": [
+      8
+     ],
+     "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "rate": 16000,
+     "layout": "planar"
+    }
+   }
+  ],
+  "expect": {
+   "error": "static"
+  }
+ }
+]

@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, IntElement, SameUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -25,24 +25,35 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
+/// The sign of `x` (-1, 0 or 1); NaN stays NaN.
+struct Op;
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_iter_mut().for_each(|x| {
-                *x = if *x > 0.0 {
-                    1.0
-                } else if *x < 0.0 {
-                    -1.0
-                } else {
-                    0.0
-                };
-            });
-            Payload::from_tensor(tensor)
+impl SameUnary for Op {
+    #[inline]
+    fn float<T: FloatElement>(&self, x: T) -> T {
+        if x > T::zero() {
+            T::one()
+        } else if x < T::zero() {
+            -T::one()
+        } else if x.is_nan() {
+            x
+        } else {
+            T::zero()
+        }
+    }
+    #[inline]
+    fn int<I: IntElement>(&self, x: I) -> I {
+        x.sign()
+    }
+}
+
+fn process_impl(payload: Payload, _prepared: core_types::PreparedData) -> Payload {
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_same_unary(tensor, &Op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'sign\' requires a tensor or scalar value",

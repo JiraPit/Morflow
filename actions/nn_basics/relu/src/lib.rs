@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, IntElement, SameUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -11,7 +11,6 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
-
 fn shape_impl(input: Shape, _args: PreparedArgs) -> Shape {
     input
 }
@@ -26,16 +25,31 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `max(x, 0)`; NaN stays NaN and integers keep their dtype.
+struct Op;
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_iter_mut().for_each(|x| *x = x.max(0.0));
-            Payload::from_tensor(tensor)
+impl SameUnary for Op {
+    #[inline]
+    fn float<T: FloatElement>(&self, x: T) -> T {
+        if x.is_nan() {
+            x
+        } else {
+            x.max(T::zero())
+        }
+    }
+    #[inline]
+    fn int<I: IntElement>(&self, x: I) -> I {
+        x.max(I::from_i128(0))
+    }
+}
+
+fn process_impl(payload: Payload, _prepared: core_types::PreparedData) -> Payload {
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_same_unary(tensor, &Op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'relu\' requires a tensor or scalar value",

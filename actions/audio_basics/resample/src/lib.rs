@@ -139,7 +139,7 @@ fn resample_channel_sinc(
         for j in left_idx..=right_idx {
             if j >= 0 && (j as usize) < input.len() {
                 let dt = (j as f32) - center_in;
-                // Blackman-Harris window
+                // Hann window
                 let norm_t = dt / (filter_half_len as f32);
                 if norm_t.abs() <= 1.0 {
                     let w = 0.5 * (1.0 + (PI * norm_t).cos());

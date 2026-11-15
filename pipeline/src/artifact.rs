@@ -126,6 +126,30 @@ impl ArtifactReceipt {
     }
 }
 
+/// Names of the actions whose binaries for `platform` appear among release asset `names`.
+pub fn action_names<'a>(
+    names: impl IntoIterator<Item = &'a String>,
+    version: &str,
+    platform: &str,
+) -> Vec<String> {
+    let suffix = format!(
+        "_action-{}-{}.{}",
+        version,
+        platform,
+        if platform.starts_with("windows-") {
+            "dll"
+        } else if platform.starts_with("darwin-") {
+            "dylib"
+        } else {
+            "so"
+        }
+    );
+    names
+        .into_iter()
+        .filter_map(|n| n.strip_suffix(&suffix).map(str::to_owned))
+        .collect()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseCatalog {
     pub pack: String,
@@ -136,22 +160,7 @@ pub struct ReleaseCatalog {
 }
 impl ReleaseCatalog {
     pub fn actions(&self, platform: &str) -> Vec<String> {
-        let suffix = format!(
-            "_action-{}-{}.{}",
-            self.concrete_version,
-            platform,
-            if platform.starts_with("windows-") {
-                "dll"
-            } else if platform.starts_with("darwin-") {
-                "dylib"
-            } else {
-                "so"
-            }
-        );
-        self.checksums
-            .keys()
-            .filter_map(|n| n.strip_suffix(&suffix).map(str::to_owned))
-            .collect()
+        action_names(self.checksums.keys(), &self.concrete_version, platform)
     }
     pub fn path(root: &Path, pack: &str, version: &str) -> PathBuf {
         root.join(pack)

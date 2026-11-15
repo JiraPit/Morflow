@@ -16,8 +16,9 @@ Color grading and photographic tone adjustments (brightness, contrast, gamma, sa
 | `gamma` | `float` | `1.0` | Non-linear power-law gamma correction ($\gamma > 0$). |
 | `saturation` / `sat` | `float` | `1.0` | Rec.601 luma-weighted color saturation multiplier. |
 | `exposure` | `float` | `0.0` | Exposure adjustment in EV stops ($2^{\text{exposure}}$). |
+| `color` / `color_space` | `string` | `"rgb"` | Channel order of the input for the saturation luma: `"rgb"`, `"rgba"`, `"bgr"`, or `"bgra"`. An unknown value is an error. |
 
 ## Behavior
 - Executes photographic color adjustment pipeline: exposure $\rightarrow$ contrast $\rightarrow$ brightness $\rightarrow$ gamma $\rightarrow$ saturation.
-- Uses ITU-R BT.601 luma coefficients ($Y = 0.299R + 0.587G + 0.114B$) for RGB saturation interpolation.
+- Uses ITU-R BT.601 luma coefficients ($Y = 0.299R + 0.587G + 0.114B$) for saturation interpolation, applied to the channels in the order given by `color`.
 - Parallelized across pixel rows/chunks via Rayon; clamps output values to standard dynamic ranges.

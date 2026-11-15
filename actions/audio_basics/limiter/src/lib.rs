@@ -113,6 +113,7 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
         if let Some(c) = args
             .get_named("ceiling_db")
             .or_else(|| args.get_named("ceiling"))
+            .or_else(|| args.positional.first().map(|s| s.as_str()))
         {
             if let Ok(v) = prepared.args.parse::<f32>(c) {
                 ceiling_db = v;
@@ -214,5 +215,32 @@ mod tests {
         } else {
             panic!("Expected Payload::Audio");
         }
+    }
+
+    #[test]
+    fn test_limiter_takes_the_ceiling_positionally() {
+        let samples = vec![0.9f32, -0.8, 0.95, -0.2];
+        let run = |positional: Vec<&str>, named: Vec<(&str, &str)>| {
+            let audio = Audio::from_f32_planar(&samples, 1, 44100).unwrap();
+            let mut named_args = core_types::RVec::new();
+            for (name, value) in named {
+                named_args.push(Tuple2(RString::from(name), RString::from(value)));
+            }
+            match process(Payload::WithArgs {
+                payload: RBox::new(Payload::Audio(audio)),
+                args: ActionArgs {
+                    positional: positional.into_iter().map(RString::from).collect(),
+                    named: named_args,
+                },
+            }) {
+                Payload::Audio(out) => out.as_f32_slice().unwrap().to_vec(),
+                _ => panic!("Expected Payload::Audio"),
+            }
+        };
+        let by_name = run(vec![], vec![("ceiling_db", "-6.0")]);
+        assert_eq!(run(vec!["-6.0"], vec![]), by_name);
+        // -6 dBFS is about 0.501, well below the default -0.1 dBFS ceiling.
+        assert!(by_name.iter().all(|s| s.abs() <= 0.502));
+        assert_ne!(run(vec![], vec![]), by_name);
     }
 }

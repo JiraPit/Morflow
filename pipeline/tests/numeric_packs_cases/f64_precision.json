@@ -1,0 +1,1404 @@
+[
+ {
+  "name": "add(value=1e-10) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=0.0000000001) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      1.0,
+      16777217.0,
+      0.1,
+      1e-09
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    1.0000000001,
+    16777217.0,
+    0.1000000001,
+    1.1000000000000001e-09
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub(value=0.3) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=0.3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      1.0,
+      16777217.0,
+      0.1,
+      1e-09
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.7,
+    16777216.7,
+    -0.19999999999999998,
+    -0.29999999899999996
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul(value=3.0000001) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=3.0000001) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      1.0,
+      16777217.0,
+      0.1,
+      1e-09
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    3.0000001,
+    50331652.677721694,
+    0.30000001,
+    3.0000001e-09
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value=3) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=3) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      1.0,
+      16777217.0,
+      0.1,
+      1e-09
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.3333333333333333,
+    5592405.666666667,
+    0.03333333333333333,
+    3.3333333333333337e-10
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent=1.5) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      2.0,
+      16777218.0,
+      1.1,
+      1.000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    2.8284271247461903,
+    68719489024.00037,
+    1.153689732987167,
+    1.0000000015000001
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp keeps f64 bounds",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=0.1000000001, max=16777216.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      1.0,
+      16777217.0,
+      0.1,
+      1e-09
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    1.0,
+    16777216.5,
+    0.1000000001,
+    0.1000000001
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sqrt on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.31622776601683794,
+    0.4472135954999579,
+    1.0000000499999988,
+    1.816590212458495
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rsqrt on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> rsqrt >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    3.1622775020545077,
+    2.2360679215980923,
+    0.9999999450000044,
+    0.5504818817291168
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "exp on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> exp >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    1.1051709180756477,
+    1.2214027581601699,
+    2.718282100287242,
+    27.112638920657883
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> log >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    -2.3025849929940505,
+    -1.6094378624341017,
+    1.0999999394761245e-07,
+    1.1939224715027374
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sin on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.09983341664682815,
+    0.19866933079506122,
+    0.8414710388381229,
+    -0.1577456941432482
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cos on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> cos >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.9950041652780258,
+    0.9800665778412416,
+    0.5403022217210385,
+    -0.9874797699088649
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tan on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> tan >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      0.1,
+      0.2,
+      1.0000001,
+      3.3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    0.10033467208545055,
+    0.2027100355086725,
+    1.5574080672068378,
+    0.15974574766003222
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    16777220.1
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    4194305.025
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    70368743898044.34
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    8388607.98333337
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    16777217.00000015
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cumsum on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    4
+   ],
+   "values": [
+    16777217.0,
+    16777218.0,
+    16777218.1,
+    16777220.1
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.1
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max on f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      4
+     ],
+     "values": [
+      16777217.0,
+      1.0,
+      0.1,
+      2.0000000001
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    16777217.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "silu on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> silu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.052497918747894,
+    -0.09003320053750444,
+    0.7310586713970576,
+    3.1826150754003004,
+    -0.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sigmoid on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> sigmoid >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.52497918747894,
+    0.45016600268752216,
+    0.7310585982911977,
+    0.9644288107273639,
+    0.0,
+    0.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "tanh on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> tanh >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.09966799462495582,
+    -0.197375320224904,
+    0.7615941979531958,
+    0.9972829600991421,
+    -1.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "softmax on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.2380713415256754,
+    0.17636758762436044,
+    0.5855610708499641,
+    0.9644288107273639,
+    0.0,
+    0.035571189272636174
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "log_softmax on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> log_softmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.4351848959184488,
+    -1.7351848959184488,
+    -0.5351847959184488,
+    -0.03621925887065913,
+    -16777220.33621926,
+    -3.336219258870659
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "layer_norm on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> layer_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.3922247577381549,
+    -0.9805617962892141,
+    1.372786554027369,
+    0.7071069898134044,
+    -1.4142135623730745,
+    0.70710657255967
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "rms_norm on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> rms_norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.16902842017351924,
+    -0.3380568403470385,
+    1.6902843707636126,
+    3.406862809831443e-07,
+    -1.7320508075688439,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "leaky_relu on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> leaky_relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1,
+    -0.002,
+    1.0000001,
+    3.3,
+    -167772.17,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "relu on f64",
+  "type": "run",
+  "morf": "import nn_basics/latest\naccept Tensor $x\n$x >> relu >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      -0.2,
+      1.0000001,
+      3.3,
+      -16777217.0,
+      0.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.1,
+    0.0,
+    1.0000001,
+    3.3,
+    0.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add on f64 tensors",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        16777217.0,
+        0.1,
+        1.0000001
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        0.2,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    16777218.0,
+    0.30000000000000004,
+    4.0000001
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub on f64 tensors",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        16777217.0,
+        0.1,
+        1.0000001
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        0.2,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    16777216.0,
+    -0.1,
+    -1.9999999
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul on f64 tensors",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        16777217.0,
+        0.1,
+        1.0000001
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        0.2,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    16777217.0,
+    0.020000000000000004,
+    3.0000003
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div on f64 tensors",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        16777217.0,
+        0.1,
+        1.0000001
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        0.2,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    16777217.0,
+    0.5,
+    0.3333333666666667
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow on f64 tensors",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        16777217.0,
+        0.1,
+        1.0000001
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        3
+       ],
+       "values": [
+        1.0,
+        0.2,
+        3.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    16777217.0,
+    0.6309573444801932,
+    1.0000003000000302
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "i64 with f64 keeps f64 precision",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2
+       ],
+       "values": [
+        9007199254740992,
+        1
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2
+       ],
+       "values": [
+        0.5,
+        0.1
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    9007199254740992.0,
+    1.1
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ }
+]

@@ -1,3 +1,4 @@
+use core_types::numeric::{self, FloatElement, FloatVals};
 use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
@@ -70,16 +71,24 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
 
     match inner_payload {
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            match avg_pool2d_tensor(
-                &tensor,
+            let geometry = Geometry::new(
+                &tensor.shape,
                 kernel_size,
                 stride,
                 prepared
                     .output_dims()
                     .expect("shapecheck prepared dimensions"),
-            ) {
+            );
+            let r = tensor.rank();
+            let in_plane = tensor.shape[r - 2] * tensor.shape[r - 1];
+            // Averages are fractional: F32 stays F32, everything else is F64.
+            let result = match numeric::float_vals(&tensor) {
+                FloatVals::F32(vals) => average(&geometry, &vals, in_plane),
+                FloatVals::F64(vals) => average(&geometry, &vals, in_plane),
+            };
+            match result {
                 Ok(t) => Payload::from_tensor(t),
-                Err(e) => Payload::Error(e.into()),
+                Err(e) => Payload::Error(e),
             }
         }
         _ => Payload::Error(core_types::RString::from(
@@ -88,54 +97,80 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
-fn avg_pool2d_tensor(
-    tensor: &Tensor,
+/// Window layout of a 2D pooling over the last two axes.
+struct Geometry {
     k: usize,
     s: usize,
+    w: usize,
+    out_h: usize,
+    out_w: usize,
+    batch_size: usize,
     out_shape: Vec<usize>,
-) -> Result<Tensor, String> {
-    let r = tensor.rank();
-    let h = tensor.shape[r - 2];
-    let w = tensor.shape[r - 1];
+}
 
-    let out_h = out_shape[r - 2];
-    let out_w = out_shape[r - 1];
+impl Geometry {
+    fn new(shape: &[usize], k: usize, s: usize, out_shape: Vec<usize>) -> Self {
+        let r = shape.len();
+        Self {
+            k,
+            s,
+            w: shape[r - 1],
+            out_h: out_shape[r - 2],
+            out_w: out_shape[r - 1],
+            batch_size: shape[0..r - 2].iter().product(),
+            out_shape,
+        }
+    }
 
-    let batch_size: usize = tensor.shape[0..r - 2].iter().product();
-    let vals = tensor.to_vec_f32();
-
-    let out_plane_size = out_h * out_w;
-    let total_out = batch_size * out_plane_size;
-    let in_plane_size = h * w;
-    let inv_k2 = 1.0 / (k * k) as f32;
-
-    let mut out_vals = vec![0.0f32; total_out];
-
-    out_vals
-        .par_chunks_mut(out_plane_size)
-        .enumerate()
-        .for_each(|(b, out_plane)| {
-            let in_plane_offset = b * in_plane_size;
-            for oh in 0..out_h {
-                let ih_start = oh * s;
-                for ow in 0..out_w {
-                    let iw_start = ow * s;
-
-                    let mut sum = 0.0f32;
-                    for kh in 0..k {
-                        let ih = ih_start + kh;
-                        for kw in 0..k {
-                            let iw = iw_start + kw;
-                            let idx = in_plane_offset + ih * w + iw;
-                            sum += vals[idx];
+    /// Folds every window with `combine`, starting from `init`.
+    fn pool<T: Copy + Send + Sync + Default>(
+        &self,
+        vals: &[T],
+        in_plane_size: usize,
+        init: T,
+        combine: impl Fn(T, T) -> T + Sync + Send,
+        finish: impl Fn(T) -> T + Sync + Send,
+    ) -> Vec<T> {
+        let (k, s, w, out_h, out_w) = (self.k, self.s, self.w, self.out_h, self.out_w);
+        let out_plane_size = out_h * out_w;
+        let mut out_vals = vec![T::default(); self.batch_size * out_plane_size];
+        if out_vals.is_empty() {
+            return out_vals;
+        }
+        out_vals
+            .par_chunks_mut(out_plane_size)
+            .enumerate()
+            .for_each(|(b, out_plane)| {
+                let in_plane_offset = b * in_plane_size;
+                for oh in 0..out_h {
+                    let ih_start = oh * s;
+                    for ow in 0..out_w {
+                        let iw_start = ow * s;
+                        let mut acc = init;
+                        for kh in 0..k {
+                            let ih = ih_start + kh;
+                            for kw in 0..k {
+                                let iw = iw_start + kw;
+                                let idx = in_plane_offset + ih * w + iw;
+                                acc = combine(acc, vals[idx]);
+                            }
                         }
+                        out_plane[oh * out_w + ow] = finish(acc);
                     }
-                    out_plane[oh * out_w + ow] = sum * inv_k2;
                 }
-            }
-        });
+            });
+        out_vals
+    }
+}
 
-    Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
+fn average<T: FloatElement>(
+    geometry: &Geometry,
+    vals: &[T],
+    in_plane: usize,
+) -> Result<Tensor, core_types::RString> {
+    let inv_k2 = T::one() / T::from_i128((geometry.k * geometry.k) as i128);
+    let out = geometry.pool(vals, in_plane, T::zero(), |a, b| a + b, |sum| sum * inv_k2);
+    Tensor::from_vec_of(out, geometry.out_shape.clone())
 }
 
 #[no_mangle]

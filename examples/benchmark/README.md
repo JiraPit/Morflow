@@ -7,6 +7,7 @@ Each benchmark has its own runner, pipeline, tests, dependencies, and generated 
 | Image transformation | PIL/NumPy, morf-basic, morf-opencv | [image/README.md](image/README.md) |
 | Branching tensor transformation | NumPy, morf-basic, morf-blas | [branching_tensor/README.md](branching_tensor/README.md) |
 | Sequential tensor transformation | NumPy, morf-basic, morf-blas | [simple_tensor/README.md](simple_tensor/README.md) |
+| Audio processing | NumPy/SciPy, morf-basic | [audio/README.md](audio/README.md) |
 
 Shared argument validation, timing statistics, and JSON writing live in `common.py`.
 All benchmarks load their inputs and Morflow pipelines once, then repeatedly execute from memory.
@@ -17,6 +18,7 @@ From the repository root:
 python3 examples/benchmark/image/benchmark.py --pil
 python3 examples/benchmark/branching_tensor/benchmark.py --numpy
 python3 examples/benchmark/simple_tensor/benchmark.py --numpy
+python3 examples/benchmark/audio/benchmark.py --numpy
 
 # Run all tests, including native integration with a prepared cache.
 MORFLOW_ACTIONS_PATH="$PWD/target/release/actions" \

@@ -41,20 +41,30 @@ fn each_rank_mismatch(loop_ptype: &PType, final_ty: &PType) -> Option<(usize, us
     }
 }
 
-/// Tensor iterations stack their body results on axis 0.
-fn each_output_type(input: &PType, body: &PType) -> PType {
+/// Tensor iterations stack their body results on the iterated axis (axis 0
+/// unless `each(axis=N)` chose another one).
+fn each_output_type(input: &PType, body: &PType, axis: Option<i64>) -> PType {
     match input {
         PType::Tensor(spec) => {
             let Some(body_dims) = body.spec().and_then(ShapeSpec::dims) else {
                 return PType::Tensor(ShapeSpec::AnyRank);
             };
-            let first = spec
-                .dims()
-                .and_then(|dims| dims.first())
-                .cloned()
-                .unwrap_or(Dim::Any);
-            let mut dims = vec![first];
-            dims.extend_from_slice(body_dims);
+            let Some(input_dims) = spec.dims() else {
+                return PType::Tensor(ShapeSpec::AnyRank);
+            };
+            let resolved = match axis {
+                None => 0,
+                Some(raw) => match core_types::resolve_each_axis(raw, input_dims.len()) {
+                    Some(resolved) => resolved,
+                    None => return PType::Tensor(ShapeSpec::AnyRank),
+                },
+            };
+            let iterated = input_dims.get(resolved).cloned().unwrap_or(Dim::Any);
+            let mut dims = body_dims.to_vec();
+            if resolved > dims.len() {
+                return PType::Tensor(ShapeSpec::AnyRank);
+            }
+            dims.insert(resolved, iterated);
             PType::Tensor(ShapeSpec::Ranked { dims })
         }
         // Layout determines axis placement, but a known body rank gains one axis.
@@ -171,7 +181,6 @@ fn format_var_ref(var_ref: &VarRef) -> String {
                     }
                     r
                 }
-                SliceItem::NamedDim { dim_name, index } => format!("{}={}", dim_name, index),
             })
             .collect();
         s.push_str(&slices_str.join(", "));
@@ -239,8 +248,15 @@ fn sliced_var_type(mut ty: PType, var_ref: &VarRef) -> Result<PType, String> {
 }
 
 fn sliced_ptype(mut ty: PType, slices: &[SliceItem]) -> Result<PType, String> {
+    if slices
+        .iter()
+        .any(|s| matches!(s, SliceItem::Range { step: Some(0), .. }))
+        && !matches!(ty, PType::CompositeItems(_) | PType::Composite)
+    {
+        return Err("Slice step cannot be zero".into());
+    }
     let mut axis = 0;
-    for slice in slices {
+    for (position, slice) in slices.iter().enumerate() {
         ty = match ty {
             PType::CompositeItems(items) => {
                 let SliceItem::Index(index) = slice else {
@@ -263,14 +279,16 @@ fn sliced_ptype(mut ty: PType, slices: &[SliceItem]) -> Result<PType, String> {
             PType::Unknown => PType::Unknown,
             PType::Tensor(ShapeSpec::Ranked { mut dims }) => {
                 if axis >= dims.len() {
-                    return Err("Tensor slice axis out of bounds".into());
+                    return Err(too_many_indices(slices.len()));
                 }
                 match slice {
                     SliceItem::Index(index) => {
-                        let index = usize::try_from(*index)
-                            .map_err(|_| "Tensor indexes must be nonnegative")?;
-                        if dims[axis].fixed().is_some_and(|n| index >= n) {
-                            return Err(format!("Tensor index {index} out of bounds"));
+                        if let Some(n) = dims[axis].fixed() {
+                            if core_types::resolve_python_index(n, *index).is_none() {
+                                return Err(format!(
+                                    "Tensor index {index} is out of bounds for axis {axis} with size {n}"
+                                ));
+                            }
                         }
                         dims.remove(axis);
                     }
@@ -278,25 +296,17 @@ fn sliced_ptype(mut ty: PType, slices: &[SliceItem]) -> Result<PType, String> {
                         axis += 1;
                     }
                     SliceItem::Range { start, end, step } => {
-                        if [start, end, step].into_iter().flatten().any(|v| *v < 0) {
-                            return Ok(PType::Tensor(ShapeSpec::AnyRank));
-                        }
                         dims[axis] = match dims[axis].fixed() {
                             Some(n) => {
-                                let start = start.unwrap_or(0) as usize;
-                                let end = end.map(|n| n as usize).unwrap_or(n).min(n);
-                                if start > end {
-                                    return Err("Tensor slice start exceeds end".into());
-                                }
-                                Dim::Fixed(
-                                    (end - start).div_ceil(step.unwrap_or(1).max(1) as usize),
-                                )
+                                let (_, _, len) =
+                                    core_types::resolve_python_slice(n, *start, *end, *step)
+                                        .map_err(|e| e.to_string())?;
+                                Dim::Fixed(len)
                             }
                             None => Dim::Any,
                         };
                         axis += 1;
                     }
-                    SliceItem::NamedDim { .. } => return Ok(PType::Unknown),
                 }
                 if dims.is_empty() {
                     PType::Scalar
@@ -304,20 +314,172 @@ fn sliced_ptype(mut ty: PType, slices: &[SliceItem]) -> Result<PType, String> {
                     PType::Tensor(ShapeSpec::Ranked { dims })
                 }
             }
+            // Image and audio dimensions are declared in a canonical order,
+            // but slicing follows the payload's own memory layout, which is
+            // only known at run time. Only the rank can be tracked.
+            PType::Image(ShapeSpec::Ranked { dims }) => {
+                let rank = dims.len();
+                let removed = slices[position..]
+                    .iter()
+                    .filter(|s| matches!(s, SliceItem::Index(_)))
+                    .count();
+                if slices.len() - position > rank - axis.min(rank) {
+                    return Err(too_many_indices(slices.len()));
+                }
+                let rank = rank - removed;
+                if rank < 2 {
+                    return Err(format!(
+                        "Slicing an Image must keep at least 2 dimensions, but this leaves {rank}"
+                    ));
+                }
+                return Ok(PType::Image(ShapeSpec::from_rank(rank)));
+            }
+            PType::Audio(ShapeSpec::Ranked { dims }) => {
+                let rank = dims.len();
+                let removed = slices[position..]
+                    .iter()
+                    .filter(|s| matches!(s, SliceItem::Index(_)))
+                    .count();
+                if slices.len() - position > rank - axis.min(rank) {
+                    return Err(too_many_indices(slices.len()));
+                }
+                return Ok(match rank - removed {
+                    0 => PType::Scalar,
+                    rank => PType::Audio(ShapeSpec::from_rank(rank)),
+                });
+            }
             PType::Bytes => {
-                if !matches!(slice, SliceItem::Range { .. }) || slices.len() != 1 {
+                if !matches!(slice, SliceItem::Range { .. } | SliceItem::Full) || slices.len() != 1
+                {
                     return Err("Bytes support one range slice per bracket group".into());
                 }
                 PType::Bytes
             }
+            // Earlier indexes of this group already consumed every axis.
+            PType::Scalar if position > 0 => return Err(too_many_indices(slices.len())),
             PType::Scalar | PType::Arg(_) => {
                 return Err("Cannot index a scalar or argument value".into())
             }
-            PType::Tensor(_) => PType::Unknown,
+            // An unknown rank could end up as anything down to a scalar.
+            PType::Tensor(_) | PType::Audio(_) => PType::Unknown,
             other => unranked_like(&other),
         };
     }
     Ok(ty)
+}
+
+fn too_many_indices(count: usize) -> String {
+    format!("Too many indices: {count} indexes were given for a value of lower rank")
+}
+
+/// Rejects an `if`/`route` condition operand that the declared types already
+/// show cannot be a number at run time. Anything that might still be a number
+/// is left to execution, which rejects it there.
+pub(crate) fn check_condition(
+    cond: &Condition,
+    current: Option<&PType>,
+    vars: &HashMap<String, PType>,
+) -> Result<(), String> {
+    for operand in [&cond.left, &cond.right] {
+        check_condition_operand(operand, current, vars)?;
+    }
+    Ok(())
+}
+
+fn check_condition_operand(
+    operand: &Value,
+    current: Option<&PType>,
+    vars: &HashMap<String, PType>,
+) -> Result<(), String> {
+    let var_ref = match operand {
+        Value::Int(_) | Value::Float(_) => return Ok(()),
+        Value::String(s) => {
+            return Err(format!(
+                "condition operand \"{s}\" is a string; both sides of a condition must be numbers"
+            ))
+        }
+        Value::Bool(b) => {
+            return Err(format!(
+                "condition operand {b} is a boolean; both sides of a condition must be numbers"
+            ))
+        }
+        Value::Var(var_ref) => var_ref,
+    };
+    let label = format_var_ref(var_ref);
+    let base = if var_ref.name.is_empty() || var_ref.name == "payload" {
+        current.cloned().ok_or_else(|| {
+            format!("condition operand {label} refers to the stream payload, but there is none")
+        })?
+    } else {
+        vars.get(&var_ref.name)
+            .cloned()
+            .ok_or_else(|| format!("condition operand {label} is not defined"))?
+    };
+    let ty = sliced_var_type(
+        base,
+        &VarRef {
+            name: var_ref.name.clone(),
+            field: None,
+            slices: var_ref.slices.clone(),
+        },
+    )
+    .map_err(|e| format!("condition operand {label}: {e}"))?;
+    let tensor_rank = |min: usize| match &ty {
+        PType::Tensor(spec) => spec.rank().is_none_or(|rank| rank >= min),
+        _ => false,
+    };
+    match var_ref.field.as_deref() {
+        Some(field) => {
+            if !crate::scheduler::CONDITION_FIELDS.contains(&field) {
+                return Err(format!(
+                    "condition operand {label} uses an unknown field '{field}' (known fields: {})",
+                    crate::scheduler::CONDITION_FIELDS.join(", ")
+                ));
+            }
+            let has = matches!(ty, PType::Unknown)
+                || match field {
+                    "sample_rate" | "rate" | "duration" | "duration_seconds" | "num_samples"
+                    | "samples" => matches!(ty, PType::Audio(_)),
+                    "width" | "height" => matches!(ty, PType::Image(_)) || tensor_rank(2),
+                    "channels" => matches!(ty, PType::Image(_) | PType::Audio(_)) || tensor_rank(3),
+                    "peak" | "peak_abs" | "rms" | "mean" => matches!(
+                        ty,
+                        PType::Tensor(_) | PType::Scalar | PType::Image(_) | PType::Audio(_)
+                    ),
+                    _ => matches!(
+                        ty,
+                        PType::Tensor(_)
+                            | PType::Scalar
+                            | PType::Image(_)
+                            | PType::Audio(_)
+                            | PType::Bytes
+                            | PType::Arg(_)
+                    ),
+                };
+            if !has {
+                return Err(format!(
+                    "condition operand {label}: a value of type {ty} has no field '{field}'"
+                ));
+            }
+            Ok(())
+        }
+        None => {
+            let numeric = match &ty {
+                PType::Unknown | PType::Scalar | PType::Bytes => true,
+                PType::Arg(kind) => {
+                    matches!(kind, core_types::ArgKind::Int | core_types::ArgKind::Float)
+                }
+                PType::Tensor(spec) => spec.rank().is_none_or(|rank| rank == 0),
+                _ => false,
+            };
+            if !numeric {
+                return Err(format!(
+                    "condition operand {label} is a {ty}, not a number; both sides of a condition must be numbers"
+                ));
+            }
+            Ok(())
+        }
+    }
 }
 
 /// Whether two types carry the same payload kind (`Tensor`, `Image`, `Audio`,
@@ -337,8 +499,54 @@ fn same_payload_kind(a: &PType, b: &PType) -> bool {
     )
 }
 
+/// The type of an `each` loop variable, honouring an explicit tensor axis.
+pub(crate) fn each_loop_element(input: &PType, axis: Option<i64>) -> Result<PType, String> {
+    let Some(raw) = axis else {
+        return input.each_loop_var().or_else(|e| {
+            if matches!(input.spec(), Some(ShapeSpec::AnyRank)) {
+                Ok(unranked_like(input))
+            } else {
+                Err(e)
+            }
+        });
+    };
+    match input {
+        PType::Tensor(spec) => match spec.rank() {
+            None => Ok(PType::Tensor(ShapeSpec::AnyRank)),
+            Some(0) => Err(format!(
+                "cannot iterate {}: a rank-0 value has no dimension to iterate",
+                input
+            )),
+            Some(rank) => {
+                let resolved = core_types::resolve_each_axis(raw, rank).ok_or_else(|| {
+                    format!(
+                        "each(axis={}) is out of bounds for {} (valid axes: {} to {})",
+                        raw,
+                        input,
+                        -(rank as i64),
+                        rank as i64 - 1
+                    )
+                })?;
+                Ok(if rank == 1 {
+                    PType::Scalar
+                } else {
+                    PType::Tensor(spec.without_axis(resolved))
+                })
+            }
+        },
+        PType::Unknown => Ok(PType::Unknown),
+        other => Err(format!(
+            "each(axis={}) only applies to Tensor values, but the loop input is {}",
+            raw, other
+        )),
+    }
+}
+
 /// The iteration axis an `each` walks over, for the flow summary.
-fn each_loop_hint(pt: &PType) -> String {
+fn each_loop_hint(pt: &PType, axis: Option<i64>) -> String {
+    if let Some(axis) = axis {
+        return format!("axis {}", axis);
+    }
     match pt.data_type() {
         dt if dt.intersects(DataType::Image) => "channel axis".to_string(),
         dt if dt.intersects(DataType::Audio) => "channel axis (sample axis if mono)".to_string(),
@@ -934,7 +1142,7 @@ pub fn check_pipeline_with_plugins(
                 FlowStep::Each(each_loop) => {
                     let hint = curr_type
                         .as_ref()
-                        .map(each_loop_hint)
+                        .map(|pt| each_loop_hint(pt, each_loop.axis))
                         .unwrap_or_else(|| "dynamic axis".to_string());
                     let names = collect_action_names(&each_loop.body);
                     steps_summary.push(format!(

@@ -5,7 +5,7 @@ Reshapes an input multi-dimensional tensor to a specified target shape without a
 ## Interface
 - **Input Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
 - **Output Type**: `DataType::Tensor | DataType::Scalar` (`Payload::Tensor` or `Payload::Scalar`)
-- **Supported DTypes**: All (`F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`)
+- **Supported DTypes**: `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`
 
 ## Parameters
 | Parameter | Type | Default | Description |

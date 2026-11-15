@@ -3,21 +3,22 @@
 Computes the outer product between two 1D vectors ($u \otimes v = u v^T$, shape $[M, N]$).
 
 ## Interface
-- **Input Type**: `DataType::Composite` (`Payload::Composite([u, v])`)
+- **Input Type**: `DataType::Composite | DataType::Tensor` (`Payload::Composite([u, v])`, or a single `Payload::Tensor` `u` computed as `outer(u, u)`)
 - **Output Type**: `DataType::Tensor` (`Payload::Tensor`)
-- **Supported DTypes**: F32 computation and output; other numerical inputs are converted to F32
+- **Supported DTypes**: Input `F32`, `F64`, `U8`, `I8`, `I16`, `I32`, `I64`, `U32`, `U64`; output `F32`
 
 ## Parameters
 None.
 
 ## Behavior
+- Computes in `F32` and returns `F32`; inputs of any other dtype are converted to `F32` first.
 - Computes the outer product using OpenBLAS `cblas_sger`.
 
 ## Ordered shape contract
 `shapecheck` validates the ordered Composite inputs and predicts the output type and dimensions. Component indexes retain their original order. The engine verifies the returned payload against that prediction during execution.
 
 ## OpenBLAS backend
-This action belongs to `linalg_blas/0.1.2`. It uses the host's shared LP64 OpenBLAS library during execution. OpenBLAS is not bundled in the action binary. Shapechecking and pipeline loading do not load OpenBLAS. Set `MORFLOW_OPENBLAS_LIBRARY` to select an explicit shared library path. There is no fallback to the basics implementation if the library is missing.
+This action belongs to `linalg_blas/0.1.3`. It uses the host's shared LP64 OpenBLAS library during execution. OpenBLAS is not bundled in the action binary. Shapechecking and pipeline loading do not load OpenBLAS. Set `MORFLOW_OPENBLAS_LIBRARY` to select an explicit shared library path. There is no fallback to the basics implementation if the library is missing.
 
 ## Runtime plugin
 

@@ -1,0 +1,851 @@
+[
+ {
+  "name": "add(value=1.5) on i32 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub(value=0.25) on i16 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=0.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul(value=2.5) on u8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow(exponent=0.5) on i32 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "clamp(min=0.5) on i8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=0.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "clamp(max=2.25) on u32 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=2.25) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add(value=300) on u8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=300) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add(value=-1) on u8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=-1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "sub(value=-1) on u32 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=-1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "mul(value=200) on i8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=200) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "clamp(min=-1000) on i8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-1000) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "clamp(max=256) on u8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(max=256) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "add(value=-5) on u64 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=-5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow(exponent=-1) on i32 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=-1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "pow(exponent=-2) on u8 is an error",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=-2) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "error": "any"
+  }
+ },
+ {
+  "name": "div(value=2.5) on i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      3
+     ],
+     "values": [
+      5,
+      7,
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    2.0,
+    2.8,
+    3.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value=2.5) on u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      3
+     ],
+     "values": [
+      5,
+      7,
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    2.0,
+    2.8,
+    3.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div(value=2.5) on i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> div(value=2.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      3
+     ],
+     "values": [
+      5,
+      7,
+      9
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    2.0,
+    2.8,
+    3.6
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add(value=255) on u8 fits",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=255) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2
+     ],
+     "values": [
+      0,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2
+   ],
+   "values": [
+    255,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value=-128) on i8 fits",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=-128) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2
+     ],
+     "values": [
+      0,
+      1
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2
+   ],
+   "values": [
+    -128,
+    -127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub(value=4294967295) on u64 fits",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> sub(value=4294967295) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2
+     ],
+     "values": [
+      0,
+      1
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "values": [
+    18446744069414584321,
+    18446744069414584322
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul(value=-2147483648) on i64 fits",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> mul(value=-2147483648) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2
+     ],
+     "values": [
+      1,
+      1099511627776
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -2147483648,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "clamp(min=-128, max=127) on i8 fits",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-128, max=127) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2
+     ],
+     "values": [
+      -5,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2
+   ],
+   "values": [
+    -5,
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add(value=1.5) on f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.10000000149011612,
+      0.0,
+      0.30000001192092896,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.399999976158142,
+    1.5,
+    1.7999999523162842,
+    2.75,
+    3.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow(exponent=-1) on f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=-1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.10000000149011612,
+      0.5,
+      1.2345678806304932,
+      2.0,
+      9.75,
+      100.125
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10.0,
+    2.0,
+    0.8100000023841858,
+    0.5,
+    0.10256410390138626,
+    0.009987515397369862
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "clamp with fractional bounds on f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-0.25, max=0.75) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.10000000149011612,
+      0.0,
+      0.30000001192092896,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.25,
+    -0.10000000149011612,
+    0.0,
+    0.30000001192092896,
+    0.75,
+    0.75
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add(value=1.5) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> add(value=1.5) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.4,
+    1.5,
+    1.8,
+    2.75,
+    3.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow(exponent=-1) on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> pow(exponent=-1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0.1,
+      0.5,
+      1.2345678901234567,
+      2.0,
+      9.75,
+      100.125
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    10.0,
+    2.0,
+    0.8100000072900001,
+    0.5,
+    0.10256410256410256,
+    0.009987515605493134
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "clamp with fractional bounds on f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> clamp(min=-0.25, max=0.75) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.25,
+    -0.1,
+    0.0,
+    0.3,
+    0.75,
+    0.75
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ }
+]

@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatVals};
 use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
-use rayon::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -47,7 +47,11 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
 
     match inner_payload {
         Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
-            match compute_log_softmax(&tensor, axis) {
+            let result = match numeric::float_vals(&tensor) {
+                FloatVals::F32(vals) => compute_log_softmax::<f32>(vals, &tensor.shape, axis),
+                FloatVals::F64(vals) => compute_log_softmax::<f64>(vals, &tensor.shape, axis),
+            };
+            match result {
                 Ok(t) => Payload::from_tensor(t),
                 Err(e) => Payload::Error(e.into()),
             }
@@ -58,47 +62,42 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
-fn compute_log_softmax(tensor: &Tensor, ax: usize) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
-    let r = tensor.rank();
-    if r == 0 {
-        return Ok(Tensor::from_f32_vec(vec![0.0], vec![]).unwrap());
+/// F32 is computed in single precision, everything else in F64. A NaN in a
+/// lane makes the whole lane NaN, like NumPy.
+fn compute_log_softmax<T: FloatElement>(
+    vals: Vec<T>,
+    shape: &[usize],
+    ax: usize,
+) -> Result<Tensor, String> {
+    let shape = shape.to_vec();
+    if shape.is_empty() {
+        let x = vals[0];
+        let y = if x.is_nan() { x } else { T::zero() };
+        return Tensor::from_vec_of(vec![y], shape).map_err(|e| e.to_string());
     }
 
-    let axis_len = tensor.shape[ax];
+    let axis_len = shape[ax];
     if axis_len == 0 || vals.is_empty() {
-        return Ok(tensor.clone());
+        return Tensor::from_vec_of(vals, shape).map_err(|e| e.to_string());
     }
-    let inner_size: usize = tensor.shape[(ax + 1)..r].iter().product();
 
-    let mut out_vals = vec![0.0f32; vals.len()];
+    let out_vals = numeric::map_axis(&vals, &shape, ax, |lane: &[T], out: &mut [T]| {
+        let mut max_val = T::neg_infinity();
+        for &v in lane {
+            max_val = max_val.nan_max(v);
+        }
+        let mut sum_exp = T::zero();
+        for &v in lane {
+            sum_exp = sum_exp + (v - max_val).exp();
+        }
 
-    out_vals
-        .par_chunks_mut(axis_len * inner_size)
-        .enumerate()
-        .for_each(|(outer_idx, block)| {
-            for inner_idx in 0..inner_size {
-                let mut max_val = f32::NEG_INFINITY;
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    max_val = max_val.max(vals[in_idx]);
-                }
+        let log_sum_exp = max_val + sum_exp.ln();
+        for (a, &v) in lane.iter().enumerate() {
+            out[a] = v - log_sum_exp;
+        }
+    });
 
-                let mut sum_exp = 0.0f32;
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    sum_exp += (vals[in_idx] - max_val).exp();
-                }
-
-                let log_sum_exp = max_val + sum_exp.ln();
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    block[a * inner_size + inner_idx] = vals[in_idx] - log_sum_exp;
-                }
-            }
-        });
-
-    Tensor::from_f32_vec(out_vals, tensor.shape.to_vec()).map_err(|e| e.to_string())
+    Tensor::from_vec_of(out_vals, shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

@@ -1,6 +1,6 @@
 [package]
 name = "morflow"
-version = "0.2.6"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.89"
 description = "Data Processing & Tensor Transformation Engine"
@@ -13,8 +13,8 @@ name = "morflow"
 path = "src/main.rs"
 
 [dependencies]
-core_types = { package = "morflow-core-types", version = "0.4.2", path = "../core_types" }
-parser = { package = "morflow-parser", version = "0.2.6", path = "../parser" }
+core_types = { package = "morflow-core-types", version = "0.4.3", path = "../core_types" }
+parser = { package = "morflow-parser", version = "0.3.0", path = "../parser" }
 libloading = "0.8"
 abi_stable = "0.11"
 rayon = "1.10"

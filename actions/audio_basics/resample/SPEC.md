@@ -15,7 +15,7 @@ Band-limited windowed sinc interpolation for high-quality audio sample rate conv
 | `to_rate` / `rate` | `float` | `44100.0` | Target sample rate in Hz (positional arg 0). |
 
 ## Behavior
-- Performs band-limited sinc interpolation with Blackman-Harris windowing (kernel half-length 8).
+- Performs band-limited sinc interpolation with a Hann window spanning 8 input samples on each side, dividing each output by the sum of its weights.
 - Scales cutoff frequency to $0.95 \times \min(1.0, \text{to\_rate}/\text{from\_rate})$ to eliminate downsampling aliasing.
 - Multi-channel audio streams are resampled in parallel across Rayon worker threads.
 

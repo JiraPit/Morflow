@@ -1,6 +1,6 @@
 # Shared OpenCV image actions
 
-`image_opencv/0.1.2` accelerates six spatial operations using the execution machine's shared OpenCV `core` and `imgproc` libraries:
+`image_opencv/0.1.3` accelerates six spatial operations using the execution machine's shared OpenCV `core` and `imgproc` libraries:
 
 | Action | OpenCV implementation |
 | --- | --- |
@@ -19,7 +19,7 @@ Declare the plugin alongside the action imports:
 
 ```perl
 plugin opencv-bridge/0.1.2
-from image_opencv/0.1.2 import resize
+from image_opencv/0.1.3 import resize
 ```
 
 ```sh

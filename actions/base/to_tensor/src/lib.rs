@@ -206,6 +206,28 @@ fn standardize_image_to_tensor(
         return img.tensor.clone();
     }
 
+    // Sliced or cropped images are strided views. Copy them into a contiguous
+    // buffer first, so they convert like a whole image instead of falling back
+    // to the raw pixels below.
+    let contiguous;
+    let img = if img.is_contiguous() {
+        img
+    } else {
+        let copy = Tensor::from_rvec_u8(
+            img.to_contiguous_bytes(),
+            img.tensor.shape.to_vec(),
+            img.dtype(),
+        )
+        .and_then(|tensor| core_types::Image::new(tensor, img.color_space, img.layout));
+        match copy {
+            Ok(copy) => {
+                contiguous = copy;
+                &contiguous
+            }
+            Err(_) => return img.tensor.clone(),
+        }
+    };
+
     // Convert pixel data to F32 intermediate in HWC
     let hwc_f32: Vec<f32> = match img.dtype() {
         TensorDType::U8 => {
@@ -667,5 +689,32 @@ mod tests {
         } else {
             panic!("Expected Payload::Tensor from Audio conversion");
         }
+    }
+
+    #[test]
+    fn test_to_tensor_strided_view_converts_like_contiguous() {
+        // A 3x2 RGB image cropped to its last two columns is a strided view.
+        let pixels: Vec<u8> = (0u8..18).map(|v| v * 10).collect();
+        let img = Image::from_u8_hwc(&pixels, 3, 2, ColorSpace::Rgb).unwrap();
+        let view = img.crop(0, 2, 1, 3).unwrap();
+        assert!(!view.is_contiguous());
+
+        let mut cropped = Vec::new();
+        for y in 0..2 {
+            for x in 1..3 {
+                cropped.extend_from_slice(&pixels[(y * 3 + x) * 3..(y * 3 + x) * 3 + 3]);
+            }
+        }
+        let contiguous = Image::from_u8_hwc(&cropped, 2, 2, ColorSpace::Rgb).unwrap();
+
+        let (Payload::Tensor(from_view), Payload::Tensor(expected)) = (
+            process(Payload::Image(view)),
+            process(Payload::Image(contiguous)),
+        ) else {
+            panic!("Expected Payload::Tensor");
+        };
+        assert_eq!(from_view.dtype, TensorDType::F32);
+        assert_eq!(from_view.shape.as_slice(), &[2, 2, 3]);
+        assert_eq!(from_view.as_f32_slice(), expected.as_f32_slice());
     }
 }

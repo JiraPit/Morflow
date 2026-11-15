@@ -1,0 +1,9458 @@
+[
+ {
+  "name": "add i16 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    700,
+    32765,
+    -32768,
+    700,
+    32765
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i16 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    -1300,
+    32767,
+    -32768,
+    1300,
+    -32767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i16 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    27680,
+    2,
+    0,
+    27680,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i16 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "-inf",
+    -0.3,
+    -6.103701895199438e-05,
+    -0.0,
+    -3.3333333333333335,
+    -16383.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i16 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    1,
+    0,
+    1,
+    2,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    128,
+    203,
+    99,
+    128,
+    203,
+    99
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    128,
+    59,
+    101,
+    128,
+    197,
+    155
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    88,
+    156,
+    0,
+    88,
+    156
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.015,
+    0.39215686274509803,
+    "inf",
+    66.66666666666667,
+    2.55
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        4,
+        5,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    32,
+    1,
+    4,
+    25
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    103,
+    227,
+    0,
+    100,
+    252
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -97,
+    -27,
+    256,
+    300,
+    258
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    300,
+    12700,
+    -16384,
+    -20000,
+    -765
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    0.03,
+    0.7874015748031497,
+    -1.0,
+    -2.0,
+    -85.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    4,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    100,
+    252,
+    0,
+    103,
+    227
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -256,
+    -300,
+    -258,
+    0,
+    97,
+    27
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -16384,
+    -20000,
+    -765,
+    0,
+    300,
+    12700
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        128,
+        200,
+        255,
+        0,
+        3,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    -0.5,
+    -0.011764705882352941,
+    "nan",
+    33.333333333333336,
+    1.27
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i8 with u8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        4,
+        5,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    1,
+    0,
+    1,
+    2,
+    16
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1003,
+    -32669,
+    -32640,
+    -100,
+    253
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -997,
+    -32667,
+    -32640,
+    500,
+    257
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3000,
+    -100,
+    0,
+    5536,
+    -510
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    0.003,
+    0.0030518509475997192,
+    -0.00390625,
+    -0.6666666666666666,
+    -127.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    4,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    65539,
+    -2147483549,
+    -2147483520,
+    -69800,
+    250
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -65533,
+    -2147483547,
+    -2147483520,
+    70200,
+    260
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    196608,
+    -100,
+    0,
+    -14000000,
+    -1275
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    4.57763671875e-05,
+    4.656612875245797e-08,
+    -5.960464477539063e-08,
+    -0.002857142857142857,
+    -51.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    4,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    11,
+    9007199254740996,
+    4611686018427388009,
+    -4611686018427387779,
+    191,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -11,
+    -9007199254740990,
+    -4611686018427387809,
+    4611686018427388035,
+    209,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    27021597764222979,
+    500,
+    -384,
+    -1800,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    3.3306690738754696e-16,
+    2.168404344971009e-17,
+    -2.7755575615628914e-17,
+    -22.22222222222222,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    4,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        2147483648,
+        4000000000,
+        4294967295,
+        0,
+        3,
+        70000
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2147483648,
+    4000000003,
+    99,
+    128,
+    203,
+    70255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        2147483648,
+        4000000000,
+        4294967295,
+        0,
+        3,
+        70000
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    2147483648,
+    294967299,
+    101,
+    128,
+    197,
+    4294897551
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        2147483648,
+        4000000000,
+        4294967295,
+        0,
+        3,
+        70000
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3410065408,
+    4294967196,
+    0,
+    600,
+    17850000
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        2147483648,
+        4000000000,
+        4294967295,
+        0,
+        3,
+        70000
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    7.5e-10,
+    2.3283064370807974e-08,
+    "inf",
+    66.66666666666667,
+    0.003642857142857143
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with u32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        5,
+        7,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    128,
+    1,
+    4,
+    25
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    1,
+    99,
+    128,
+    205,
+    9007199254741248
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u8 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    5,
+    101,
+    128,
+    195,
+    18437736874454810878
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u8 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    18446744073709551610,
+    18446744073709551516,
+    0,
+    1000,
+    2296835809958953215
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u8 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.6263032587282567e-19,
+    5.421010862427522e-18,
+    "inf",
+    40.0,
+    2.8310687127941492e-14
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u8 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        5,
+        7,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    128,
+    1,
+    4,
+    25
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    1,
+    69999,
+    2147483648,
+    4000000005,
+    9007203549708288
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    5,
+    70001,
+    2147483648,
+    3999999995,
+    18437736878749777918
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    18446744073709551610,
+    18446744073709481616,
+    0,
+    20000000000,
+    18437736878749777919
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.6263032587282567e-19,
+    3.7947076036992655e-15,
+    "inf",
+    800000000.0,
+    4.768371580921027e-07
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        5,
+        7,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    128,
+    1,
+    5,
+    49
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    900,
+    32764,
+    -32768,
+    -200,
+    125
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    -1100,
+    32766,
+    -32768,
+    400,
+    129
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    31072,
+    -32765,
+    0,
+    -30000,
+    -254
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -128,
+        -100,
+        -3,
+        0,
+        100,
+        127
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "-inf",
+    -0.1,
+    -9.155552842799158e-05,
+    -0.0,
+    -0.3333333333333333,
+    -63.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i8 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    1,
+    0,
+    1,
+    2,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i16 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    65236,
+    2147483645,
+    -2147483648,
+    -69000,
+    32762
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i16 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    -65836,
+    2147483647,
+    -2147483648,
+    71000,
+    32772
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i16 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -19660800,
+    2,
+    0,
+    -70000000,
+    -163835
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i16 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -32768,
+        -300,
+        -2,
+        0,
+        1000,
+        32767
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "-inf",
+    -0.00457763671875,
+    -9.313225750491594e-10,
+    -0.0,
+    -0.014285714285714285,
+    -6553.4
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i16 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    1,
+    0,
+    1,
+    2,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483637,
+    9007199254670993,
+    4611686018427387904,
+    -4611686018427387907,
+    65527,
+    2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483659,
+    -9007199254810993,
+    -4611686018427387914,
+    4611686018427387907,
+    65545,
+    2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -23622320128,
+    -3314649325744755056,
+    -4611686018427387929,
+    0,
+    -589824,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -195225786.1818182,
+    -7.771561172376096e-12,
+    -1.0842021724855044e-18,
+    -0.0,
+    -7281.777777777777,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3,
+    1,
+    0,
+    1,
+    2,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u32 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    103,
+    70127,
+    2147483520,
+    3999999900,
+    4294967292
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u32 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -97,
+    69873,
+    2147483776,
+    4000000100,
+    4294967298
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u32 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    300,
+    8890000,
+    -274877906944,
+    -400000000000,
+    -12884901885
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u32 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    0.03,
+    551.1811023622047,
+    -16777216.0,
+    -40000000.0,
+    -1431655765.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u32 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u32 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1003,
+    102767,
+    2147450880,
+    3999999700,
+    4294967293
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u32 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -997,
+    37233,
+    2147516416,
+    4000000300,
+    4294967297
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u32 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3000,
+    2293690000,
+    -70368744177664,
+    -1200000000000,
+    -8589934590
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u32 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1000,
+        32767,
+        -32768,
+        -300,
+        -2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    0.003,
+    2.1362956633198036,
+    -65536.0,
+    -13333333.333333334,
+    -2147483647.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u32 with i16",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u32 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    65539,
+    2147553647,
+    0,
+    3999930000,
+    4294967290
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u32 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -65533,
+    -2147413647,
+    4294967296,
+    4000070000,
+    4294967300
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u32 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    196608,
+    150323855290000,
+    -4611686018427387904,
+    -280000000000000,
+    -21474836475
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u32 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        65536,
+        2147483647,
+        -2147483648,
+        -70000,
+        -5
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    4.57763671875e-05,
+    3.259629012672058e-05,
+    -1.0,
+    -57142.857142857145,
+    -858993459.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u32 with i32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    11,
+    9007199254740996,
+    4611686018427457909,
+    -4611686016279904259,
+    3999999991,
+    4294967295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -11,
+    -9007199254740990,
+    -4611686018427317909,
+    4611686020574871555,
+    4000000009,
+    4294967295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    27021597764222979,
+    350000,
+    -6442450944,
+    -36000000000,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        70000,
+        2147483648,
+        4000000000,
+        4294967295
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    3.3306690738754696e-16,
+    1.5178830414797062e-14,
+    -4.656612873077393e-10,
+    -444444444.4444444,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u64 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    105,
+    9007199254741120,
+    9223372036854775680,
+    -102,
+    -4
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u64 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    -95,
+    9007199254740866,
+    -9223372036854775680,
+    98,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u64 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    500,
+    1143914305352106111,
+    0,
+    200,
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u64 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        4611686018427387904,
+        4611686018427387904,
+        4611686018427387904
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        100,
+        127,
+        -128,
+        -100,
+        -3
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    0.05,
+    70922828777488.12,
+    -3.602879701896397e+16,
+    -4.611686018427388e+16,
+    -1.5372286728091292e+18
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u64 with i8",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372034707292160,
+    -70002,
+    -6,
+    0,
+    65541,
+    9007201402224640
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub i32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9223372034707292160,
+    -69998,
+    -4,
+    0,
+    65531,
+    -9007197107257346
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul i32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    140000,
+    5,
+    0,
+    327680,
+    -9007197107257345
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        4611686018427387904,
+        4611686018427387904,
+        4611686018427387904,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4.656612873077393e-10,
+    -1.5178830414797062e-14,
+    -1.0842021724855044e-18,
+    "nan",
+    13107.2,
+    2.384185789905402e-07
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i32 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        5,
+        7,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27,
+    -1,
+    0,
+    1,
+    2,
+    16
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u64 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    11,
+    9007199254740998,
+    4620693217682128902,
+    4611686018427387901,
+    -11,
+    -1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub u64 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -11,
+    -9007199254740988,
+    -4602678819172646916,
+    -4611686018427387901,
+    7,
+    -1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul u64 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    45035996273704965,
+    4656722014701092869,
+    -9223372036854775808,
+    18,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div u64 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        5,
+        9007199254740993,
+        4611686018427387904,
+        4611686018427387904,
+        4611686018427387904
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    5.551115123125783e-16,
+    0.001953125,
+    -1.0,
+    -5.124095576030431e+17,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow u64 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    1,
+    16,
+    27,
+    5,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add i64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -4611686018427387907,
+        -9,
+        0,
+        11,
+        9007199254740993,
+        4611686018427387909
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4.611686018427388e+18,
+    -5.25,
+    100.5,
+    8.5,
+    9007199254740992.0,
+    4.611686018427388e+18
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub i64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -4611686018427387907,
+        -9,
+        0,
+        11,
+        9007199254740993,
+        4611686018427387909
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4.611686018427388e+18,
+    -12.75,
+    -100.5,
+    13.5,
+    9007199254740992.0,
+    4.611686018427388e+18
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul i64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -4611686018427387907,
+        -9,
+        0,
+        11,
+        9007199254740993,
+        4611686018427387909
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.305843009213694e+18,
+    -33.75,
+    0.0,
+    -27.5,
+    -1.125899906842624e+16,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div i64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -4611686018427387907,
+        -9,
+        0,
+        11,
+        9007199254740993,
+        4611686018427387909
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -9.223372036854776e+18,
+    -2.4000000953674316,
+    0.0,
+    -4.400000095367432,
+    -7205759511166976.0,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow i64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.30000001192092896,
+        1.25,
+        2.0,
+        1.5,
+        0.10000000149011612,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    1.0,
+    1.0717734098434448,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add f32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    8.5,
+    9007199254740992.0,
+    4.611686018427388e+18,
+    -4.611686018427388e+18,
+    -5.25,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub f32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -13.5,
+    -9007199254740992.0,
+    -4.611686018427388e+18,
+    4.611686018427388e+18,
+    12.75,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul f32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27.5,
+    -1.125899906842624e+16,
+    0.0,
+    -2.305843009213694e+18,
+    -33.75,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div f32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        11,
+        9007199254740993,
+        4611686018427387909,
+        -4611686018427387907,
+        -9,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.22727273404598236,
+    -1.3877787807814457e-16,
+    0.0,
+    -1.0842021724855044e-19,
+    -0.4166666567325592,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow f32 with i64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        1,
+        2,
+        4,
+        3,
+        1,
+        0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.5,
+    0.010000000707805157,
+    0.0,
+    0.027000002562999725,
+    1.25,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add u8 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.5,
+    6.75,
+    200.5,
+    125.5,
+    198.75,
+    255.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub u8 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.5,
+    -0.75,
+    -0.5,
+    130.5,
+    201.25,
+    255.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul u8 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    11.25,
+    10050.0,
+    -320.0,
+    -250.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div u8 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        3,
+        100,
+        128,
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    0.800000011920929,
+    0.9950248599052429,
+    -51.20000076293945,
+    -160.0,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow u8 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.30000001192092896,
+        1.25,
+        2.0,
+        1.5,
+        0.10000000149011612,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0.0,
+    1.0,
+    4.0,
+    5.196152210235596,
+    1.148698329925537,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add i32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483647.9,
+    -69998.76543210988,
+    95.25,
+    -2.718281828459045,
+    65534.666666666664,
+    2147483647.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub i32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648.1,
+    -70001.23456789012,
+    -105.25,
+    2.718281828459045,
+    65537.33333333333,
+    2147483647.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul i32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -214748364.8,
+    -86419.75230864197,
+    -501.25,
+    -0.0,
+    -87381.33333333333,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div i32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2147483648,
+        -70000,
+        -5,
+        0,
+        65536,
+        2147483647
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -21474836480.0,
+    -56700.00051030001,
+    -0.04987531172069826,
+    -0.0,
+    -49152.0,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow i32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -3,
+        -1,
+        0,
+        1,
+        2,
+        4
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        1.5,
+        0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    1.0,
+    1.0717734625362931,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f64 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    9.223372036854776e+18,
+    1.8446744073709552e+19,
+    1.8446744073709552e+19,
+    0.1,
+    6.234567890123457,
+    9007199254741092.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f64 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -9.223372036854776e+18,
+    -1.8446744073709552e+19,
+    -1.8446744073709552e+19,
+    0.1,
+    -3.765432109876543,
+    -9007199254740892.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.5071724604899627e+19,
+    -2.4595658764946067e+19,
+    0.0,
+    0.0,
+    6.172839450617284,
+    9.029717252877844e+17
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f64 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        9223372036854775808,
+        18446744073709551614,
+        18446744073709551615,
+        0,
+        5,
+        9007199254740993
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.947167063843166e-19,
+    -7.228014483236696e-20,
+    0.0,
+    "inf",
+    0.24691357802469133,
+    1.1129985821867194e-14
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 with u64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.1,
+        0.0,
+        0.3,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        3,
+        5,
+        7,
+        0,
+        1,
+        2
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.375,
+    -1.0000000000000003e-05,
+    0.0,
+    1.0,
+    1.25,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.4,
+    -0.01543210987654331,
+    100.25,
+    -2.218281828459045,
+    2.416666666666667,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.6,
+    -2.484567890123457,
+    -100.25,
+    3.218281828459045,
+    5.083333333333333,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.25,
+    -1.543209862654321,
+    0.0,
+    -1.3591409142295225,
+    -5.0,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -25.0,
+    -1.0125000091125003,
+    0.0,
+    -0.18393972058572117,
+    -2.8125,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f32 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        1.5,
+        0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    0.16431677704559247,
+    1.0225651825635729,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.218281828459045,
+    2.416666666666667,
+    100.5,
+    -2.4,
+    -0.01543210987654331,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.218281828459045,
+    -5.083333333333333,
+    -100.5,
+    2.6,
+    2.484567890123457,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.3591409142295225,
+    -5.0,
+    0.0,
+    -0.25,
+    -1.543209862654321,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -5.43656365691809,
+    -0.3555555555555555,
+    0.0,
+    -0.04,
+    -0.9876543120987653,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.1,
+        0.0,
+        0.3,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.30000001192092896,
+        1.25,
+        2.0,
+        1.5,
+        0.10000000149011612,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    0.1643167672515498,
+    1.0225651829035858,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add f32 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.0,
+    2.5,
+    100.5,
+    -2.0,
+    2.5,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "sub f32 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -3.0,
+    -5.0,
+    -100.5,
+    3.0,
+    5.0,
+    100.5
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "mul f32 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.25,
+    -4.6875,
+    0.0,
+    -1.25,
+    -4.6875,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "div f32 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.5,
+        -1.25,
+        0.0,
+        0.5,
+        3.75,
+        100.5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.5,
+        3.75,
+        100.5,
+        -2.5,
+        -1.25,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -5.0,
+    -0.3333333432674408,
+    0.0,
+    -0.20000000298023224,
+    -3.0,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "pow f32 with f32",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.10000000149011612,
+        0.0,
+        0.30000001192092896,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f32",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.30000001192092896,
+        1.25,
+        2.0,
+        1.5,
+        0.10000000149011612,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    0.16431677341461182,
+    1.0225651264190674,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "add f64 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.618281828459045,
+    -0.09876544320987657,
+    100.25,
+    -2.618281828459045,
+    -0.09876544320987657,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sub f64 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.818281828459045,
+    -2.56790122345679,
+    -100.25,
+    2.818281828459045,
+    2.56790122345679,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mul f64 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -0.27182818284590454,
+    -1.6460905201646088,
+    0.0,
+    -0.27182818284590454,
+    -1.6460905201646088,
+    0.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "div f64 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0,
+        0.1,
+        1.2345678901234567,
+        100.25
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.1,
+        1.2345678901234567,
+        100.25,
+        -2.718281828459045,
+        -1.3333333333333333,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -27.18281828459045,
+    -1.0800000097200002,
+    0.0,
+    -0.036787944117144235,
+    -0.9259259175925926,
+    "inf"
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "pow f64 with f64",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        -1.5,
+        -0.1,
+        0.0,
+        0.3,
+        1.25,
+        2.0
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "f64",
+       "shape": [
+        2,
+        3
+       ],
+       "values": [
+        0.3,
+        1.25,
+        2.0,
+        1.5,
+        0.1,
+        0.0
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    "nan",
+    "nan",
+    0.0,
+    0.1643167672515498,
+    1.0225651825635729,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "add wraps in the result dtype (i8, i8)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        3
+       ],
+       "values": [
+        100,
+        127,
+        -128
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        3
+       ],
+       "values": [
+        100,
+        1,
+        -1
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    3
+   ],
+   "values": [
+    -56,
+    -128,
+    127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub wraps in the result dtype (u8, u8)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        3
+       ],
+       "values": [
+        3,
+        0,
+        10
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        3
+       ],
+       "values": [
+        5,
+        1,
+        10
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    3
+   ],
+   "values": [
+    254,
+    255,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul wraps in the result dtype (i16, i16)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2
+       ],
+       "values": [
+        16,
+        -300
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i16",
+       "shape": [
+        2
+       ],
+       "values": [
+        4096,
+        300
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    -24464
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add wraps in the result dtype (u8, i8)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2
+       ],
+       "values": [
+        200,
+        255
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2
+       ],
+       "values": [
+        100,
+        1
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2
+   ],
+   "values": [
+    300,
+    256
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sub wraps in the result dtype (u32, i32)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> sub >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2
+       ],
+       "values": [
+        0,
+        5
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i32",
+       "shape": [
+        2
+       ],
+       "values": [
+        1,
+        10
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -1,
+    -5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mul wraps in the result dtype (u64, i8)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> mul >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u64",
+       "shape": [
+        2
+       ],
+       "values": [
+        9223372036854775808,
+        3
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2
+       ],
+       "values": [
+        2,
+        -1
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    -3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow wraps in the result dtype (i8, i8)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2
+       ],
+       "values": [
+        3,
+        -2
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        2
+       ],
+       "values": [
+        5,
+        7
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2
+   ],
+   "values": [
+    -13,
+    -128
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "pow wraps in the result dtype (u32, u32)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> pow >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2
+       ],
+       "values": [
+        10,
+        2
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2
+       ],
+       "values": [
+        10,
+        33
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1410065408,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "add u8 [2,1] with i8 [3]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> add >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "u8",
+       "shape": [
+        2,
+        1
+       ],
+       "values": [
+        250,
+        3
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "i8",
+       "shape": [
+        3
+       ],
+       "values": [
+        -100,
+        0,
+        100
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    150,
+    250,
+    350,
+    -97,
+    3,
+    103
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "div i64 [2,2] by u32 [2]",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Composite[Tensor, Tensor] $p\n$p >> div >> emit\n",
+  "inputs": [
+   {
+    "composite": [
+     {
+      "tensor": {
+       "dtype": "i64",
+       "shape": [
+        2,
+        2
+       ],
+       "values": [
+        7,
+        -9,
+        1099511627776,
+        1
+       ]
+      }
+     },
+     {
+      "tensor": {
+       "dtype": "u32",
+       "shape": [
+        2
+       ],
+       "values": [
+        2,
+        4
+       ]
+      }
+     }
+    ]
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    2
+   ],
+   "values": [
+    3.5,
+    -2.25,
+    549755813888.0,
+    0.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ }
+]

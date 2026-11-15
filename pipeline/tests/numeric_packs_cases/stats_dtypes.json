@@ -1,0 +1,7490 @@
+[
+ {
+  "name": "sum f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    97.53295272833108
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum(axis=1) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -4.051615161792379,
+    101.58456789012345
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    -2.618281828459045,
+    -0.09876544320987657,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cumsum f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.718281828459045,
+    -1.3333333333333333,
+    0.0,
+    -2.618281828459045,
+    -0.09876544320987657,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "cumsum(axis=1) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2.718281828459045,
+    -4.051615161792379,
+    -4.051615161792379,
+    0.1,
+    1.3345678901234568,
+    101.58456789012345
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    -2.718281828459045
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "min(axis=1) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -2.718281828459045,
+    0.1
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    100.25
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0.1,
+    1.2345678901234567,
+    100.25
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "argmin f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2.718281828459045,
+      -1.3333333333333333,
+      0.0,
+      0.1,
+      1.2345678901234567,
+      100.25
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.325
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -0.5333333333333333,
+    1.1833333333333333
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    1.4557499999999999
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.4688888888888889,
+    0.48388888888888887
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    1.2065446531314123
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1.2727922061357855,
+    0.954594154601839,
+    1.4142135623730951
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.8129166358070408
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.6,
+    3.55
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.5,
+      -0.1,
+      0.0,
+      0.3,
+      1.25,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    1.5,
+    1.25,
+    2.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    686
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "values": [
+    103,
+    583
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    128,
+    203,
+    355
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    100,
+    128,
+    203,
+    355
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    103,
+    128,
+    328,
+    583
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [],
+   "values": [
+    0
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    128
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [],
+   "values": [
+    255
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u8",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    128,
+    200,
+    255
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      100,
+      128,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    1.8708286933869707
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.1213203435596424,
+    2.1213203435596424,
+    2.1213203435596424
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    7.416198487095663
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    3.0,
+    12.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    4.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    -4
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -231,
+    227
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    -128,
+    0,
+    124
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    -100,
+    -3,
+    -128,
+    0,
+    124
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -128,
+    -228,
+    -231,
+    0,
+    100,
+    227
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [],
+   "values": [
+    -128
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    2
+   ],
+   "values": [
+    -128,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [],
+   "values": [
+    127
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i8",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0,
+    100,
+    127
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -128,
+      -100,
+      -3,
+      0,
+      100,
+      127
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -1.3333333333333333,
+    2.3333333333333335
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.9
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.5555555555555556,
+    1.5555555555555554
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.4289915602982237
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.8284271247461903,
+    2.1213203435596424,
+    2.8284271247461903
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.5677643628300215
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    4.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    697
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -33070,
+    33767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    -32768,
+    700,
+    32765
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    -300,
+    -2,
+    -32768,
+    700,
+    32765
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -32768,
+    -33068,
+    -33070,
+    0,
+    1000,
+    33767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [],
+   "values": [
+    -32768
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    2
+   ],
+   "values": [
+    -32768,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [],
+   "values": [
+    32767
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i16",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0,
+    1000,
+    32767
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -32768,
+      -300,
+      -2,
+      0,
+      1000,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -1.3333333333333333,
+    2.3333333333333335
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.9
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.5555555555555556,
+    1.5555555555555554
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.4289915602982237
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.8284271247461903,
+    2.1213203435596424,
+    2.8284271247461903
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.5677643628300215
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    4.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    -4470
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -2147553653,
+    2147549183
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    -2147483648,
+    -4464,
+    2147483642
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648,
+    -70000,
+    -5,
+    -2147483648,
+    -4464,
+    2147483642
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -2147483648,
+    -2147553648,
+    -2147553653,
+    0,
+    65536,
+    2147549183
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [],
+   "values": [
+    -2147483648
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    -2147483648,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [],
+   "values": [
+    2147483647
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    0,
+    65536,
+    2147483647
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -2147483648,
+      -70000,
+      -5,
+      0,
+      65536,
+      2147483647
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -1.3333333333333333,
+    2.3333333333333335
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.9
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.5555555555555556,
+    1.5555555555555554
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.4289915602982237
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.8284271247461903,
+    2.1213203435596424,
+    2.8284271247461903
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.5677643628300215
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    4.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    9007199254740997
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -4611686018427387916,
+    4620693217682128913
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    -4611686018427387896,
+    9007199254740984,
+    4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4611686018427387907,
+    -9,
+    0,
+    -4611686018427387896,
+    9007199254740984,
+    4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -4611686018427387907,
+    -4611686018427387916,
+    -4611686018427387916,
+    11,
+    9007199254741004,
+    4620693217682128913
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    -4611686018427387907
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -4611686018427387907,
+    11
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    4611686018427387909
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    11,
+    9007199254740993,
+    4611686018427387909
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -4611686018427387907,
+      -9,
+      0,
+      11,
+      9007199254740993,
+      4611686018427387909
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    0.5
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    -1.3333333333333333,
+    2.3333333333333335
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.9
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.5555555555555556,
+    1.5555555555555554
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.4289915602982237
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.8284271247461903,
+    2.1213203435596424,
+    2.8284271247461903
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    5.5677643628300215
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    4.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      4
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    2.0,
+    4.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    10442520946
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "values": [
+    70003,
+    10442450943
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2147483648,
+    4000000003,
+    4295037295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    70000,
+    2147483648,
+    4000000003,
+    4295037295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    3,
+    70003,
+    2147483648,
+    6147483648,
+    10442450943
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [],
+   "values": [
+    0
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    2147483648
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [],
+   "values": [
+    4294967295
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2147483648,
+    4000000000,
+    4294967295
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      3,
+      70000,
+      2147483648,
+      4000000000,
+      4294967295
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    6.8
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.6666666666666666,
+    2.6666666666666665
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.6076809620810595
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.1213203435596424,
+    2.8284271247461903,
+    3.5355339059327378
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    9.38083151964686
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    3.0,
+    15.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    9232379236109516803
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum(axis=1) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "values": [
+    9007199254740998,
+    9223372036854775805
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum(axis=0, keepdim=true) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    3,
+    9007199254740992
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    5,
+    9007199254740993,
+    9223372036854775808,
+    3,
+    9007199254740992
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum(axis=1) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    0,
+    5,
+    9007199254740998,
+    9223372036854775808,
+    9223372036854775806,
+    9223372036854775805
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    0
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min(axis=1) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    9223372036854775808
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "max u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    18446744073709551615
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max(axis=0, keepdim=true) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    9223372036854775808,
+    18446744073709551614,
+    18446744073709551615
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin(axis=0) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin(axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    3
+   ],
+   "values": [
+    0,
+    0,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    2,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax(axis=0, keepdim=true) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      5,
+      9007199254740993,
+      9223372036854775808,
+      18446744073709551614,
+      18446744073709551615
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    1,
+    1,
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "mean u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    3.0
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "mean(axis=1) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> mean(axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    1.0,
+    5.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    6.8
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "var(axis=1, unbiased=false) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> var(axis=1, unbiased=false) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    0.6666666666666666,
+    2.6666666666666665
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    2.6076809620810595
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "std(axis=0, keepdim=true) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> std(axis=0, keepdim=true) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    1,
+    3
+   ],
+   "values": [
+    2.1213203435596424,
+    2.8284271247461903,
+    3.5355339059327378
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [],
+   "values": [
+    9.38083151964686
+   ],
+   "kind": "scalar",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=1.0, axis=1) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=1.0, axis=1) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    2
+   ],
+   "values": [
+    3.0,
+    15.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "norm(p=\"inf\", axis=0) u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> norm(p=\"inf\", axis=0) >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f64",
+   "shape": [
+    3
+   ],
+   "values": [
+    3.0,
+    5.0,
+    7.0
+   ],
+   "kind": "tensor",
+   "rtol": 1e-11,
+   "atol": 1e-12
+  }
+ },
+ {
+  "name": "sum of i8 does not wrap at i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      4
+     ],
+     "values": [
+      100,
+      100,
+      100,
+      -128
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    172
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "sum of u8 does not wrap at u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      3
+     ],
+     "values": [
+      200,
+      200,
+      255
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    655
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "cumsum of i16 accumulates in i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      4
+     ],
+     "values": [
+      30000,
+      30000,
+      -32768,
+      32767
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    4
+   ],
+   "values": [
+    30000,
+    60000,
+    27232,
+    59999
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum of u32 accumulates in u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      3
+     ],
+     "values": [
+      4000000000,
+      4000000000,
+      1
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    3
+   ],
+   "values": [
+    4000000000,
+    8000000000,
+    8000000001
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "min of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      6
+     ],
+     "values": [
+      18446744073709551615,
+      18446744073709551614,
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    0
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      6
+     ],
+     "values": [
+      18446744073709551615,
+      18446744073709551614,
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    18446744073709551615
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "argmin of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      6
+     ],
+     "values": [
+      18446744073709551615,
+      18446744073709551614,
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1
+   ],
+   "values": [
+    5
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      6
+     ],
+     "values": [
+      18446744073709551615,
+      18446744073709551614,
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1
+   ],
+   "values": [
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      4
+     ],
+     "values": [
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [
+    4
+   ],
+   "values": [
+    9007199254740993,
+    18014398509481985,
+    18014398509481992,
+    18014398509481992
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum of u64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      4
+     ],
+     "values": [
+      9007199254740993,
+      9007199254740992,
+      7,
+      0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "u64",
+   "shape": [],
+   "values": [
+    18014398509481992
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "min of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> min >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      6
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    -4611686018427387906
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "max of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> max >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      6
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    4611686018427387906
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "argmin of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      6
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1
+   ],
+   "values": [
+    3
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      6
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    1
+   ],
+   "values": [
+    1
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "cumsum of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> cumsum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      6
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905,
+      -4611686018427387906,
+      9007199254740993,
+      9007199254740992
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [
+    6
+   ],
+   "values": [
+    4611686018427387905,
+    -9223372036854775805,
+    4611686018427387906,
+    0,
+    9007199254740993,
+    18014398509481985
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "sum of i64 is exact",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> sum >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      3
+     ],
+     "values": [
+      4611686018427387905,
+      4611686018427387906,
+      -4611686018427387905
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i64",
+   "shape": [],
+   "values": [
+    4611686018427387906
+   ],
+   "kind": "scalar"
+  }
+ },
+ {
+  "name": "argmax ties f32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1.0,
+      5.0,
+      5.0,
+      0.0,
+      0.0,
+      0.0,
+      2.0,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties f32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1.0,
+      5.0,
+      5.0,
+      0.0,
+      0.0,
+      0.0,
+      2.0,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1.0,
+      5.0,
+      5.0,
+      0.0,
+      0.0,
+      0.0,
+      2.0,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties f64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1.0,
+      5.0,
+      5.0,
+      0.0,
+      0.0,
+      0.0,
+      2.0,
+      2.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties u8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u8",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties i8",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i8",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties i16",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i16",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties i32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties i64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "i64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties u32",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u32",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmax ties u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmax >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    1,
+    2
+   ],
+   "kind": "tensor"
+  }
+ },
+ {
+  "name": "argmin ties u64",
+  "type": "run",
+  "morf": "import tensor_stats/latest\naccept Tensor $x\n$x >> argmin >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "u64",
+     "shape": [
+      2,
+      4
+     ],
+     "values": [
+      1,
+      5,
+      5,
+      0,
+      0,
+      0,
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "i32",
+   "shape": [
+    2
+   ],
+   "values": [
+    3,
+    0
+   ],
+   "kind": "tensor"
+  }
+ }
+]

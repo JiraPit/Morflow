@@ -1,5 +1,6 @@
+use core_types::numeric::{self, FloatElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Tensor};
+use core_types::{DataType, Payload, Tensor, TensorDType};
 use rayon::prelude::*;
 
 #[no_mangle]
@@ -28,11 +29,15 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
 fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
 
-    let mut eps = 1e-8f32;
+    let mut eps32 = 1e-8f32;
+    let mut eps64 = 1e-8f64;
     if let Some(args) = &args_opt {
         if let Some(e_str) = args.get_named("eps") {
             if let Ok(e) = prepared.args.parse::<f32>(e_str) {
-                eps = e;
+                eps32 = e;
+            }
+            if let Ok(e) = e_str.parse::<f64>() {
+                eps64 = e;
             }
         }
     }
@@ -47,25 +52,46 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
                     )
                 }
             };
-            match compute_cosine_similarity(t1, t2, eps) {
+            // The two tensors are promoted to a common dtype; an integer
+            // result is computed in F64.
+            let result = match numeric::promote(t1.dtype, t2.dtype) {
+                TensorDType::F32 => compute_cosine_similarity::<f32>(t1, t2, eps32),
+                _ => compute_cosine_similarity::<f64>(t1, t2, eps64),
+            };
+            match result {
                 Ok(out) => Payload::Tensor(out),
                 Err(e) => Payload::Error(e.into()),
             }
         }
-        Payload::Tensor(t) => Payload::Tensor(t),
+        Payload::Tensor(t) => {
+            if numeric::is_float(t.dtype) {
+                Payload::Tensor(t)
+            } else {
+                match Tensor::from_vec_of(t.to_vec_f64(), t.shape.to_vec()) {
+                    Ok(out) => Payload::Tensor(out),
+                    Err(e) => Payload::Error(e),
+                }
+            }
+        }
         _ => Payload::Error(core_types::RString::from(
             "Action \'cosine_similarity\' requires Payload::Tensor",
         )),
     }
 }
 
-fn compute_cosine_similarity(t1: &Tensor, t2: &Tensor, eps: f32) -> Result<Tensor, String> {
-    let vals1 = t1.to_vec_f32();
-    let vals2 = t2.to_vec_f32();
+fn compute_cosine_similarity<T: FloatElement>(
+    t1: &Tensor,
+    t2: &Tensor,
+    eps: T,
+) -> Result<Tensor, String> {
+    let vals1 = t1.to_vec_as::<T>();
+    let vals2 = t2.to_vec_as::<T>();
 
     let r = t1.rank();
     if r == 0 {
-        return Ok(Tensor::from_f32_slice(&[1.0]));
+        let nan = vals1.iter().chain(&vals2).any(|v| v.is_nan());
+        let value = if nan { T::nan() } else { T::one() };
+        return Tensor::from_vec_of(vec![value], vec![1]).map_err(|e| e.to_string());
     }
 
     let feat_dim = *t1.shape.last().unwrap();
@@ -75,29 +101,29 @@ fn compute_cosine_similarity(t1: &Tensor, t2: &Tensor, eps: f32) -> Result<Tenso
         } else {
             vec![1]
         };
-        return Tensor::from_f32_vec(vec![1.0; shape.iter().product()], shape)
+        return Tensor::from_vec_of(vec![T::one(); shape.iter().product()], shape)
             .map_err(|e| e.to_string());
     }
 
     let num_vectors = vals1.len() / feat_dim;
-    let mut out_sims = vec![0.0f32; num_vectors];
+    let mut out_sims = vec![T::zero(); num_vectors];
 
     out_sims.par_iter_mut().enumerate().for_each(|(i, out)| {
         let offset = i * feat_dim;
         let v1 = &vals1[offset..offset + feat_dim];
         let v2 = &vals2[offset..offset + feat_dim];
 
-        let mut dot = 0.0f32;
-        let mut norm1_sq = 0.0f32;
-        let mut norm2_sq = 0.0f32;
+        let mut dot = T::zero();
+        let mut norm1_sq = T::zero();
+        let mut norm2_sq = T::zero();
 
         for k in 0..feat_dim {
-            dot += v1[k] * v2[k];
-            norm1_sq += v1[k] * v1[k];
-            norm2_sq += v2[k] * v2[k];
+            dot = dot + v1[k] * v2[k];
+            norm1_sq = norm1_sq + v1[k] * v1[k];
+            norm2_sq = norm2_sq + v2[k] * v2[k];
         }
 
-        let denom = (norm1_sq.sqrt() * norm2_sq.sqrt()).max(eps);
+        let denom = (norm1_sq.sqrt() * norm2_sq.sqrt()).nan_max(eps);
         *out = dot / denom;
     });
 
@@ -107,7 +133,7 @@ fn compute_cosine_similarity(t1: &Tensor, t2: &Tensor, eps: f32) -> Result<Tenso
         vec![1]
     };
 
-    Tensor::from_f32_vec(out_sims, out_shape).map_err(|e| e.to_string())
+    Tensor::from_vec_of(out_sims, out_shape).map_err(|e| e.to_string())
 }
 
 #[no_mangle]

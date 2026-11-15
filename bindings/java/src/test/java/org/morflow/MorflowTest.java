@@ -279,7 +279,7 @@ public class MorflowTest {
     }
     @Test
     public void testExactVersionAndRequiredImports() {
-        String source = "from base/0.3.2 import identity\naccept Tensor $data\n$data >> identity >> emit";
+        String source = "from base/0.3.3 import identity\naccept Tensor $data\n$data >> identity >> emit";
         try (Pipeline pipeline = Morflow.fromStr(source)) {
             assertArrayEquals(new float[]{1.0f, 2.0f}, pipeline.run(new float[]{1.0f, 2.0f}, new int[]{2}).toFloatArray());
         }
@@ -309,12 +309,119 @@ public class MorflowTest {
             }
         }
     }
+
+    @Test
+    public void testEveryDtypeRoundTrips() {
+        String dsl = """
+            accept Tensor $data
+            $data >> base/latest/identity >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowTensor f64 = pipeline.run(MorflowTensor.fromDoubleArray(new double[]{1.5, -2.0}, new int[]{2}));
+            assertEquals("f64", f64.getDtype());
+            assertArrayEquals(new double[]{1.5, -2.0}, f64.toDoubleArray());
+
+            MorflowTensor i64 = pipeline.run(MorflowTensor.fromLongArray(new long[]{-(1L << 40), 1L << 40}, new int[]{2}));
+            assertEquals("i64", i64.getDtype());
+            assertArrayEquals(new long[]{-(1L << 40), 1L << 40}, i64.toLongArray());
+
+            MorflowTensor i32 = pipeline.run(MorflowTensor.fromIntArray(new int[]{-70000, 80000}, new int[]{2}));
+            assertEquals("i32", i32.getDtype());
+            assertArrayEquals(new int[]{-70000, 80000}, i32.toIntArray());
+
+            MorflowTensor i16 = pipeline.run(MorflowTensor.fromShortArray(new short[]{-300, 400}, new int[]{2}));
+            assertEquals("i16", i16.getDtype());
+            assertArrayEquals(new short[]{-300, 400}, i16.toShortArray());
+
+            for (String dtype : new String[]{"u8", "i8"}) {
+                ByteBuffer buf = ByteBuffer.allocateDirect(2);
+                buf.put((byte) 3).put((byte) 4).flip();
+                MorflowTensor out = pipeline.run(MorflowTensor.fromDirectBuffer(buf, new int[]{2}, dtype));
+                assertEquals(dtype, out.getDtype());
+                assertArrayEquals(new byte[]{3, 4}, out.toByteArray());
+            }
+
+            ByteBuffer u32 = ByteBuffer.allocateDirect(8).order(ByteOrder.LITTLE_ENDIAN);
+            u32.putInt(1).putInt((int) 4000000000L).flip();
+            MorflowTensor u32Out = pipeline.run(MorflowTensor.fromDirectBuffer(u32, new int[]{2}, "u32"));
+            assertEquals("u32", u32Out.getDtype());
+            assertEquals(4000000000L, Integer.toUnsignedLong(u32Out.toIntArray()[1]));
+
+            ByteBuffer u64 = ByteBuffer.allocateDirect(16).order(ByteOrder.LITTLE_ENDIAN);
+            u64.putLong(1L).putLong(Long.MIN_VALUE).flip();
+            MorflowTensor u64Out = pipeline.run(MorflowTensor.fromDirectBuffer(u64, new int[]{2}, "u64"));
+            assertEquals("u64", u64Out.getDtype());
+            assertEquals("9223372036854775808", Long.toUnsignedString(u64Out.toLongArray()[1]));
+        }
+    }
+
+    @Test
+    public void testIntegerSumReturnsI64() {
+        String dsl = """
+            import tensor_stats/latest
+            accept Tensor $data
+            $data >> sum(axis=0) >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowTensor output = pipeline.run(MorflowTensor.fromIntArray(new int[]{1, 2, 3, 4}, new int[]{2, 2}));
+            assertEquals("i64", output.getDtype());
+            assertArrayEquals(new long[]{4, 6}, output.toLongArray());
+        }
+    }
+
+    @Test
+    public void testUnknownDtypeIsRejected() {
+        String dsl = """
+            accept Tensor $data
+            $data >> base/latest/identity >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowException error = assertThrows(MorflowException.class,
+                    () -> pipeline.run(ByteBuffer.allocateDirect(8), new int[]{2}, "f16"));
+            assertTrue(error.getMessage().contains("Unknown dtype"), error.getMessage());
+        }
+    }
+
+    @Test
+    public void testCompositeFeedsTwoTensorArithmetic() {
+        String dsl = """
+            import math_basics/latest
+            accept Composite $pair
+            $pair >> add >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowTensor pair = MorflowTensor.composite(
+                    MorflowTensor.fromIntArray(new int[]{1, 2, 3, 4, 5, 6}, new int[]{2, 3}),
+                    MorflowTensor.fromIntArray(new int[]{10, 20, 30}, new int[]{3}));
+            MorflowTensor output = pipeline.run(pair);
+            assertEquals("i32", output.getDtype());
+            assertArrayEquals(new int[]{2, 3}, output.getShape());
+            assertArrayEquals(new int[]{11, 22, 33, 14, 25, 36}, output.toIntArray());
+        }
+    }
+
+    @Test
+    public void testCompositeOutputHasItems() {
+        String dsl = """
+            accept Composite $pair
+            $pair >> emit
+        """;
+        try (Pipeline pipeline = Morflow.fromStr(dsl)) {
+            MorflowTensor output = pipeline.runArgs(MorflowTensor.composite(
+                    MorflowTensor.fromDoubleArray(new double[]{1.5, 2.5}, new int[]{2}),
+                    MorflowTensor.fromLongArray(new long[]{7}, new int[]{1})));
+            assertTrue(output.isComposite());
+            assertEquals(2, output.getItems().size());
+            assertArrayEquals(new double[]{1.5, 2.5}, output.getItems().get(0).toDoubleArray());
+            assertArrayEquals(new long[]{7}, output.getItems().get(1).toLongArray());
+        }
+    }
     @Test
     public void testPluginFileAndStringLoading() throws Exception {
         org.junit.jupiter.api.Assumptions.assumeTrue(System.getenv("MORFLOW_PLUGINS_PATH") != null);
         String source = """
             plugin opencv-bridge/0.1.2
-            from image_opencv/0.1.2 import resize
+            from image_opencv/0.1.3 import resize
             accept Tensor[6,8,3] $image
             $image >> resize(4,3,filter="nearest") >> emit
         """;

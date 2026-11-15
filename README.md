@@ -50,13 +50,14 @@ pip install morflow
 npm install morflow
 
 # Rust
+cargo install morflow
 cargo add morflow
 
 # Java (Maven)
 <dependency>
     <groupId>org.morflow</groupId>
     <artifactId>morflow</artifactId>
-    <version>0.2.6</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 

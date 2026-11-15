@@ -1,0 +1,605 @@
+[
+ {
+  "name": "if ($x.width == 3)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.width == 3) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.height > 2)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.height > 2) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.len == 6)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.len == 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.mean > 0)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.mean > 0) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.peak >= 6)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.peak >= 6) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.rms < 1)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.rms < 1) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if (1 < 2)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if (1 < 2) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if (2.5 <= 2)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if (2.5 <= 2) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($x.width != 3)",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> if ($x.width != 3) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($s > 2) with Scalar $s",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept Scalar $s\n$x >> if ($s > 2) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "scalar": {
+     "dtype": "f32",
+     "shape": [],
+     "values": [
+      2.5
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($n == 3) with IntArg $n",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept IntArg $n\n$x >> if ($n == 3) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "3"
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    -2.0,
+    3.0,
+    -4.0,
+    5.0,
+    -6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "if ($f > 0.5) with FloatArg $f",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\naccept FloatArg $f\n$x >> if ($f > 0.5) {\nneg\n} else {\nabs\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   },
+   {
+    "arg": "0.25"
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "route picks the first true arm",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> route {\n$x.width > 5 => { neg }\n$x.width == 3 => { abs }\nelse => { sign }\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ },
+ {
+  "name": "route falls back to else",
+  "type": "run",
+  "morf": "import math_basics/latest\naccept Tensor $x\n$x >> route {\n$x.width > 5 => { neg }\n$x.len < 2 => { abs }\nelse => { sign }\n} >> emit\n",
+  "inputs": [
+   {
+    "tensor": {
+     "dtype": "f32",
+     "shape": [
+      2,
+      3
+     ],
+     "values": [
+      -1.0,
+      2.0,
+      -3.0,
+      4.0,
+      -5.0,
+      6.0
+     ]
+    }
+   }
+  ],
+  "expect": {
+   "dtype": "f32",
+   "shape": [
+    2,
+    3
+   ],
+   "values": [
+    -1.0,
+    1.0,
+    -1.0,
+    1.0,
+    -1.0,
+    1.0
+   ],
+   "kind": "tensor",
+   "rtol": 2e-05,
+   "atol": 1e-06
+  }
+ }
+]

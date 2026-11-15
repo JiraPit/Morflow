@@ -1,6 +1,6 @@
 [package]
 name = "morflow-parser"
-version = "0.2.6"
+version = "0.3.0"
 edition = "2021"
 description = "Parser for Morflow declarative data processing pipelines"
 license = "MIT"

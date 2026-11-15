@@ -19,7 +19,7 @@ Mathematical morphology operators (dilation, erosion, opening, closing, gradient
 ## Behavior
 - Dilation evaluates neighborhood local maximum; erosion evaluates neighborhood local minimum.
 - Chains primitive operations for compound modes: Open ($\text{Erode} \rightarrow \text{Dilate}$), Close ($\text{Dilate} \rightarrow \text{Erode}$), Gradient ($\text{Dilate} - \text{Erode}$).
-- Rows processed concurrently across Rayon worker threads.
+- OpenCV manages its own threading.
 
 ## OpenCV backend
 Uses shared OpenCV through the versioned `opencv-bridge` plugin. Declare `plugin opencv-bridge/0.1.2` in the pipeline and run `morflow prep`. Shape checking does not load OpenCV. See `actions/image_opencv/README.md` for installation, layout rules and numerical differences.

@@ -41,10 +41,13 @@ fn map_error(err: MorflowError) -> napi::Error {
 pub struct MorflowTensor {
     /// Shape array of dimensions (e.g. [H, W, C] or [channels, samples])
     pub shape: Vec<u32>,
-    /// Data type: 'f32', 'u8', 'i32', or 'raw'
+    /// Data type: 'f32', 'f64', 'u8', 'i8', 'i16', 'i32', 'i64', 'u32', 'u64',
+    /// or 'composite' for a Composite, whose components are in `items`
     pub dtype: String,
-    /// Raw binary data buffer
+    /// Raw binary data buffer (empty for a Composite)
     pub data: Buffer,
+    /// The components of a Composite, in order
+    pub items: Option<Vec<MorflowTensor>>,
 }
 
 /// Helper input struct when passing custom shape along with typed array buffer
@@ -53,10 +56,12 @@ pub struct TensorInput {
     pub data: Buffer,
     pub shape: Vec<u32>,
     pub dtype: Option<String>,
-    /// The payload type to send. One of `"tensor"`, `"image"`, or `"audio"`.
-    /// When omitted the input is a plain `"tensor"`. There is no type
-    /// inference: a rank-3 array is a tensor unless you ask for `"image"`.
+    /// The payload type to send. One of `"tensor"`, `"image"`, `"audio"`, or
+    /// `"composite"`. When omitted the input is a plain `"tensor"`. There is no
+    /// type inference: a rank-3 array is a tensor unless you ask for `"image"`.
     pub payload_type: Option<String>,
+    /// The components of a `"composite"` payload, in order.
+    pub items: Option<Vec<TensorInput>>,
     /// Color space for `payloadType: "image"`. Inferred from the channel count
     /// when omitted.
     pub color_space: Option<String>,
@@ -126,13 +131,7 @@ fn parse_audio_layout(spec: &str) -> napi::Result<AudioLayout> {
 
 fn tensor_to_morflow_tensor(tensor: &Tensor) -> MorflowTensor {
     let shape: Vec<u32> = tensor.shape.iter().map(|&d| d as u32).collect();
-    let dtype = match tensor.dtype {
-        TensorDType::F32 => "f32",
-        TensorDType::U8 => "u8",
-        TensorDType::I32 => "i32",
-        _ => "raw",
-    }
-    .to_string();
+    let dtype = tensor.dtype.name().to_string();
 
     let data = if let Some(bytes) = tensor.as_bytes() {
         Buffer::from(bytes)
@@ -140,7 +139,12 @@ fn tensor_to_morflow_tensor(tensor: &Tensor) -> MorflowTensor {
         Buffer::from(tensor.to_contiguous_bytes().as_slice())
     };
 
-    MorflowTensor { shape, dtype, data }
+    MorflowTensor {
+        shape,
+        dtype,
+        data,
+        items: None,
+    }
 }
 
 fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
@@ -152,6 +156,7 @@ fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
             shape: vec![buffer.len() as u32],
             dtype: "u8".to_string(),
             data: Buffer::from(buffer.as_slice()),
+            items: None,
         }),
         Payload::WithArgs { payload, .. } => {
             payload_to_morflow_tensor(abi_stable::std_types::RBox::into_inner(payload))
@@ -160,10 +165,17 @@ fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
             napi::Status::GenericFailure,
             err.to_string(),
         )),
-        Payload::Composite(_) => Err(napi::Error::new(
-            napi::Status::GenericFailure,
-            "Composite payload returned where single tensor was expected",
-        )),
+        Payload::Composite(items) => Ok(MorflowTensor {
+            shape: vec![items.len() as u32],
+            dtype: "composite".to_string(),
+            data: Buffer::from(Vec::new()),
+            items: Some(
+                items
+                    .into_iter()
+                    .map(payload_to_morflow_tensor)
+                    .collect::<napi::Result<_>>()?,
+            ),
+        }),
         Payload::Scalar(t) => Ok(tensor_to_morflow_tensor(&t)),
         Payload::Arg(_) => Err(napi::Error::new(
             napi::Status::GenericFailure,
@@ -173,33 +185,44 @@ fn payload_to_morflow_tensor(payload: Payload) -> napi::Result<MorflowTensor> {
 }
 
 fn tensor_input_to_payload(input: TensorInput) -> napi::Result<Payload> {
-    let shape: Vec<usize> = input.shape.iter().map(|&d| d as usize).collect();
-    let dtype_str = input.dtype.unwrap_or_else(|| "f32".to_string());
-    let bytes = input.data.as_ref();
+    // A Composite carries its components in `items` rather than in `data`.
+    if input
+        .payload_type
+        .as_deref()
+        .is_some_and(|kind| kind.eq_ignore_ascii_case("composite"))
+    {
+        let items = input.items.unwrap_or_default();
+        let payloads = items
+            .into_iter()
+            .map(tensor_input_to_payload)
+            .collect::<napi::Result<Vec<_>>>()?;
+        return Ok(Payload::Composite(RVec::from(payloads)));
+    }
 
-    let tensor = match dtype_str.to_lowercase().as_str() {
-        "u8" | "uint8" | "byte" => {
-            Tensor::from_rvec_u8(RVec::from(bytes.to_vec()), shape, TensorDType::U8)
-                .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?
-        }
-        "i32" | "int32" => {
-            Tensor::from_rvec_u8(RVec::from(bytes.to_vec()), shape, TensorDType::I32)
-                .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?
-        }
-        _ /* "f32" */ => {
-            if !bytes.len().is_multiple_of(4) {
-                return Err(napi::Error::new(
-                    napi::Status::InvalidArg,
-                    "Data buffer size is not a multiple of 4 for Float32 tensor",
-                ));
-            }
-            let f32_slice: &[f32] = unsafe {
-                std::slice::from_raw_parts(bytes.as_ptr() as *const f32, bytes.len() / 4)
-            };
-            Tensor::from_f32_shape(f32_slice, shape)
-                .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?
-        }
-    };
+    let shape: Vec<usize> = input.shape.iter().map(|&d| d as usize).collect();
+    let dtype_name = input.dtype.as_deref().unwrap_or("f32");
+    let dtype = TensorDType::from_name(dtype_name).ok_or_else(|| {
+        napi::Error::new(
+            napi::Status::InvalidArg,
+            format!(
+                "Unknown dtype '{}' (expected one of: f32, f64, u8, i8, i16, i32, i64, u32, u64)",
+                dtype_name
+            ),
+        )
+    })?;
+    let bytes = input.data.as_ref();
+    if !bytes.len().is_multiple_of(dtype.element_size()) {
+        return Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            format!(
+                "Data buffer size is not a multiple of {} for a {} tensor",
+                dtype.element_size(),
+                dtype.name()
+            ),
+        ));
+    }
+    let tensor = Tensor::from_rvec_u8(RVec::from(bytes.to_vec()), shape, dtype)
+        .map_err(|e| napi::Error::new(napi::Status::InvalidArg, e.to_string()))?;
 
     // An explicit payloadType chooses the payload type outright.
     if let Some(kind) = input.payload_type.as_deref() {
@@ -265,7 +288,7 @@ fn tensor_input_to_payload(input: TensorInput) -> napi::Result<Payload> {
                 return Err(napi::Error::new(
                     napi::Status::InvalidArg,
                     format!(
-                        "Unknown payloadType '{}' (expected one of: tensor, image, audio)",
+                        "Unknown payloadType '{}' (expected tensor, image, audio, or composite)",
                         other
                     ),
                 ))

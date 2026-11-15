@@ -17,7 +17,7 @@ Dynamic range compression with soft-knee smoothing, attack/release ballistics, a
 | `release_ms` / `release` | `float` | `100.0` | Envelope detector release time in milliseconds. |
 | `knee_db` / `knee` | `float` | `2.0` | Soft knee width in dB. |
 | `makeup_db` / `makeup` | `float` | `0.0` | Post-compression linear makeup gain in dB. |
-| `sample_rate` | `float` | `44100.0` | Sampling rate in Hz (automatically read from `Payload::Audio` if present). |
+| `sample_rate` / `rate` | `float` | *Audio sample rate* | Sampling rate in Hz; overrides the rate read from the input `Payload::Audio`. |
 
 ## Behavior
 - Computes quadratic knee interpolation around the threshold to prevent harsh compression transitions.

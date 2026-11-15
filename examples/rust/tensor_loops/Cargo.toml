@@ -1,0 +1,9 @@
+[package]
+publish = false
+name = "tensor_loops"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+morflow = { version = "0.3.0", path = "../../../pipeline" }
+core_types = { package = "morflow-core-types", version = "0.4.3", path = "../../../core_types" }

@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -11,7 +11,6 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
-
 fn shape_impl(input: Shape, _args: PreparedArgs) -> Shape {
     input
 }
@@ -26,31 +25,49 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `x` for `x >= 0`, `alpha * x` otherwise.
+struct Op {
+    alpha32: f32,
+    alpha64: f64,
+}
 
-    let mut alpha = 0.01f32;
-    if let Some(args) = &args_opt {
-        if let Some(a_str) = args
-            .get_named("alpha")
-            .or_else(|| args.get_named("negative_slope"))
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if let Ok(a) = prepared.args.parse::<f32>(a_str) {
-                alpha = a;
-            }
+impl FloatUnary for Op {
+    #[inline]
+    fn apply<T: FloatElement>(&self, x: T) -> T {
+        if x >= T::zero() {
+            x
+        } else {
+            x * T::lit(self.alpha32, self.alpha64)
+        }
+    }
+}
+
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let _ = &prepared;
+    let args = &prepared.args;
+    let mut op = Op {
+        alpha32: 0.01f32,
+        alpha64: 0.01f64,
+    };
+    if let Some(a_str) = args
+        .get_named("alpha")
+        .or_else(|| args.get_named("negative_slope"))
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+    {
+        if let Ok(a) = prepared.args.parse::<f32>(a_str) {
+            op.alpha32 = a;
+        }
+        if let Ok(a) = a_str.parse::<f64>() {
+            op.alpha64 = a;
         }
     }
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice
-                .par_iter_mut()
-                .for_each(|x| *x = if *x >= 0.0 { *x } else { *x * alpha });
-            Payload::from_tensor(tensor)
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_float_unary(tensor, &op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'leaky_relu\' requires a tensor or scalar value",

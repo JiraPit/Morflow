@@ -4,9 +4,9 @@ The `openblas` plugin contains the shared numerical implementation used by the `
 
 | Pack | Actions | OpenBLAS operations |
 | --- | --- | --- |
-| `linalg_blas/0.1.2` | `matmul`, `dot`, `outer` | SGEMM, SDOT, SGER |
-| `linalg_blas/0.1.2` | `inv`, `det`, `qr`, `cholesky` | LAPACKE LU, inversion, Householder QR, Cholesky |
-| `tensor_blas/0.1.2` | `concat`, `repeat`, `roll` | Floating-point block copies with SCOPY and DCOPY |
+| `linalg_blas/0.1.3` | `matmul`, `dot`, `outer` | SGEMM, SDOT, SGER |
+| `linalg_blas/0.1.3` | `inv`, `det`, `qr`, `cholesky` | LAPACKE LU, inversion, Householder QR, Cholesky |
+| `tensor_blas/0.1.3` | `concat`, `repeat`, `roll` | Floating-point block copies with SCOPY and DCOPY |
 
 Use `tensor_basics` for reshape, transpose, permute, squeeze, unsqueeze, flatten, and cast. Those operations either create tensor views or have no corresponding BLAS operation.
 
@@ -14,8 +14,8 @@ Use `tensor_basics` for reshape, transpose, permute, squeeze, unsqueeze, flatten
 
 ```morf
 plugin openblas/0.1.1
-from linalg_blas/0.1.2 import matmul
-from tensor_basics/0.3.2 import transpose
+from linalg_blas/0.1.3 import matmul
+from tensor_basics/0.3.3 import transpose
 accept Composite[Tensor[2,3], Tensor[3,4]] $matrices
 
 $matrices >> matmul >> transpose >> emit("transposed_product")

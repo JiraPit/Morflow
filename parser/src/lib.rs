@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn test_each_loop_with_named_var() {
         let src = r#"
-            $video_tensor[axis=0] >> each ($frame) {
+            $video_tensor >> each(axis=0) ($frame) {
                 $frame
                     >> detect_faces(confidence=0.9)
                     >> blur_region(mask="faces")
@@ -161,7 +161,7 @@ mod tests {
             >> $mastered
 
         // 4. Multi-channel loop across dimension 1
-        $mastered[axis=1] >> each ($channel) {
+        $mastered >> each(axis=1) ($channel) {
             $channel
                 >> highpass(freq=30)
                 >> stereo_widen(amount=1.2)

@@ -8,7 +8,7 @@ Declare an exact version or write `latest` explicitly:
 
 ```perl
 plugin opencv-bridge/0.1.2
-from image_opencv/0.1.2 import resize
+from image_opencv/0.1.3 import resize
 
 accept Tensor[480,640,3] $image
 $image >> resize(320,240) >> emit
@@ -22,7 +22,7 @@ morflow check pipeline.morf
 
 Preparation downloads the declared plugins and imported actions, verifies published checksums, and checks the action's plugin requirements. A missing declaration or incompatible version is an error. Neither plugin declarations nor action imports infer `latest`.
 
-`morflow plugins search opencv` searches the shipped plugin catalog and prints installable paths such as `opencv-bridge/latest`. Like action search, it works offline and accepts `-l` / `--limit` (default: 5).
+`morflow plugins search opencv` searches the shipped plugin catalog and prints installable paths such as `opencv-bridge/latest`. It works offline and accepts `-l` / `--limit` (default: 5).
 
 `morflow plugins install opencv-bridge/0.1.2` installs a plugin independently. Use `-p` / `--path` for a custom plugin cache and `-f` / `--force` to download again. An exact version or explicit `latest` is required.
 

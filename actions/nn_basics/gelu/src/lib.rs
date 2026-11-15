@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, FloatUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -11,7 +11,6 @@ pub extern "C" fn get_input_type() -> DataType {
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
-
 fn shape_impl(input: Shape, _args: PreparedArgs) -> Shape {
     input
 }
@@ -29,6 +28,12 @@ fn gelu_exact(x: f32) -> f32 {
 #[inline]
 fn gelu_tanh(x: f32) -> f32 {
     let k = (2.0f32 / std::f32::consts::PI).sqrt();
+    0.5 * x * (1.0 + (k * (x + 0.044715 * x.powi(3))).tanh())
+}
+
+#[inline]
+fn gelu_tanh_f64(x: f64) -> f64 {
+    let k = (2.0f64 / std::f64::consts::PI).sqrt();
     0.5 * x * (1.0 + (k * (x + 0.044715 * x.powi(3))).tanh())
 }
 
@@ -54,32 +59,51 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, args_opt) = (payload.into_unwrapped(), Some(&prepared.args));
+/// GELU, exact (erf) or with the tanh approximation.
+struct Op {
+    use_tanh: bool,
+}
 
-    let mut use_tanh = false;
-    if let Some(args) = &args_opt {
-        if let Some(approx) = args
-            .get_named("approximate")
-            .or_else(|| args.positional.first().map(|s| s.as_str()))
-        {
-            if approx == "tanh" {
-                use_tanh = true;
-            }
+impl FloatUnary for Op {
+    #[inline]
+    fn apply<T: FloatElement>(&self, x: T) -> T {
+        // F32 keeps its established kernels; F64 is computed in double
+        // precision with an accurate erf.
+        if T::DTYPE == core_types::TensorDType::F32 {
+            let x = x.to_f64() as f32;
+            let y = if self.use_tanh {
+                gelu_tanh(x)
+            } else {
+                gelu_exact(x)
+            };
+            T::from_f64(y as f64)
+        } else {
+            let x = x.to_f64();
+            let y = if self.use_tanh {
+                gelu_tanh_f64(x)
+            } else {
+                0.5 * x * (1.0 + libm::erf(x / std::f64::consts::SQRT_2))
+            };
+            T::from_f64(y)
         }
     }
+}
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            if use_tanh {
-                slice.par_iter_mut().for_each(|x| *x = gelu_tanh(*x));
-            } else {
-                slice.par_iter_mut().for_each(|x| *x = gelu_exact(*x));
+fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
+    let _ = &prepared;
+    let args = &prepared.args;
+    let use_tanh = args
+        .get_named("approximate")
+        .or_else(|| args.positional.first().map(|s| s.as_str()))
+        == Some("tanh");
+    let op = Op { use_tanh };
+
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_float_unary(tensor, &op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
             }
-            Payload::from_tensor(tensor)
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'gelu\' requires a tensor or scalar value",

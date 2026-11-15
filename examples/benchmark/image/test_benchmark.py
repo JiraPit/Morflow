@@ -92,8 +92,8 @@ class BenchmarkTests(unittest.TestCase):
         basic = benchmark.PIPELINES["morf-basic"].read_text()
         opencv = benchmark.PIPELINES["morf-opencv"].read_text()
         self.assertEqual(basic.split("accept", 1)[1], opencv.split("accept", 1)[1])
-        self.assertIn("from image_opencv/0.1.2 import resize", opencv)
-        self.assertIn("from image_basics/0.3.2 import crop, flip", opencv)
+        self.assertIn("from image_opencv/0.1.3 import resize", opencv)
+        self.assertIn("from image_basics/0.3.3 import crop, flip", opencv)
 
     def test_reference_coordinate_convention(self):
         pixels = np.arange(4 * 4 * 3, dtype=np.uint8).reshape(4, 4, 3)

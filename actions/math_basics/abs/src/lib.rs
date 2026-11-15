@@ -1,6 +1,6 @@
+use core_types::numeric::{self, FloatElement, IntElement, SameUnary};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, TensorDType};
-use rayon::prelude::*;
+use core_types::{DataType, Payload, Shape, ShapeResult};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -25,16 +25,27 @@ pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) 
     process_impl(payload, prepared)
 }
 
-fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload {
-    let (inner_payload, _) = (payload.into_unwrapped(), Some(&prepared.args));
+/// `|x|`; integer overflow wraps like NumPy (`abs(-128i8) == -128`).
+struct Op;
 
-    match inner_payload {
-        Payload::Tensor(mut tensor) | Payload::Scalar(mut tensor)
-            if tensor.dtype == TensorDType::F32 =>
-        {
-            let slice = tensor.as_f32_slice_mut();
-            slice.par_iter_mut().for_each(|x| *x = x.abs());
-            Payload::from_tensor(tensor)
+impl SameUnary for Op {
+    #[inline]
+    fn float<T: FloatElement>(&self, x: T) -> T {
+        x.abs()
+    }
+    #[inline]
+    fn int<I: IntElement>(&self, x: I) -> I {
+        x.wrapping_abs()
+    }
+}
+
+fn process_impl(payload: Payload, _prepared: core_types::PreparedData) -> Payload {
+    match payload.into_unwrapped() {
+        Payload::Tensor(tensor) | Payload::Scalar(tensor) => {
+            match numeric::apply_same_unary(tensor, &Op) {
+                Ok(out) => Payload::from_tensor(out),
+                Err(e) => Payload::Error(e),
+            }
         }
         _ => Payload::Error(core_types::RString::from(
             "Action \'abs\' requires a tensor or scalar value",

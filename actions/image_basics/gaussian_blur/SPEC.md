@@ -17,5 +17,5 @@
 
 ## Behavior
 - Implements separable 1D horizontal and vertical convolution passes for $O(K \times W \times H)$ efficiency.
-- Normalizes kernel weights dynamically: $G(x) = \frac{1}{\sqrt{2\pi}\sigma} e^{-x^2 / (2\sigma^2)}$.
+- Uses kernel weights $e^{-x^2 / (2\sigma^2)}$ for $x \in [-\text{radius}, \text{radius}]$, normalized to sum to 1.
 - Replicates edge boundary pixels; parallelized per row across Rayon worker threads.

@@ -1,6 +1,6 @@
+use core_types::numeric::{self, Element, IntElement};
 use core_types::shapecheck::PreparedArgs;
-use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
-use rayon::prelude::*;
+use core_types::{match_dtype, DataType, Payload, Shape, ShapeResult, Tensor};
 
 #[no_mangle]
 pub extern "C" fn get_input_type() -> DataType {
@@ -64,14 +64,13 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     }
 }
 
+/// Floats keep their dtype; signed integers accumulate into I64 and unsigned
+/// ones into U64, wrapping on overflow like NumPy.
 fn compute_cumsum(tensor: &Tensor, raw_ax: isize) -> Result<Tensor, String> {
-    let vals = tensor.to_vec_f32();
     let r = tensor.rank();
-    if r == 0 {
-        return Ok(tensor.clone());
-    }
-
-    let axis = if raw_ax < 0 {
+    let axis = if r == 0 {
+        0
+    } else if raw_ax < 0 {
         let pos = raw_ax + r as isize;
         if pos < 0 {
             return Err(format!(
@@ -84,36 +83,52 @@ fn compute_cumsum(tensor: &Tensor, raw_ax: isize) -> Result<Tensor, String> {
         raw_ax as usize
     };
 
-    if axis >= r {
+    if r > 0 && axis >= r {
         return Err(format!(
             "Axis {} out of bounds for tensor of rank {}",
             raw_ax, r
         ));
     }
 
-    let axis_len = tensor.shape[axis];
-    let inner_size: usize = tensor.shape[(axis + 1)..r].iter().product();
-
-    if vals.is_empty() {
-        return Ok(tensor.clone());
-    }
-    let mut out_vals = vec![0.0f32; vals.len()];
-
-    out_vals
-        .par_chunks_mut(axis_len * inner_size)
-        .enumerate()
-        .for_each(|(outer_idx, block)| {
-            for inner_idx in 0..inner_size {
-                let mut acc = 0.0f32;
-                for a in 0..axis_len {
-                    let in_idx = (outer_idx * axis_len + a) * inner_size + inner_idx;
-                    acc += vals[in_idx];
-                    block[a * inner_size + inner_idx] = acc;
-                }
+    match_dtype!(tensor.dtype,
+        int I => {
+            let vals = tensor.to_vec_of::<I>().unwrap_or_default();
+            if I::SIGNED {
+                scan::<I, i64>(&vals, &tensor.shape, axis, |v| v.to_i128() as i64, |a, b| a.wrapping_add(b))
+            } else {
+                scan::<I, u64>(&vals, &tensor.shape, axis, |v| v.to_i128() as u64, |a, b| a.wrapping_add(b))
             }
-        });
+        },
+        float F => {
+            let vals = tensor.to_vec_of::<F>().unwrap_or_default();
+            scan::<F, F>(&vals, &tensor.shape, axis, |v| v, |a, b| a + b)
+        },
+    )
+}
 
-    Tensor::from_f32_vec(out_vals, tensor.shape.to_vec()).map_err(|e| e.to_string())
+fn scan<T, A>(
+    vals: &[T],
+    shape: &[usize],
+    axis: usize,
+    convert: impl Fn(T) -> A + Sync + Send,
+    add: impl Fn(A, A) -> A + Sync + Send,
+) -> Result<Tensor, String>
+where
+    T: Copy + Send + Sync,
+    A: Element,
+{
+    if shape.is_empty() {
+        let out: Vec<A> = vals.iter().map(|&v| convert(v)).collect();
+        return Tensor::from_vec_of(out, vec![]).map_err(|e| e.to_string());
+    }
+    let out = numeric::map_axis(vals, shape, axis, |lane: &[T], out: &mut [A]| {
+        let mut acc = A::default();
+        for (a, &v) in lane.iter().enumerate() {
+            acc = add(acc, convert(v));
+            out[a] = acc;
+        }
+    });
+    Tensor::from_vec_of(out, shape.to_vec()).map_err(|e| e.to_string())
 }
 
 #[no_mangle]
