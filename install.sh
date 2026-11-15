@@ -65,7 +65,7 @@ detect_platform() {
         Darwin)  PLATFORM_OS="darwin" ;;
         *)
             echo "Error: Unsupported operating system: $OS"
-            echo "Morflow currently supports Linux (x86_64) and macOS (Apple Silicon arm64)."
+            echo "Morflow currently supports Linux (x86_64, aarch64) and macOS (Apple Silicon arm64)."
             exit 1
             ;;
     esac
@@ -83,9 +83,7 @@ detect_platform() {
         if [ "$PLATFORM_ARCH" = "x86_64" ]; then
             PLATFORM="linux-x86_64"
         else
-            echo "Error: Pre-built Linux binaries are currently available for x86_64 only."
-            echo "You can build from source via 'cargo build --release -p morflow'."
-            exit 1
+            PLATFORM="linux-aarch64"
         fi
     elif [ "$PLATFORM_OS" = "darwin" ]; then
         if [ "$PLATFORM_ARCH" = "arm64" ]; then

@@ -17,9 +17,22 @@ from pathlib import Path
 
 TARGET_PLATFORMS = [
     ("linux-x86_64", "so"),
+    ("linux-aarch64", "so"),
     ("darwin-arm64", "dylib"),
     ("windows-x86_64", "dll"),
 ]
+
+# Runner and Rust target for each platform, passed to the build matrix.
+BUILD_TARGETS = {
+    "linux-x86_64": {"os": "ubuntu-latest", "triple": "x86_64-unknown-linux-gnu", "prefix": "lib"},
+    "linux-aarch64": {"os": "ubuntu-24.04-arm", "triple": "aarch64-unknown-linux-gnu", "prefix": "lib"},
+    "darwin-arm64": {"os": "macos-latest", "triple": "aarch64-apple-darwin", "prefix": "lib"},
+    "windows-x86_64": {"os": "windows-latest", "triple": "x86_64-pc-windows-msvc", "prefix": ""},
+}
+
+# Plugins are not yet built for linux-aarch64, so actions that need a plugin
+# are only built where their plugins are available.
+PLUGIN_PLATFORMS = {"linux-x86_64", "darwin-arm64", "windows-x86_64"}
 
 
 def parse_cargo_toml(path: Path) -> dict:
@@ -81,6 +94,7 @@ def discover_all_actions(repo_root: Path) -> list:
                         "path": str(action_dir.relative_to(repo_root)),
                         "package": meta["package"],
                         "library": meta["library"],
+                        "plugins": [requirement["name"] for requirement in meta["plugins"]],
                     })
     return actions
 
@@ -129,15 +143,27 @@ def get_release_assets(repo: str, tag: str, token: str = None) -> set:
         return set()
 
 
-def is_action_fully_released(act: dict, release_assets: set) -> bool:
-    """Checks if all required platform binaries for this action version are present in the release."""
-    act_name = act["name"]
-    version = act["version"]
-    for plat, ext in TARGET_PLATFORMS:
-        expected = f"{act_name}_action-{version}-{plat}.{ext}"
-        if expected not in release_assets:
-            return False
-    return True
+def required_platforms(act: dict) -> list:
+    """Platforms this action is released for: all of them unless it needs a plugin."""
+    if act.get("plugins"):
+        return [(plat, ext) for plat, ext in TARGET_PLATFORMS if plat in PLUGIN_PLATFORMS]
+    return list(TARGET_PLATFORMS)
+
+
+def asset_name(act: dict, plat: str, ext: str) -> str:
+    return f"{act['name']}_action-{act['version']}-{plat}.{ext}"
+
+
+def missing_platforms(act: dict, release_assets: set) -> list:
+    """Required platforms whose binary is not yet in the release."""
+    return [
+        (plat, ext) for plat, ext in required_platforms(act)
+        if asset_name(act, plat, ext) not in release_assets
+    ]
+
+
+def build_job(act: dict, plat: str, ext: str) -> dict:
+    return {"action": act, "target": {"platform": plat, "ext": ext, **BUILD_TARGETS[plat]}}
 
 
 def main():
@@ -146,7 +172,7 @@ def main():
     parser.add_argument("--pack", default="all", help="Target action pack or 'all'")
     parser.add_argument("--action", default="all", help="Target action name or 'all'")
     parser.add_argument("--force", default="false", help="Force build regardless of existing releases")
-    parser.add_argument("--limit", type=int, default=50, help="Max actions per matrix batch (50 * 3 = 150 <= 256)")
+    parser.add_argument("--limit", type=int, default=50, help="Max actions per matrix batch (50 * 4 = 200 <= 256)")
     parser.add_argument("--repo", default="", help="GitHub owner/repo (e.g. JiraPit/Morflow)")
 
     args = parser.parse_args()
@@ -170,14 +196,17 @@ def main():
 
     print(f"Total discovered actions matching filter: {len(candidates)}")
 
-    # 2. Skip actions that are already fully released on GitHub Releases (unless forced)
+    # 2. Skip platforms already released on GitHub Releases (unless forced). A
+    # published binary is never rebuilt: the release rejects changed assets.
     unbuilt_actions = []
+    pending_platforms = {}
     already_released_count = 0
     release_cache = {}
 
     for act in candidates:
         if force_build:
             unbuilt_actions.append(act)
+            pending_platforms[id(act)] = required_platforms(act)
             continue
 
         pack = act["pack"]
@@ -188,7 +217,8 @@ def main():
             release_cache[tag] = get_release_assets(repo, tag, token)
 
         assets = release_cache[tag]
-        if is_action_fully_released(act, assets):
+        missing = missing_platforms(act, assets)
+        if len(missing) < len(required_platforms(act)):
             dependencies = interface_dependencies(repo_root / act["path"] / "Cargo.toml")
             if dependencies & changed_interfaces:
                 raise RuntimeError(
@@ -196,15 +226,17 @@ def main():
                     f"but version {version} is already published. Bump the action version "
                     "so its binary is rebuilt with the updated interface."
                 )
-            already_released_count += 1
-        else:
+        if missing:
             unbuilt_actions.append(act)
+            pending_platforms[id(act)] = missing
+        else:
+            already_released_count += 1
 
     print(f"Already released actions skipped: {already_released_count}")
     print(f"Total actions requiring build: {len(unbuilt_actions)}")
 
     # 3. Limit batch size to stay safely within GitHub Actions matrix limit (max 256 configurations)
-    # With 3 target platforms (Linux, macOS, Windows), limit=50 produces 150 configurations.
+    # With at most 4 target platforms per action, limit=50 produces 200 configurations.
     limit = max(1, args.limit)
     selected_actions = unbuilt_actions[:limit]
     remaining_count = len(unbuilt_actions) - len(selected_actions)
@@ -220,12 +252,18 @@ def main():
 
     packs_list = [{"name": p, "version": v} for p, v in packs_dict]
 
-    matrix_json = json.dumps(selected_actions)
+    jobs = [
+        build_job(act, plat, ext)
+        for act in selected_actions
+        for plat, ext in pending_platforms[id(act)]
+    ]
+    matrix_json = json.dumps(jobs)
     packs_json = json.dumps(packs_list)
 
-    print(f"Selected for current batch: {len(selected_actions)} actions ({len(selected_actions) * len(TARGET_PLATFORMS)} matrix jobs)")
+    print(f"Selected for current batch: {len(selected_actions)} actions ({len(jobs)} matrix jobs)")
     for act in selected_actions:
-        print(f"  - [{act['pack']}] {act['name']} v{act['version']}")
+        platforms = ", ".join(plat for plat, _ in pending_platforms[id(act)])
+        print(f"  - [{act['pack']}] {act['name']} v{act['version']} ({platforms})")
     print(f"Remaining for subsequent triggers: {remaining_count}")
     print(f"Has more batches: {has_more}")
 

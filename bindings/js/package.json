@@ -33,6 +33,7 @@
     "index.d.ts",
     "bin/morflow.mjs",
     "morflow.linux-x64-gnu.node",
+    "morflow.linux-arm64-gnu.node",
     "morflow.darwin-arm64.node",
     "morflow.win32-x64-msvc.node",
     "LICENSE",

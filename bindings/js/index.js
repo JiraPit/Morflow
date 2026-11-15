@@ -1,5 +1,6 @@
 const binaries = {
   'linux-x64': 'morflow.linux-x64-gnu.node',
+  'linux-arm64': 'morflow.linux-arm64-gnu.node',
   'darwin-arm64': 'morflow.darwin-arm64.node',
   'win32-x64': 'morflow.win32-x64-msvc.node'
 };

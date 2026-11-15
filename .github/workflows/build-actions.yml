@@ -76,23 +76,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        action: ${{ fromJson(needs.detect-actions.outputs.matrix) }}
-        target:
-          - os: ubuntu-latest
-            triple: x86_64-unknown-linux-gnu
-            ext: so
-            prefix: lib
-            platform: linux-x86_64
-          - os: macos-latest
-            triple: aarch64-apple-darwin
-            ext: dylib
-            prefix: lib
-            platform: darwin-arm64
-          - os: windows-latest
-            triple: x86_64-pc-windows-msvc
-            ext: dll
-            prefix: ""
-            platform: windows-x86_64
+        # One entry per (action, platform) still missing from its release;
+        # targets are defined in scripts/detect_changed_actions.py.
+        include: ${{ fromJson(needs.detect-actions.outputs.matrix) }}
     runs-on: ${{ matrix.target.os }}
     steps:
       - name: Checkout repository
@@ -195,7 +181,7 @@ jobs:
             echo "Creating new release $TAG_NAME..."
             gh release create "$TAG_NAME" release_assets/* \
               --title "$RELEASE_TITLE" \
-              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}."
+              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}."
           fi
 
   trigger-next-batch:

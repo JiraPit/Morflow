@@ -37,6 +37,41 @@ class PackagingTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Bump the action version"):
                 detect_changed_actions.main()
 
+    def run_detector(self, actions, assets):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out"
+            with patch.object(sys, "argv", ["detect"]), \
+                 patch.dict(os.environ, {"GITHUB_OUTPUT": str(output)}), \
+                 patch.object(detect_changed_actions, "discover_all_actions", return_value=actions), \
+                 patch.object(detect_changed_actions, "get_release_assets", return_value=assets), \
+                 patch.object(detect_changed_actions, "get_git_changed_files", return_value=[]):
+                detect_changed_actions.main()
+            lines = dict(line.split("=", 1) for line in output.read_text().splitlines())
+        return json.loads(lines["matrix"])
+
+    def test_released_actions_only_build_missing_platforms(self):
+        gain = {"pack": "audio_basics", "name": "gain", "version": "0.1.0",
+                "path": "actions/audio_basics/gain", "plugins": []}
+        released = {f"gain_action-0.1.0-{platform}.{extension}"
+                    for platform, extension in detect_changed_actions.TARGET_PLATFORMS
+                    if platform != "linux-aarch64"}
+        jobs = self.run_detector([gain], released)
+        self.assertEqual([job["target"]["platform"] for job in jobs], ["linux-aarch64"])
+        self.assertEqual(jobs[0]["target"]["os"], "ubuntu-24.04-arm")
+        self.assertEqual(jobs[0]["action"]["name"], "gain")
+
+    def test_plugin_actions_skip_platforms_without_plugins(self):
+        matmul = {"pack": "linalg_blas", "name": "matmul", "version": "0.1.1",
+                  "path": "actions/linalg_blas/matmul", "plugins": ["openblas"]}
+        jobs = self.run_detector([matmul], set())
+        platforms = {job["target"]["platform"] for job in jobs}
+        self.assertEqual(platforms, detect_changed_actions.PLUGIN_PLATFORMS)
+        released = {f"matmul_action-0.1.1-{platform}.{extension}"
+                    for platform, extension in detect_changed_actions.TARGET_PLATFORMS
+                    if platform in detect_changed_actions.PLUGIN_PLATFORMS}
+        self.assertEqual(self.run_detector([matmul], released), [])
+
     def test_plugin_interface_changes_identify_consumers(self):
         changed = detect_changed_actions.changed_plugin_interfaces([
             "plugins/openblas/src/interface.rs",
