@@ -59,7 +59,7 @@ enum Commands {
 
     /// Views the raw SPEC.md documentation for a specified action
     Spec {
-        /// Full action path '<package>/<version>/<action>' (e.g. image_basics/latest/color_adjust or base/0.1.2/identity)
+        /// Full action path '<package>/<version>/<action>' (e.g. image_basics/latest/color_adjust or base/0.3.3/identity)
         action: String,
     },
 
