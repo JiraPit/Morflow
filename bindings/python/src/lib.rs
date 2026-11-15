@@ -275,7 +275,7 @@ fn py_any_to_payload(obj: &Bound<'_, PyAny>) -> PyResult<Payload> {
 
     // 5. String
     if let Ok(py_str) = obj.downcast::<PyString>() {
-        let s = py_str.to_str()?;
+        let s = py_str.to_cow()?;
         return Ok(Payload::Data {
             buffer: RVec::from(s.as_bytes().to_vec()),
         });

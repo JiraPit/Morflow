@@ -5,6 +5,6 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-morflow = { version = "0.3.0", path = "../../../pipeline" }
+morflow = { version = "0.3.1", path = "../../../pipeline" }
 core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../../core_types" }
 image = "0.25"

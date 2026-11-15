@@ -458,7 +458,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "cholesky"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "det"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -829,7 +829,7 @@ dependencies = [
 
 [[package]]
 name = "diag"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -896,7 +896,7 @@ dependencies = [
 
 [[package]]
 name = "dot"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1441,7 +1441,7 @@ dependencies = [
 
 [[package]]
 name = "inv"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1728,7 +1728,7 @@ dependencies = [
 
 [[package]]
 name = "matmul"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1835,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "morflow"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "abi_stable",
  "ariadne",
@@ -1868,7 +1868,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "abi_stable",
  "jni",
@@ -1878,7 +1878,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -1915,7 +1915,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "outer"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2604,7 +2604,7 @@ dependencies = [
 
 [[package]]
 name = "qr"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3573,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "trace"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "morflow-core-types",
  "rayon",

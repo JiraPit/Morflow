@@ -152,18 +152,14 @@ jobs:
           retention-days: 1
 
   build-python-wheels:
-    name: Build Python Wheel (${{ matrix.platform }}, Python ${{ matrix.python-version }})
+    # The extension uses the stable ABI (abi3-py38), so one wheel per platform
+    # covers every CPython >= 3.8.
+    name: Build Python Wheel (${{ matrix.platform }})
     needs: detect-engine
     if: needs.detect-engine.outputs.should_build == 'true'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-        exclude:
-          # CPython 3.8 has no native Apple Silicon distribution.
-          - os: macos-latest
-            python-version: '3.8'
         include:
           - os: ubuntu-latest
             platform: linux-x86_64
@@ -185,17 +181,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Select manylinux Python interpreter
-        if: runner.os == 'Linux'
-        id: linux-python
-        shell: bash
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          python_tag="${PYTHON_VERSION//./}"
-          echo "interpreter=/opt/python/cp${python_tag}-cp${python_tag}/bin/python" >> "$GITHUB_OUTPUT"
+          python-version: '3.12'
 
       - name: Build portable Linux wheel
         if: runner.os == 'Linux'
@@ -206,15 +192,9 @@ jobs:
           before-script-linux: |
             dnf install -y openssl-devel pkgconf-pkg-config
             pkg-config --modversion openssl
-            # Current manylinux images no longer include CPython 3.8.
-            if [ "${{ matrix.python-version }}" = "3.8" ]; then
-              uv python install 3.8
-              mkdir -p /opt/python/cp38-cp38/bin
-              ln -s "$(uv python find 3.8)" /opt/python/cp38-cp38/bin/python
-            fi
           args: >-
             --release --locked --manifest-path bindings/python/Cargo.toml
-            --out dist_python --interpreter ${{ steps.linux-python.outputs.interpreter }}
+            --out dist_python --interpreter /opt/python/cp312-cp312/bin/python
 
       - name: Build macOS or Windows wheel
         if: runner.os != 'Linux'
@@ -235,7 +215,7 @@ jobs:
       - name: Upload Python Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "engine-python-${{ matrix.platform }}-cp${{ matrix.python-version }}"
+          name: "engine-python-${{ matrix.platform }}"
           path: dist_python/*.whl
           if-no-files-found: error
           retention-days: 1
