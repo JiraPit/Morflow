@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
 Morflow Engine Version Detection Script
-Reads engine version from pipeline/Cargo.toml, checks git diff / release existence,
-and outputs parameters for GitHub Actions.
+Reads the engine version from pipeline/Cargo.toml and decides what CI does:
+
+- A pushed tag v<version> releases that version. The tag must match the
+  version in pipeline/Cargo.toml.
+- A branch push builds every platform as a check when engine files changed in
+  the pushed commits, and never publishes.
+- A manual run builds every platform and never publishes.
 """
 
 import argparse
@@ -34,18 +39,35 @@ def parse_cargo_version(cargo_toml_path: Path) -> str:
     return "0.1.0"
 
 
+ENGINE_PREFIXES = (
+    "pipeline/",
+    "core_types/",
+    "parser/",
+    "bindings/",
+    "Cargo.toml",
+    "Cargo.lock",
+    ".github/workflows/build-engine.yml",
+    "scripts/detect_engine_version.py",
+    "scripts/package-node.mjs",
+    "scripts/publish-node.mjs",
+    "scripts/publish_crates.py",
+)
+
+
 def get_git_changed_files() -> list:
-    """Retrieves changed files in the latest commit using git diff."""
+    """Changed files across the whole push, or the latest commit for other runs."""
+    push_base = os.environ.get("GITHUB_BASE_SHA", "")
+    base = push_base if push_base and set(push_base) != {"0"} else "HEAD~1"
     try:
         res = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD~1"],
+            ["git", "rev-parse", "--verify", base],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
         if res.returncode == 0:
             diff_res = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+                ["git", "diff", "--name-only", base, "HEAD"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -58,10 +80,18 @@ def get_git_changed_files() -> list:
         return []
 
 
+def touches_engine(changed_files: list) -> bool:
+    return any(
+        f == prefix or f.startswith(prefix)
+        for f in changed_files
+        for prefix in ENGINE_PREFIXES
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Detect Morflow engine version for CI release.")
     parser.add_argument("--event", default="push", help="GitHub event name")
-    parser.add_argument("--force", default="false", help="Force build regardless of diff")
+    parser.add_argument("--ref", default="", help="Full git ref that triggered the run (GITHUB_REF)")
 
     args = parser.parse_args()
     repo_root = Path(__file__).resolve().parent.parent
@@ -70,37 +100,27 @@ def main():
     version = parse_cargo_version(pipeline_cargo)
     tag_name = f"v{version}"
 
-    force_build = args.force.lower() in ("true", "1", "yes")
-
-    if args.event == "workflow_dispatch" or force_build:
+    should_release = args.ref.startswith("refs/tags/")
+    if should_release:
+        pushed_tag = args.ref.removeprefix("refs/tags/")
+        if pushed_tag != tag_name:
+            print(
+                f"Error: tag {pushed_tag} does not match engine version {version} in "
+                f"pipeline/Cargo.toml. Tag the commit that sets the version as {tag_name}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         should_build = True
-    else:
-        # Push event: check if any engine/binding file changed
+    elif args.event == "push":
         changed_files = get_git_changed_files()
-        if not changed_files:
-            should_build = True
-        else:
-            engine_prefixes = (
-                "pipeline/",
-                "core_types/",
-                "parser/",
-                "bindings/",
-                "Cargo.toml",
-                "Cargo.lock",
-                ".github/workflows/build-engine.yml",
-                "scripts/detect_engine_version.py",
-                "scripts/package-node.mjs",
-                "scripts/publish-node.mjs",
-                "scripts/publish_crates.py",
-            )
-            should_build = any(
-                any(f.startswith(prefix) or f == prefix for prefix in engine_prefixes)
-                for f in changed_files
-            )
+        should_build = not changed_files or touches_engine(changed_files)
+    else:
+        should_build = True
 
     print(f"Engine Version: {version}")
     print(f"Release Tag: {tag_name}")
-    print(f"Should Build & Release: {should_build}")
+    print(f"Should Build: {should_build}")
+    print(f"Should Release: {should_release}")
 
     # Set GitHub Actions output
     github_output = os.environ.get("GITHUB_OUTPUT")
@@ -109,8 +129,7 @@ def main():
             f.write(f"version={version}\n")
             f.write(f"tag_name={tag_name}\n")
             f.write(f"should_build={'true' if should_build else 'false'}\n")
-    else:
-        print(f"\nGitHub Output:\nversion={version}\ntag_name={tag_name}\nshould_build={'true' if should_build else 'false'}")
+            f.write(f"should_release={'true' if should_release else 'false'}\n")
 
 
 if __name__ == "__main__":
