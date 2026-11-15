@@ -50,6 +50,7 @@ pip install morflow
 npm install morflow
 
 # Rust
+cargo install morflow
 cargo add morflow
 
 # Java (Maven)
