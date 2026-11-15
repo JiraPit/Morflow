@@ -10,8 +10,14 @@ on:
       - 'scripts/build-plugins.sh'
       - 'scripts/package_plugin.py'
       - 'scripts/package_action.py'
+      - 'scripts/detect_changed_plugins.py'
       - '.github/workflows/build-plugins.yml'
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Build every platform even if the plugin version is already released'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -24,29 +30,30 @@ jobs:
   discover:
     runs-on: ubuntu-24.04
     outputs:
-      plugins: ${{ steps.matrix.outputs.plugins }}
+      matrix: ${{ steps.detector.outputs.matrix }}
+      plugins: ${{ steps.detector.outputs.plugins }}
+      has_builds: ${{ steps.detector.outputs.has_builds }}
     steps:
       - uses: actions/checkout@v4
-      - id: matrix
+      - name: Detect unpublished plugin binaries
+        id: detector
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 - <<'PY'
-          import json, os, sys
-          from pathlib import Path
-          sys.path.insert(0, 'scripts')
-          from package_plugin import plugin_metadata
-          plugins = [plugin_metadata(p) for p in sorted(Path('plugins').glob('*/Cargo.toml'))]
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('plugins=' + json.dumps(plugins) + '\n')
-          PY
+          python3 scripts/detect_changed_plugins.py \
+            --repo "${{ github.repository }}" \
+            --force "${{ github.event.inputs.force_build || 'false' }}"
 
   build:
     needs: discover
+    if: needs.discover.outputs.has_builds == 'true'
     strategy:
       fail-fast: false
       matrix:
-        plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
-        os: [ubuntu-24.04, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        # One entry per (plugin, platform) still missing from its release;
+        # targets are defined in scripts/detect_changed_plugins.py.
+        include: ${{ fromJson(needs.discover.outputs.matrix) }}
+    runs-on: ${{ matrix.target.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -100,14 +107,16 @@ jobs:
           cp target/release/plugins/${{ matrix.plugin.name }}/*_plugin-* dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: plugin-${{ matrix.plugin.name }}-${{ matrix.plugin.version }}-${{ runner.os }}
+          name: plugin-${{ matrix.plugin.name }}-${{ matrix.plugin.version }}-${{ matrix.target.platform }}
           path: dist/*
           retention-days: 1
 
   publish:
     needs: [discover, build]
+    if: needs.discover.outputs.has_builds == 'true'
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         plugin: ${{ fromJson(needs.discover.outputs.plugins) }}
     steps:
