@@ -1,14 +1,10 @@
 name: Build and Release Engine
 
-# Releases happen only from a version tag: bump the version in
-# pipeline/Cargo.toml (and the bindings), merge it, then
-#   git tag v<version> && git push origin v<version>
-# Pushes to main that touch engine code build every platform as a check and
-# never publish. Path filters do not apply to tag pushes.
+# Builds and releases the engine version in pipeline/Cargo.toml only when it
+# has no GitHub release yet, the same rule action packs and plugins follow.
 on:
   push:
     branches: [main]
-    tags: ['v*']
     paths:
       - 'pipeline/**'
       - 'core_types/**'
@@ -34,7 +30,6 @@ jobs:
       version: ${{ steps.detector.outputs.version }}
       tag_name: ${{ steps.detector.outputs.tag_name }}
       should_build: ${{ steps.detector.outputs.should_build }}
-      should_release: ${{ steps.detector.outputs.should_release }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,11 +44,8 @@ jobs:
       - name: Run Version Detector
         id: detector
         env:
-          GITHUB_BASE_SHA: ${{ github.event.before }}
-        run: |
-          python3 scripts/detect_engine_version.py \
-            --event "${{ github.event_name }}" \
-            --ref "${{ github.ref }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/detect_engine_version.py --repo "${{ github.repository }}"
 
   build-rust-packages:
     name: Verify Rust release packages
@@ -389,7 +381,7 @@ jobs:
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
     needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings]
-    if: needs.detect-engine.outputs.should_release == 'true'
+    if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -437,7 +429,7 @@ jobs:
   publish-pypi:
     name: Publish Python package to PyPI
     needs: [detect-engine, publish-engine-release]
-    if: needs.detect-engine.outputs.should_release == 'true'
+    if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -463,7 +455,7 @@ jobs:
   publish-npm:
     name: Publish Node.js package to npm
     needs: [detect-engine, publish-engine-release]
-    if: needs.detect-engine.outputs.should_release == 'true'
+    if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -493,7 +485,7 @@ jobs:
   publish-rust:
     name: Publish Rust crates to crates.io
     needs: [detect-engine, publish-engine-release]
-    if: needs.detect-engine.outputs.should_release == 'true'
+    if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read

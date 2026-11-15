@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
 Morflow Engine Version Detection Script
-Reads the engine version from pipeline/Cargo.toml and decides what CI does:
-
-- A pushed tag v<version> releases that version. The tag must match the
-  version in pipeline/Cargo.toml.
-- A branch push builds every platform as a check when engine files changed in
-  the pushed commits, and never publishes.
-- A manual run builds every platform and never publishes.
+Reads the engine version from pipeline/Cargo.toml and builds and releases it
+only when GitHub has no release v<version> yet, the same rule action packs and
+plugins follow. A released version is never rebuilt or republished: changing
+the engine needs a version bump.
 """
 
 import argparse
+import json
 import os
-import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -39,98 +38,49 @@ def parse_cargo_version(cargo_toml_path: Path) -> str:
     return "0.1.0"
 
 
-ENGINE_PREFIXES = (
-    "pipeline/",
-    "core_types/",
-    "parser/",
-    "bindings/",
-    "Cargo.toml",
-    "Cargo.lock",
-    ".github/workflows/build-engine.yml",
-    "scripts/detect_engine_version.py",
-    "scripts/package-node.mjs",
-    "scripts/publish-node.mjs",
-    "scripts/publish_crates.py",
-)
-
-
-def get_git_changed_files() -> list:
-    """Changed files across the whole push, or the latest commit for other runs."""
-    push_base = os.environ.get("GITHUB_BASE_SHA", "")
-    base = push_base if push_base and set(push_base) != {"0"} else "HEAD~1"
+def release_exists(repo: str, tag: str, token: str = None) -> bool:
+    """Whether the release exists. Any error other than 404 stops the run, so an
+    unreachable API never reads as "unreleased"."""
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "Morflow-CI"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/{tag}", headers=headers)
     try:
-        res = subprocess.run(
-            ["git", "rev-parse", "--verify", base],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        if res.returncode == 0:
-            diff_res = subprocess.run(
-                ["git", "diff", "--name-only", base, "HEAD"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True,
-            )
-            return [f.strip() for f in diff_res.stdout.splitlines() if f.strip()]
-        return []
-    except Exception as e:
-        print(f"Warning: Failed to get git diff: {e}", file=sys.stderr)
-        return []
-
-
-def touches_engine(changed_files: list) -> bool:
-    return any(
-        f == prefix or f.startswith(prefix)
-        for f in changed_files
-        for prefix in ENGINE_PREFIXES
-    )
+        with urllib.request.urlopen(request, timeout=15) as response:
+            json.loads(response.read().decode("utf-8"))
+            return True
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return False
+        raise
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Detect Morflow engine version for CI release.")
-    parser.add_argument("--event", default="push", help="GitHub event name")
-    parser.add_argument("--ref", default="", help="Full git ref that triggered the run (GITHUB_REF)")
-
+    parser = argparse.ArgumentParser(description="Detect whether the Morflow engine version needs releasing.")
+    parser.add_argument("--repo", default="", help="GitHub owner/repo (e.g. JiraPit/Morflow)")
     args = parser.parse_args()
+
     repo_root = Path(__file__).resolve().parent.parent
+    repo = args.repo or os.environ.get("GITHUB_REPOSITORY", "JiraPit/Morflow")
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
-    pipeline_cargo = repo_root / "pipeline" / "Cargo.toml"
-    version = parse_cargo_version(pipeline_cargo)
+    version = parse_cargo_version(repo_root / "pipeline" / "Cargo.toml")
     tag_name = f"v{version}"
-
-    should_release = args.ref.startswith("refs/tags/")
-    if should_release:
-        pushed_tag = args.ref.removeprefix("refs/tags/")
-        if pushed_tag != tag_name:
-            print(
-                f"Error: tag {pushed_tag} does not match engine version {version} in "
-                f"pipeline/Cargo.toml. Tag the commit that sets the version as {tag_name}.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        should_build = True
-    elif args.event == "push":
-        changed_files = get_git_changed_files()
-        should_build = not changed_files or touches_engine(changed_files)
-    else:
-        should_build = True
+    released = release_exists(repo, tag_name, token)
+    should_build = not released
 
     print(f"Engine Version: {version}")
     print(f"Release Tag: {tag_name}")
-    print(f"Should Build: {should_build}")
-    print(f"Should Release: {should_release}")
+    print(f"Already Released: {released}")
+    print(f"Should Build & Release: {should_build}")
 
-    # Set GitHub Actions output
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write(f"version={version}\n")
             f.write(f"tag_name={tag_name}\n")
             f.write(f"should_build={'true' if should_build else 'false'}\n")
-            f.write(f"should_release={'true' if should_release else 'false'}\n")
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
