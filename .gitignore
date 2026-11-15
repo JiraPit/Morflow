@@ -49,3 +49,6 @@ examples/**/output.png
 examples/**/left_filtered.wav
 examples/**/right_filtered.wav
 
+
+# JNI libraries CI bundles into the Java JAR
+bindings/java/src/main/resources/native/

@@ -17,6 +17,7 @@ on:
       - 'scripts/package-node.mjs'
       - 'scripts/publish-node.mjs'
       - 'scripts/publish_crates.py'
+      - 'scripts/publish_maven.py'
   workflow_dispatch:
 
 permissions:
@@ -364,13 +365,6 @@ jobs:
           fi
           cp "$SRC" "dist_java/libmorflow_jni-${{ matrix.platform }}.${{ matrix.lib_ext }}"
 
-      - name: Build Java JAR (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd bindings/java
-          mvn package -DskipTests
-          cp target/morflow-*.jar ../../dist_java/
-
       - name: Upload Java Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -378,9 +372,99 @@ jobs:
           path: dist_java/*
           retention-days: 7
 
+  package-java:
+    # One JAR bundles every platform's JNI library under native/<platform>/,
+    # where NativeLoader looks for it. The GitHub release and Maven Central
+    # receive the same files.
+    name: Package Java JAR
+    needs: [detect-engine, build-java-bindings]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Download JNI libraries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: engine-java-*
+          path: jni/
+          merge-multiple: true
+
+      - name: Bundle JNI libraries into the JAR
+        shell: bash
+        run: |
+          VERSION="${{ needs.detect-engine.outputs.version }}"
+          POM_VERSION=$(mvn -B -q -f bindings/java/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)
+          if [ "$POM_VERSION" != "$VERSION" ]; then
+            echo "bindings/java/pom.xml is $POM_VERSION but the engine is $VERSION" >&2
+            exit 1
+          fi
+          RES=bindings/java/src/main/resources/native
+          mkdir -p "$RES"/{linux-x64,linux-aarch64,macos-aarch64,windows-x64}
+          cp jni/libmorflow_jni-linux-x86_64.so "$RES/linux-x64/libmorflow_jni.so"
+          cp jni/libmorflow_jni-linux-aarch64.so "$RES/linux-aarch64/libmorflow_jni.so"
+          cp jni/libmorflow_jni-darwin-arm64.dylib "$RES/macos-aarch64/libmorflow_jni.dylib"
+          cp jni/libmorflow_jni-windows-x86_64.dll "$RES/windows-x64/morflow_jni.dll"
+          (cd bindings/java && mvn -B package -DskipTests)
+          JAR="bindings/java/target/morflow-${VERSION}.jar"
+          test "$(unzip -l "$JAR" | grep -cE 'native/[a-z0-9-]+/(lib)?morflow_jni\.(so|dylib|dll)$')" -eq 4
+
+      - name: Verify the JAR loads its bundled native library
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/java-smoke" && cd "$RUNNER_TEMP/java-smoke"
+          cat > Check.java <<'JAVA'
+          import org.morflow.Morflow;
+          import org.morflow.MorflowException;
+          public class Check {
+              public static void main(String[] args) {
+                  try {
+                      Morflow.fromString("not a valid pipeline ((");
+                      throw new AssertionError("invalid pipeline was accepted");
+                  } catch (MorflowException expected) {
+                      System.out.println("Bundled native library loaded and ran");
+                  }
+              }
+          }
+          JAVA
+          java -Djava.library.path=/nonexistent \
+            -cp "$GITHUB_WORKSPACE/bindings/java/target/morflow-${{ needs.detect-engine.outputs.version }}.jar" Check.java
+
+      - name: Collect release files
+        shell: bash
+        run: |
+          VERSION="${{ needs.detect-engine.outputs.version }}"
+          mkdir -p dist_jar maven_bundle
+          cp "bindings/java/target/morflow-${VERSION}.jar" dist_jar/
+          cp bindings/java/target/morflow-${VERSION}{,-sources,-javadoc}.jar maven_bundle/
+          cp bindings/java/pom.xml "maven_bundle/morflow-${VERSION}.pom"
+
+      - name: Upload JAR for the GitHub release
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-java-jar
+          path: dist_jar/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Maven Central bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-bundle
+          path: maven_bundle/*
+          if-no-files-found: error
+          retention-days: 7
+
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
-    needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings]
+    needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings, package-java]
     if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -423,7 +507,7 @@ jobs:
             echo "Creating new release $TAG..."
             gh release create "$TAG" release_assets/* \
               --title "$TITLE" \
-              --notes "Official release of **Morflow Engine & Language Bindings** v${VERSION}. Includes multi-platform CLI binaries, Python wheels, Node.js packages, and Java JAR with JNI libraries."
+              --notes "Official release of **Morflow Engine & Language Bindings** v${VERSION}. Includes multi-platform CLI binaries, Python wheels, Node.js packages, and a Java JAR bundling the JNI libraries for every platform."
           fi
 
   publish-pypi:
@@ -481,6 +565,35 @@ jobs:
 
       - name: Publish verified package
         run: node scripts/publish-node.mjs dist_npm/*.tgz
+
+  publish-maven:
+    name: Publish Java package to Maven Central
+    needs: [detect-engine, publish-engine-release]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Maven bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-bundle
+          path: maven_bundle/
+
+      - name: Import signing key
+        env:
+          MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+        run: printf '%s\n' "$MAVEN_GPG_PRIVATE_KEY" | gpg --batch --import
+
+      - name: Sign, upload and wait for validation
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: python3 scripts/publish_maven.py maven_bundle --version "${{ needs.detect-engine.outputs.version }}"
 
   publish-rust:
     name: Publish Rust crates to crates.io

@@ -11,6 +11,29 @@
 
     <name>Morflow Java Bindings</name>
     <description>High-performance cross-language data processing runtime for Java</description>
+    <url>https://morflow.org</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>JiraPit</id>
+            <name>Jira Pitakwong</name>
+            <url>https://github.com/JiraPit</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/JiraPit/Morflow.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/JiraPit/Morflow.git</developerConnection>
+        <url>https://github.com/JiraPit/Morflow</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -49,6 +72,37 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+            </plugin>
+            <!-- Maven Central requires sources and Javadoc archives. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <doclint>none</doclint>
+                    <quiet>true</quiet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
