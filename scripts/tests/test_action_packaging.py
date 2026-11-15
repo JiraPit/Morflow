@@ -152,6 +152,19 @@ class PackagingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 merge(old, new)
 
+    def test_metadata_with_other_line_endings_keeps_published_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            old, new = Path(directory) / 'old', Path(directory) / 'new'
+            old.mkdir(); new.mkdir()
+            published = b'{\r\n  "plugins": []\r\n}'
+            (old / 'resize_METADATA.json').write_bytes(published)
+            (new / 'resize_METADATA.json').write_bytes(b'{\n  "plugins": []\n}')
+            merge(old, new)
+            self.assertEqual((new / 'resize_METADATA.json').read_bytes(), published)
+            (new / 'resize_METADATA.json').write_bytes(b'{"plugins": [{"name": "openblas"}]}')
+            with self.assertRaises(ValueError):
+                merge(old, new)
+
     def test_release_groups_include_pack_and_version(self):
         actions = [{'pack': 'base', 'name': 'identity', 'version': '0.1.0'},
                    {'pack': 'base', 'name': 'to_tensor', 'version': '0.2.0'}]
