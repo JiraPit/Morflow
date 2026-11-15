@@ -1898,7 +1898,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-plugin-openblas"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "libloading 0.8.9",
  "matmul",
@@ -1907,7 +1907,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-plugin-opencv-bridge"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "opencv",
  "pkg-config",

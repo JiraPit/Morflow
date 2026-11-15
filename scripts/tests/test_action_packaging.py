@@ -61,16 +61,12 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(jobs[0]["target"]["os"], "ubuntu-24.04-arm")
         self.assertEqual(jobs[0]["action"]["name"], "gain")
 
-    def test_plugin_actions_skip_platforms_without_plugins(self):
+    def test_plugin_actions_build_every_platform(self):
         matmul = {"pack": "linalg_blas", "name": "matmul", "version": "0.1.1",
                   "path": "actions/linalg_blas/matmul", "plugins": ["openblas"]}
         jobs = self.run_detector([matmul], set())
         platforms = {job["target"]["platform"] for job in jobs}
-        self.assertEqual(platforms, detect_changed_actions.PLUGIN_PLATFORMS)
-        released = {f"matmul_action-0.1.1-{platform}.{extension}"
-                    for platform, extension in detect_changed_actions.TARGET_PLATFORMS
-                    if platform in detect_changed_actions.PLUGIN_PLATFORMS}
-        self.assertEqual(self.run_detector([matmul], released), [])
+        self.assertEqual(platforms, {platform for platform, _ in detect_changed_actions.TARGET_PLATFORMS})
 
     def test_plugin_interface_changes_identify_consumers(self):
         changed = detect_changed_actions.changed_plugin_interfaces([

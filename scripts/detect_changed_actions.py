@@ -30,10 +30,6 @@ BUILD_TARGETS = {
     "windows-x86_64": {"os": "windows-latest", "triple": "x86_64-pc-windows-msvc", "prefix": ""},
 }
 
-# Plugins are not yet built for linux-aarch64, so actions that need a plugin
-# are only built where their plugins are available.
-PLUGIN_PLATFORMS = {"linux-x86_64", "darwin-arm64", "windows-x86_64"}
-
 
 def parse_cargo_toml(path: Path) -> dict:
     """Read action identity separately from the unique Cargo package name."""
@@ -144,9 +140,7 @@ def get_release_assets(repo: str, tag: str, token: str = None) -> set:
 
 
 def required_platforms(act: dict) -> list:
-    """Platforms this action is released for: all of them unless it needs a plugin."""
-    if act.get("plugins"):
-        return [(plat, ext) for plat, ext in TARGET_PLATFORMS if plat in PLUGIN_PLATFORMS]
+    """Platforms every action is released for."""
     return list(TARGET_PLATFORMS)
 
 

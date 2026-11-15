@@ -18,6 +18,7 @@ from package_plugin import plugin_metadata
 # Runner for each platform plugins are released for.
 PLUGIN_TARGETS = {
     "linux-x86_64": {"os": "ubuntu-24.04", "ext": "so"},
+    "linux-aarch64": {"os": "ubuntu-24.04-arm", "ext": "so"},
     "darwin-arm64": {"os": "macos-latest", "ext": "dylib"},
     "windows-x86_64": {"os": "windows-latest", "ext": "dll"},
 }
