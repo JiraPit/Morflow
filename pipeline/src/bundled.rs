@@ -78,10 +78,10 @@ fn candidates(pack: &str) -> Vec<PathBuf> {
         paths.push(PathBuf::from(library_file(&stem)));
     }
     if cfg!(target_os = "ios") {
+        // Flutter bundles libmorflow_pack_<pack>.dylib as
+        // Frameworks/morflow_pack_<pack>.framework/morflow_pack_<pack>.
         if let Some(frameworks) = own_frameworks_dir() {
             paths.push(frameworks.join(format!("{stem}.framework")).join(&stem));
-            let lib = format!("lib{stem}");
-            paths.push(frameworks.join(format!("{lib}.framework")).join(&lib));
         }
     }
     paths
