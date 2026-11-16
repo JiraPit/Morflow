@@ -719,6 +719,8 @@ pub(crate) fn extract_dependencies(stmt: &Statement) -> HashSet<String> {
     reads
 }
 
+// Used by the developer CLI's offline checker.
+#[cfg_attr(not(feature = "cli"), allow(dead_code))]
 pub(crate) fn extract_writes(stmt: &Statement) -> HashSet<String> {
     let mut writes = HashSet::new();
 

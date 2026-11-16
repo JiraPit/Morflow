@@ -162,36 +162,7 @@ enum PluginCommands {
 }
 
 pub(crate) fn get_host_platform() -> (&'static str, &'static str) {
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        ("linux-x86_64", "so")
-    }
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        ("linux-aarch64", "so")
-    }
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        ("darwin-arm64", "dylib")
-    }
-    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        ("darwin-x86_64", "dylib")
-    }
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        ("windows-x86_64", "dll")
-    }
-    #[cfg(not(any(
-        all(target_os = "linux", target_arch = "x86_64"),
-        all(target_os = "linux", target_arch = "aarch64"),
-        all(target_os = "macos", target_arch = "aarch64"),
-        all(target_os = "macos", target_arch = "x86_64"),
-        all(target_os = "windows", target_arch = "x86_64")
-    )))]
-    {
-        ("unsupported", "bin")
-    }
+    crate::platform::host_platform()
 }
 
 pub(crate) fn resolve_action_cache_dir(custom: Option<PathBuf>) -> PathBuf {

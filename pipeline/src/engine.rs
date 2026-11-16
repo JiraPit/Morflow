@@ -277,6 +277,7 @@ mod version_tests {
         assert_eq!(out["new"].as_tensor().unwrap().to_vec_f32(), vec![-3.0]);
     }
     #[test]
+    #[cfg(feature = "cli")]
     fn offline_checker_uses_the_same_exact_artifact_as_execution() {
         let root = tempfile::tempdir().unwrap();
         publish(root.path(), "0.1.0", "0.1.0", "identity");

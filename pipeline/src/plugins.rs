@@ -40,17 +40,11 @@ impl PluginIdentity {
         Ok(Self {
             name: name.into(),
             version: normalize_version(version)?,
-            platform: crate::cli::get_host_platform().0.into(),
+            platform: crate::platform::host_platform().0.into(),
         })
     }
     pub fn filename(&self) -> String {
-        let ext = if self.platform.starts_with("windows-") {
-            "dll"
-        } else if self.platform.starts_with("darwin-") {
-            "dylib"
-        } else {
-            "so"
-        };
+        let ext = crate::platform::library_extension(&self.platform);
         format!(
             "{}_plugin-{}-{}.{}",
             self.name, self.version, self.platform, ext

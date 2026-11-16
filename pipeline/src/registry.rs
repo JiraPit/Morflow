@@ -190,7 +190,7 @@ impl ActionRegistry {
         for root in &self.search_paths {
             if ReleaseCatalog::path(root, pack, version).is_file() {
                 return Ok(ReleaseCatalog::read(root, pack, version)?
-                    .actions(crate::cli::get_host_platform().0));
+                    .actions(crate::platform::host_platform().0));
             }
         }
         Err(format!(
@@ -207,10 +207,10 @@ impl ActionRegistry {
         if canonical != *identity {
             return Err("Noncanonical action identity".into());
         }
-        if identity.platform != crate::cli::get_host_platform().0 {
+        if identity.platform != crate::platform::host_platform().0 {
             return Err(format!(
                 "Cannot load {identity} on {}",
-                crate::cli::get_host_platform().0
+                crate::platform::host_platform().0
             ));
         }
         // Serialize first loads so handles cannot race against refreshes.

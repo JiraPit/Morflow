@@ -40,7 +40,7 @@ pub fn prepare<T: Transport>(
         let id = resolver.resolve(&name, |p, v| {
             Ok(release(client, &mut releases, p, v)?
                 .catalog
-                .actions(crate::cli::get_host_platform().0))
+                .actions(crate::platform::host_platform().0))
         })?;
         release(client, &mut releases, &id.pack, &id.version)?;
         identities.insert(id);
