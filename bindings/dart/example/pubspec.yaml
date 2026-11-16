@@ -1,0 +1,30 @@
+name: morflow_example
+description: Runs Morflow pipelines in a Flutter app with bundled action packs.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  morflow:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+# The engine and the action packs to bundle, built by scripts/build_pack.py
+# and cargo into <repo>/target/mobile-prebuilt/<platform>/.
+hooks:
+  user_defines:
+    morflow:
+      prebuilt_dir: ../../../target/mobile-prebuilt

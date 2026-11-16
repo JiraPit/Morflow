@@ -1,0 +1,85 @@
+name: Mobile Prototype
+
+# Phase 0 of mobile support: bundles the engine and two pack libraries (base,
+# audio_basics) into the Flutter example app and runs its integration test on
+# an iOS simulator. Runs only for the dev-dart-support branch.
+on:
+  push:
+    branches: [dev-dart-support]
+    paths:
+      - 'bindings/capi/**'
+      - 'bindings/dart/**'
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'actions/base/**'
+      - 'actions/audio_basics/**'
+      - 'scripts/build_pack.py'
+      - '.github/workflows/mobile-prototype.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-simulator:
+    name: iOS simulator (Flutter integration test)
+    runs-on: macos-latest
+    env:
+      # Flutter's minimum iOS version.
+      IPHONEOS_DEPLOYMENT_TARGET: '13.0'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios-sim
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build the engine and pack libraries for the simulator
+        run: |
+          out=target/mobile-prebuilt/ios-arm64-sim
+          mkdir -p "$out"
+          cargo build --release --locked -p morflow-capi --target aarch64-apple-ios-sim
+          cp target/aarch64-apple-ios-sim/release/libmorflow_capi.dylib "$out/"
+          for pack in base audio_basics; do
+            python3 scripts/build_pack.py "$pack" --target aarch64-apple-ios-sim --out "$out"
+          done
+          ls -la "$out"
+          otool -D "$out"/*.dylib
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Boot a simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
+          print(next(d["udid"] for r in runtimes for d in devices[r] if d["name"].startswith("iPhone")))')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Run the integration test
+        working-directory: bindings/dart/example
+        run: |
+          flutter pub get
+          flutter test integration_test -d "${{ steps.simulator.outputs.udid }}"
+
+      - name: Show how the app bundles the libraries
+        if: always()
+        working-directory: bindings/dart/example
+        run: |
+          app=$(find build/ios -name 'Runner.app' -type d | head -1)
+          [ -n "$app" ] && find "$app/Frameworks" -maxdepth 2 | sort || echo "no app built"

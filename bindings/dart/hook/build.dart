@@ -2,12 +2,20 @@
 // builds. Applications never call it directly.
 //
 // The library comes from, in order:
-//   1. The `native_lib` user-define, a path to a library you built yourself:
+//   1. The `prebuilt_dir` user-define: a directory with one subdirectory per
+//      platform (android-aarch64, ios-arm64, linux-x86_64, …) holding
+//      libmorflow_capi and any pack libraries (libmorflow_pack_<pack>) to
+//      bundle into the app, which is how Android and iOS apps get actions:
+//        hooks:
+//          user_defines:
+//            morflow:
+//              prebuilt_dir: path/to/prebuilt
+//   2. The `native_lib` user-define, a path to a library you built yourself:
 //        hooks:
 //          user_defines:
 //            morflow:
 //              native_lib: path/to/libmorflow_capi.so
-//   2. A Morflow repository checkout: the library is built with cargo.
+//   3. A Morflow repository checkout: the library is built with cargo.
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
@@ -20,11 +28,67 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) return;
     final code = input.config.code;
-    final library = _configuredLibrary(input, output) ?? await _buildFromCheckout(input, output, code);
+    final prebuilt = _prebuiltLibraries(input, output, code);
+    final library =
+        prebuilt?.engine ?? _configuredLibrary(input, output) ?? await _buildFromCheckout(input, output, code);
     output.assets.code.add(
       CodeAsset(package: input.packageName, name: _assetName, linkMode: DynamicLoadingBundled(), file: library),
     );
+    // Pack libraries are loaded by the engine, not from Dart, but must ship
+    // inside the app like the engine itself.
+    for (final MapEntry(key: pack, value: file) in (prebuilt?.packs ?? const <String, Uri>{}).entries) {
+      output.assets.code.add(
+        CodeAsset(package: input.packageName, name: 'src/packs/$pack', linkMode: DynamicLoadingBundled(), file: file),
+      );
+    }
   });
+}
+
+/// The platform name used for artifacts, such as `android-aarch64`.
+String platformName(CodeConfig code) {
+  final arch = switch (code.targetArchitecture) {
+    Architecture.arm64 => 'aarch64',
+    Architecture.x64 => 'x86_64',
+    final other => throw BuildError(message: 'Morflow does not support the $other architecture'),
+  };
+  return switch (code.targetOS) {
+    OS.android => 'android-$arch',
+    OS.iOS => code.iOS.targetSdk == IOSSdk.iPhoneSimulator ? 'ios-arm64-sim' : 'ios-arm64',
+    OS.linux => 'linux-$arch',
+    OS.macOS => arch == 'aarch64' ? 'darwin-arm64' : 'darwin-x86_64',
+    OS.windows => 'windows-$arch',
+    final other => throw BuildError(message: 'Morflow does not support $other'),
+  };
+}
+
+/// The engine and pack libraries from the `prebuilt_dir` user-define.
+({Uri engine, Map<String, Uri> packs})? _prebuiltLibraries(
+  BuildInput input,
+  BuildOutputBuilder output,
+  CodeConfig code,
+) {
+  final root = input.userDefines.path('prebuilt_dir');
+  if (root == null) return null;
+  final platform = platformName(code);
+  final directory = Directory.fromUri(root.resolve('$platform/'));
+  final engine = File.fromUri(directory.uri.resolve(libraryFileName(code.targetOS)));
+  if (!engine.existsSync()) {
+    throw BuildError(
+      message:
+          'hooks.user_defines.morflow.prebuilt_dir has no ${engine.uri.pathSegments.last} for $platform '
+          '(looked in ${directory.path}).',
+    );
+  }
+  output.dependencies.add(engine.uri);
+  final packs = <String, Uri>{};
+  final packFile = RegExp(r'^(?:lib)?morflow_pack_(\w+)\.(?:so|dylib|dll)$');
+  for (final file in directory.listSync().whereType<File>()) {
+    final match = packFile.firstMatch(file.uri.pathSegments.last);
+    if (match == null) continue;
+    packs[match.group(1)!] = file.uri;
+    output.dependencies.add(file.uri);
+  }
+  return (engine: engine.uri, packs: packs);
 }
 
 /// The file name of the native library on [os].
