@@ -18,7 +18,7 @@ Keep `crop`, `pad`, `flip`, `to_image`, `blend`, `color_adjust` and `threshold` 
 Declare the plugin alongside the action imports:
 
 ```perl
-plugin opencv-bridge/0.1.2
+plugin opencv-bridge/0.1.3
 from image_opencv/0.1.3 import resize
 ```
 
@@ -28,7 +28,7 @@ morflow plugins list
 morflow check examples/python/opencv/pipeline.morf
 ```
 
-Preparation installs a prebuilt plugin. Install its compatible shared OpenCV libraries through the execution machine's package manager. Users do not compile the bridge. OpenCV and its C++ runtime must be discoverable by the system loader.
+Preparation installs a prebuilt plugin. Each published plugin binary loads one specific OpenCV version, which you install through the execution machine's package manager; OpenCV and its C++ runtime must be discoverable by the system loader. See [the OpenCV requirement](../../plugins/opencv-bridge/README.md#opencv-requirement) for the version on each platform and how to build the plugin from source for any other OpenCV version.
 
 For development builds, install shared OpenCV development libraries, Clang, a C++17 compiler and pkg-config:
 

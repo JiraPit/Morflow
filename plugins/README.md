@@ -7,7 +7,7 @@ Plugins are versioned shared binaries used by groups of actions. The engine, act
 Declare an exact version or write `latest` explicitly:
 
 ```perl
-plugin opencv-bridge/0.1.2
+plugin opencv-bridge/0.1.3
 from image_opencv/0.1.3 import resize
 
 accept Tensor[480,640,3] $image
@@ -24,7 +24,7 @@ Preparation downloads the declared plugins and imported actions, verifies publis
 
 `morflow plugins search opencv` searches the shipped plugin catalog and prints installable paths such as `opencv-bridge/latest`. It works offline and accepts `-l` / `--limit` (default: 5).
 
-`morflow plugins install opencv-bridge/0.1.2` installs a plugin independently. Use `-p` / `--path` for a custom plugin cache and `-f` / `--force` to download again. An exact version or explicit `latest` is required.
+`morflow plugins install opencv-bridge/0.1.3` installs a plugin independently. Use `-p` / `--path` for a custom plugin cache and `-f` / `--force` to download again. An exact version or explicit `latest` is required.
 
 `morflow plugins clean` removes prepared plugin entries. Existing loaded pipelines retain their selected snapshots.
 

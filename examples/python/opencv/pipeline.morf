@@ -1,4 +1,4 @@
-plugin opencv-bridge/0.1.2
+plugin opencv-bridge/0.1.3
 
 from image_opencv/0.1.3 import resize, gaussian_blur, sharpen, edge_detect, morphology, rotate
 
