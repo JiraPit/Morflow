@@ -4,12 +4,12 @@ use core_types::{
 };
 use rayon::prelude::*;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Image | DataType::Audio
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
@@ -97,7 +97,7 @@ enum TargetLayout {
     Chw,
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -594,7 +594,7 @@ fn write_rgba_f32(dst: &mut [f32], color: ColorSpace, r: f32, g: f32, b: f32, a:
     }
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

@@ -5,12 +5,12 @@ use core_types::{DataType, Payload, RString, Shape, ShapeResult, Tensor, TensorD
 use rayon::prelude::*;
 use std::f32::consts::PI;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Audio
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
@@ -164,7 +164,7 @@ fn next_power_of_two(mut x: usize) -> usize {
     x + 1
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -266,7 +266,7 @@ fn process_impl(payload: Payload, prepared: core_types::PreparedData) -> Payload
     Payload::Tensor(out_tensor)
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

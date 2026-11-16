@@ -1,4 +1,5 @@
 pub mod artifact;
+mod bundled;
 #[cfg(feature = "cli")]
 pub mod check;
 #[cfg(feature = "cli")]
