@@ -70,7 +70,8 @@ String platformName(CodeConfig code) {
   final root = input.userDefines.path('prebuilt_dir');
   if (root == null) return null;
   final platform = platformName(code);
-  final directory = Directory.fromUri(root.resolve('$platform/'));
+  // Directory.uri ends in a slash, so the platform resolves inside it.
+  final directory = Directory.fromUri(Directory.fromUri(root).uri.resolve('$platform/'));
   final engine = File.fromUri(directory.uri.resolve(libraryFileName(code.targetOS)));
   if (!engine.existsSync()) {
     throw BuildError(
@@ -94,7 +95,7 @@ String platformName(CodeConfig code) {
 /// The file name of the native library on [os].
 String libraryFileName(OS os) => switch (os) {
   OS.windows => 'morflow_capi.dll',
-  OS.macOS => 'libmorflow_capi.dylib',
+  OS.macOS || OS.iOS => 'libmorflow_capi.dylib',
   _ => 'libmorflow_capi.so',
 };
 
