@@ -1,8 +1,8 @@
 name: Mobile Prototype
 
-# Phase 0 of mobile support: bundles the engine and two pack libraries (base,
-# audio_basics) into the Flutter example app and runs its integration test on
-# an iOS simulator. Runs only for the dev-dart-support branch.
+# Mobile support: bundles the engine and every plugin-free pack library into
+# the Flutter example app and runs its integration test on an iOS simulator.
+# Runs only for the dev-dart-support branch.
 on:
   push:
     branches: [dev-dart-support]
@@ -11,8 +11,7 @@ on:
       - 'bindings/dart/**'
       - 'pipeline/**'
       - 'core_types/**'
-      - 'actions/base/**'
-      - 'actions/audio_basics/**'
+      - 'actions/**'
       - 'scripts/build_pack.py'
       - '.github/workflows/mobile-prototype.yml'
   workflow_dispatch:
@@ -47,7 +46,7 @@ jobs:
           mkdir -p "$out"
           cargo build --release --locked -p morflow-capi --target aarch64-apple-ios-sim
           cp target/aarch64-apple-ios-sim/release/libmorflow_capi.dylib "$out/"
-          for pack in base audio_basics; do
+          for pack in base audio_basics image_basics linalg_basics math_basics nn_basics tensor_basics tensor_stats; do
             python3 scripts/build_pack.py "$pack" --target aarch64-apple-ios-sim --out "$out"
           done
           ls -la "$out"

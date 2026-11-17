@@ -1,6 +1,6 @@
 [package]
 name = "morflow-core-types"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2021"
 description = "Shared payloads, tensor types, shapes, and action interfaces for Morflow"
 license = "MIT"

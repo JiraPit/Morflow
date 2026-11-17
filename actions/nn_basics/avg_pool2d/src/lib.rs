@@ -3,12 +3,12 @@ use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Shape, ShapeResult, Tensor};
 use rayon::prelude::*;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
@@ -55,7 +55,7 @@ pub fn get_output_shape<A: Into<PreparedArgs>>(input: Shape, args: A) -> ShapeRe
     shape_impl(input, args)
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -173,7 +173,7 @@ fn average<T: FloatElement>(
     Tensor::from_vec_of(out, geometry.out_shape.clone())
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

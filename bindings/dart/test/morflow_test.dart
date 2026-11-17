@@ -11,8 +11,10 @@ import 'package:morflow/morflow.dart' show MorflowException, MorflowTensor, Tens
 import 'package:morflow/src/version.dart';
 import 'package:test/test.dart';
 
-final Object? needsActions = Platform.environment['MORFLOW_ACTIONS_PATH'] == null
-    ? 'set MORFLOW_ACTIONS_PATH to a prepared action cache'
+/// Actions come from a prepared action cache or from bundled pack libraries.
+final Object? needsActions =
+    Platform.environment['MORFLOW_ACTIONS_PATH'] == null && Platform.environment['MORFLOW_PACKS_PATH'] == null
+    ? 'set MORFLOW_ACTIONS_PATH to a prepared action cache, or MORFLOW_PACKS_PATH to pack libraries'
     : null;
 final Object? needsPlugins = Platform.environment['MORFLOW_PLUGINS_PATH'] == null
     ? 'set MORFLOW_PLUGINS_PATH to run plugin tests'
@@ -280,7 +282,7 @@ void main() {
 
     test('exact version and required imports', () {
       final pipeline = morflow.fromStr(
-        'from base/0.3.3 import identity\n'
+        'from base/0.3.4 import identity\n'
         'accept Tensor \$data\n'
         '\$data >> identity >> emit',
       );

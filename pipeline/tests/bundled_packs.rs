@@ -1,10 +1,10 @@
 //! Pipelines running actions from bundled pack libraries instead of the
-//! action cache. Needs MORFLOW_PACKS_PATH pointing at pack libraries for
-//! `base` and `audio_basics` built by scripts/build_pack.py; skips otherwise.
+//! action cache. Needs MORFLOW_PACKS_PATH pointing at pack libraries for every
+//! plugin-free pack, built by scripts/build_pack.py; skips otherwise.
 
 use std::sync::Once;
 
-use morflow::{Morflow, Payload, Tensor};
+use morflow::{ActionRegistry, Morflow, Payload, Tensor};
 
 /// Points HOME at an empty directory so the user's action cache cannot
 /// serve these actions; every action must come from a pack library.
@@ -50,13 +50,13 @@ fn exact_versions_must_match_the_bundled_pack() {
     if !bundled_only() {
         return;
     }
-    let bundled = single("from base/0.3.3 import identity\naccept Tensor $t\n$t >> identity >> emit", f32s(&[4.0]));
+    let bundled = single("from base/0.3.4 import identity\naccept Tensor $t\n$t >> identity >> emit", f32s(&[4.0]));
     assert_eq!(bundled.unwrap().as_tensor().unwrap().to_vec_f32(), vec![4.0]);
     let error = single("from base/0.0.1 import identity\naccept Tensor $t\n$t >> identity >> emit", f32s(&[4.0]))
         .err()
         .unwrap();
     assert!(error.contains("base/0.0.1/identity"), "{error}");
-    assert!(error.contains("is not bundled; this app bundles base 0.3.3"), "{error}");
+    assert!(error.contains("is not bundled; this app bundles base 0.3.4"), "{error}");
 }
 
 #[test]
@@ -90,8 +90,63 @@ fn missing_actions_and_packs_are_reported() {
         .err()
         .unwrap();
     assert!(error.contains("nope"), "{error}");
-    let error = single("import tensor_basics/latest\naccept Tensor $t\n$t >> transpose >> emit", f32s(&[1.0]))
+    // Packs that need a plugin are never bundled.
+    let error = single("import linalg_blas/latest\naccept Tensor $t\n$t >> matmul >> emit", f32s(&[1.0]))
         .err()
         .unwrap();
-    assert!(error.contains("No prepared catalog for tensor_basics/latest"), "{error}");
+    assert!(error.contains("No prepared catalog for linalg_blas/latest"), "{error}");
+}
+
+/// Plugin-free packs, all of which must be bundleable.
+const PACKS: [&str; 8] = [
+    "base",
+    "audio_basics",
+    "image_basics",
+    "linalg_basics",
+    "math_basics",
+    "nn_basics",
+    "tensor_basics",
+    "tensor_stats",
+];
+
+/// The action names and version of `pack` in the source tree.
+fn source_pack(pack: &str) -> (Vec<String>, String) {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../actions").join(pack);
+    let mut names = Vec::new();
+    let mut versions = std::collections::BTreeSet::new();
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let manifest = entry.unwrap().path().join("Cargo.toml");
+        let Ok(text) = std::fs::read_to_string(&manifest) else { continue };
+        // The first match is in [package], which comes first.
+        let field = |key: &str| {
+            text.lines()
+                .find_map(|line| line.strip_prefix(&format!("{key} = \"")))
+                .and_then(|rest| rest.strip_suffix('"'))
+                .map(str::to_string)
+        };
+        // Like scripts/package_action.py: metadata.morflow.action, else the package name.
+        names.push(field("action").or_else(|| field("name")).unwrap());
+        versions.insert(field("version").unwrap());
+    }
+    names.sort();
+    assert_eq!(versions.len(), 1, "{pack} has several versions: {versions:?}");
+    (names, versions.into_iter().next().unwrap())
+}
+
+#[test]
+fn every_pack_library_matches_its_source() {
+    if !bundled_only() {
+        return;
+    }
+    let registry = ActionRegistry::new(Vec::new());
+    for pack in PACKS {
+        let (actions, version) = source_pack(pack);
+        let bundled = registry
+            .catalog(pack, "latest")
+            .unwrap_or_else(|e| panic!("{pack} is not bundled: {e}"));
+        assert_eq!(bundled, actions, "{pack} actions");
+        assert_eq!(registry.catalog(pack, &version).unwrap(), actions, "{pack} {version}");
+        let error = registry.catalog(pack, "0.0.1").unwrap_err();
+        assert!(error.contains(&format!("this app bundles {pack} {version}")), "{error}");
+    }
 }

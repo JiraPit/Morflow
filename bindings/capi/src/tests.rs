@@ -321,10 +321,12 @@ impl Pipeline {
     }
 }
 
+/// Actions come from a prepared action cache or from bundled pack libraries.
 fn actions_available() -> bool {
-    let available = std::env::var_os("MORFLOW_ACTIONS_PATH").is_some();
+    let available = std::env::var_os("MORFLOW_ACTIONS_PATH").is_some()
+        || std::env::var_os("MORFLOW_PACKS_PATH").is_some();
     if !available {
-        eprintln!("skipped: set MORFLOW_ACTIONS_PATH to a prepared action cache");
+        eprintln!("skipped: set MORFLOW_ACTIONS_PATH to a prepared action cache, or MORFLOW_PACKS_PATH to pack libraries");
     }
     available
 }

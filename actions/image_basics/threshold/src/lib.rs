@@ -2,12 +2,12 @@ use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Shape, ShapeResult, Tensor, TensorDType};
 use rayon::prelude::*;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
@@ -31,7 +31,7 @@ enum ThreshMode {
     ToZeroInv,
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -254,7 +254,7 @@ fn compute_otsu_threshold_f32(slice: &[f32]) -> f32 {
     best_t as f32 / 255.0
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

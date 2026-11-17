@@ -28,7 +28,9 @@ class _MorflowExampleState extends State<MorflowExample> {
         accept Tensor $tensor
         $tensor >> base/latest/identity >> emit
       ''');
-      final tensor = await identity.run<morflow.MorflowTensor>(Float32List.fromList([1, 2, 3]));
+      final tensor = await identity.run<morflow.MorflowTensor>(
+        Float32List.fromList([1, 2, 3]),
+      );
       _show('identity: ${tensor.toFloat32Array()}');
 
       final audio = morflow.fromStr(r'''
