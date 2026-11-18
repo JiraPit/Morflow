@@ -5,7 +5,12 @@ Apps that bundle actions (Android and iOS) ship one pack library per pack
 instead of one library per action. See core_types/src/pack.rs.
 
     python3 scripts/build_pack.py base --out dist/
-    python3 scripts/build_pack.py audio_basics --target aarch64-linux-android --out dist/
+    python3 scripts/build_pack.py audio_basics --platform android-aarch64 --out dist/
+    python3 scripts/build_pack.py audio_basics --platform ios-arm64 --release-asset --out dist/
+
+`--out` receives the library under the name the operating system loads
+(libmorflow_pack_<pack>.so), or with `--release-asset` under its name in the
+pack's GitHub release (morflow_pack_<pack>-<version>-<platform>.<ext>).
 
 The pack crate is generated under target/packs/<pack>/ as its own workspace,
 with the repository's Cargo.lock so dependency versions match the actions'
@@ -21,25 +26,12 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from detect_changed_actions import discover_all_actions  # noqa: E402
+import native_targets  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
 # Packs whose actions need a plugin cannot be bundled.
 PLUGIN_PACKS = {"image_opencv", "linalg_blas", "tensor_blas"}
-
-
-def library_file(stem: str, target: str | None) -> str:
-    triple = target or host_triple()
-    if "windows" in triple:
-        return f"{stem}.dll"
-    if "apple" in triple:
-        return f"lib{stem}.dylib"
-    return f"lib{stem}.so"
-
-
-def host_triple() -> str:
-    output = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True).stdout
-    return next(line.split(": ", 1)[1] for line in output.splitlines() if line.startswith("host: "))
 
 
 def pack_actions(pack: str) -> list[dict]:
@@ -101,29 +93,37 @@ core_types::morflow_pack! {{
     return crate
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("pack")
-    parser.add_argument("--target", help="Rust target triple (default: the host)")
-    parser.add_argument("--out", type=Path, required=True, help="Directory to copy the library into")
-    args = parser.parse_args()
-
-    actions = pack_actions(args.pack)
-    crate = generate(args.pack, actions)
+def build(pack: str, platform: str | None, out: Path, release_asset: bool = False) -> Path:
+    """Build `pack` for `platform` (default: the host) and copy it into `out`."""
+    actions = pack_actions(pack)
+    crate = generate(pack, actions)
     target_dir = ROOT / "target" / "packs-build"
     command = ["cargo", "build", "--release", "--manifest-path", str(crate / "Cargo.toml"),
                "--target-dir", str(target_dir)]
-    if args.target:
-        command += ["--target", args.target]
-    env = dict(os.environ)
+    env = native_targets.cargo_env(platform) if platform else dict(os.environ)
+    if platform:
+        command += ["--target", native_targets.triple(platform)]
     env["RUSTFLAGS"] = (env.get("RUSTFLAGS", "") + " --cfg morflow_pack").strip()
     subprocess.run(command, env=env, check=True)
 
-    name = library_file(f"morflow_pack_{args.pack}", args.target)
-    built = target_dir / (args.target or "") / "release" / name
-    args.out.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(built, args.out / name)
-    print(f"{args.out / name} ({(args.out / name).stat().st_size} bytes, {len(actions)} actions)")
+    library = native_targets.library_file(f"morflow_pack_{pack}", platform or native_targets.host_platform())
+    built = target_dir / (native_targets.triple(platform) if platform else "") / "release" / library
+    name = native_targets.pack_asset(pack, actions[0]["version"], platform) if release_asset else library
+    copied = native_targets.copy(built, out / name)
+    print(f"{copied} ({copied.stat().st_size} bytes, {len(actions)} actions)")
+    return copied
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("pack")
+    parser.add_argument("--platform", help="Platform to build for, such as android-aarch64 (default: the host)")
+    parser.add_argument("--out", type=Path, required=True, help="Directory to copy the library into")
+    parser.add_argument("--release-asset", action="store_true", help="Name the library as its release asset")
+    args = parser.parse_args()
+    if args.release_asset and not args.platform:
+        parser.error("--release-asset needs --platform")
+    build(args.pack, args.platform, args.out, args.release_asset)
     return 0
 
 

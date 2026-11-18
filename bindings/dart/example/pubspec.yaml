@@ -22,9 +22,19 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-# The engine and the action packs to bundle, built by scripts/build_pack.py
-# and cargo into <repo>/target/mobile-prebuilt/<platform>/.
+# The action packs to bundle into the app, at exact versions. The build
+# downloads them, with the engine, from Morflow's GitHub releases.
+# (Morflow's CI adds `release_url:` to test against libraries built from this
+# checkout before they are released; see scripts/stage_release.py.)
 hooks:
   user_defines:
     morflow:
-      prebuilt_dir: ../../../target/mobile-prebuilt
+      packs:
+        base: 0.3.4
+        audio_basics: 0.2.4
+        image_basics: 0.3.4
+        linalg_basics: 0.3.4
+        math_basics: 0.4.1
+        nn_basics: 0.4.1
+        tensor_basics: 0.3.4
+        tensor_stats: 0.4.1

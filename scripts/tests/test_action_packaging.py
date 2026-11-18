@@ -56,7 +56,7 @@ class PackagingTests(unittest.TestCase):
         released = {f"gain_action-0.1.0-{platform}.{extension}"
                     for platform, extension in detect_changed_actions.TARGET_PLATFORMS
                     if platform != "linux-aarch64"}
-        jobs = self.run_detector([gain], released)
+        jobs = [job for job in self.run_detector([gain], released) if "action" in job]
         self.assertEqual([job["target"]["platform"] for job in jobs], ["linux-aarch64"])
         self.assertEqual(jobs[0]["target"]["os"], "ubuntu-24.04-arm")
         self.assertEqual(jobs[0]["action"]["name"], "gain")
@@ -65,6 +65,7 @@ class PackagingTests(unittest.TestCase):
         matmul = {"pack": "linalg_blas", "name": "matmul", "version": "0.1.1",
                   "path": "actions/linalg_blas/matmul", "plugins": ["openblas"]}
         jobs = self.run_detector([matmul], set())
+        self.assertTrue(all("action" in job for job in jobs), "plugin packs have no pack library")
         platforms = {job["target"]["platform"] for job in jobs}
         self.assertEqual(platforms, {platform for platform, _ in detect_changed_actions.TARGET_PLATFORMS})
 

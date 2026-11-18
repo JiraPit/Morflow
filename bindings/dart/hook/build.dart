@@ -1,25 +1,37 @@
 // Provides the Morflow native library (bindings/capi) to Dart and Flutter
-// builds. Applications never call it directly.
+// builds, and the action packs that Android and iOS apps bundle.
+// Applications never call it directly.
 //
-// The library comes from, in order:
+// The engine library comes from, in order:
 //   1. The `prebuilt_dir` user-define: a directory with one subdirectory per
 //      platform (android-aarch64, ios-arm64, linux-x86_64, …) holding
 //      libmorflow_capi and any pack libraries (libmorflow_pack_<pack>) to
-//      bundle into the app, which is how Android and iOS apps get actions:
-//        hooks:
-//          user_defines:
-//            morflow:
-//              prebuilt_dir: path/to/prebuilt
-//   2. The `native_lib` user-define, a path to a library you built yourself:
-//        hooks:
-//          user_defines:
-//            morflow:
-//              native_lib: path/to/libmorflow_capi.so
-//   3. A Morflow repository checkout: the library is built with cargo.
+//      bundle into the app.
+//   2. The `native_lib` user-define, a path to a library you built yourself.
+//   3. A Morflow repository checkout, for the host platform: built with cargo.
+//   4. Otherwise, the engine's GitHub release for this package's version.
+//
+// Android and iOS apps cannot download actions at run time, so they bundle
+// the action packs listed in the `packs` user-define, downloaded from each
+// pack's GitHub release. Desktop programs use the action cache instead
+// (`morflow prep`), so the list is ignored there:
+//
+//   hooks:
+//     user_defines:
+//       morflow:
+//         packs:
+//           base: 0.3.4
+//           audio_basics: 0.2.4
+//
+// `release_url` replaces https://github.com/JiraPit/Morflow/releases/download
+// with a mirror or a local directory using the same <tag>/<file> layout.
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
+import 'package:morflow/src/version.dart';
+
+import 'release.dart';
 
 /// The asset id the Dart declarations in lib/src/bindings.dart load from.
 const _assetName = 'src/bindings.dart';
@@ -28,20 +40,83 @@ void main(List<String> args) async {
   await build(args, (input, output) async {
     if (!input.config.buildCodeAssets) return;
     final code = input.config.code;
+    final platform = platformName(code);
+    final mobile = code.targetOS == OS.android || code.targetOS == OS.iOS;
     final prebuilt = _prebuiltLibraries(input, output, code);
-    final library =
-        prebuilt?.engine ?? _configuredLibrary(input, output) ?? await _buildFromCheckout(input, output, code);
-    output.assets.code.add(
-      CodeAsset(package: input.packageName, name: _assetName, linkMode: DynamicLoadingBundled(), file: library),
+    final requested = _guard(() => parsePacks(input.userDefines['packs']));
+    final downloader = ReleaseDownloader(
+      baseUrl: _releaseUrl(input),
+      cache: Directory.fromUri(input.outputDirectoryShared.resolve('releases/')),
     );
-    // Pack libraries are loaded by the engine, not from Dart, but must ship
-    // inside the app like the engine itself.
-    for (final MapEntry(key: pack, value: file) in (prebuilt?.packs ?? const <String, Uri>{}).entries) {
+    try {
+      final library =
+          prebuilt?.engine ??
+          _configuredLibrary(input, output) ??
+          await _buildFromCheckout(input, output, code) ??
+          await _guardAsync(
+            () async => (await downloader.fetch(
+              tag: engineTag(packageVersion),
+              asset: capiAsset(platform),
+              saveAs: libraryFile('morflow_capi', platform),
+            )).uri,
+          );
       output.assets.code.add(
-        CodeAsset(package: input.packageName, name: 'src/packs/$pack', linkMode: DynamicLoadingBundled(), file: file),
+        CodeAsset(package: input.packageName, name: _assetName, linkMode: DynamicLoadingBundled(), file: library),
       );
+
+      // Pack libraries are loaded by the engine, not from Dart, but must ship
+      // inside the app like the engine itself.
+      final packs = {...?prebuilt?.packs};
+      if (mobile) {
+        for (final MapEntry(key: pack, value: version) in requested.entries) {
+          if (packs.containsKey(pack)) {
+            throw BuildError(
+              message: '$pack is both in hooks.user_defines.morflow.packs and in prebuilt_dir; list it once.',
+            );
+          }
+          packs[pack] = await _guardAsync(
+            () async => (await downloader.fetch(
+              tag: packTag(pack, version),
+              asset: packAsset(pack, version, platform),
+              saveAs: libraryFile('morflow_pack_$pack', platform),
+            )).uri,
+          );
+        }
+      }
+      for (final MapEntry(key: pack, value: file) in packs.entries) {
+        output.assets.code.add(
+          CodeAsset(package: input.packageName, name: 'src/packs/$pack', linkMode: DynamicLoadingBundled(), file: file),
+        );
+      }
+    } finally {
+      downloader.close();
     }
   });
+}
+
+T _guard<T>(T Function() body) {
+  try {
+    return body();
+  } on ReleaseException catch (error) {
+    throw BuildError(message: error.message);
+  }
+}
+
+Future<T> _guardAsync<T>(Future<T> Function() body) async {
+  try {
+    return await body();
+  } on ReleaseException catch (error) {
+    throw BuildError(message: error.message);
+  }
+}
+
+Uri _releaseUrl(BuildInput input) {
+  final define = input.userDefines['release_url'];
+  if (define == null) return Uri.parse(defaultReleaseUrl);
+  if (define is! String) throw BuildError(message: 'hooks.user_defines.morflow.release_url must be a string.');
+  if (RegExp(r'^(https?|file):').hasMatch(define)) return Uri.parse(define);
+  // A directory, relative to the pubspec that sets it.
+  return Directory.fromUri(input.userDefines.path('release_url')!).uri;
 }
 
 /// The platform name used for artifacts, such as `android-aarch64`.
@@ -110,24 +185,13 @@ Uri? _configuredLibrary(BuildInput input, BuildOutputBuilder output) {
   return file.uri;
 }
 
-Future<Uri> _buildFromCheckout(BuildInput input, BuildOutputBuilder output, CodeConfig code) async {
+/// Builds the library with cargo inside a Morflow repository checkout, for
+/// the host platform only. Null outside a checkout or for another platform.
+Future<Uri?> _buildFromCheckout(BuildInput input, BuildOutputBuilder output, CodeConfig code) async {
   final repo = input.packageRoot.resolve('../../');
   final crate = Directory.fromUri(repo.resolve('bindings/capi/'));
-  if (!crate.existsSync()) {
-    throw BuildError(
-      message:
-          'No Morflow native library is available for this build. Set '
-          'hooks.user_defines.morflow.native_lib in your pubspec.yaml to a library built from bindings/capi.',
-    );
-  }
-  if (code.targetOS != OS.current || code.targetArchitecture != Architecture.current) {
-    throw BuildError(
-      message:
-          'Building the Morflow native library from source only supports the host platform '
-          '(${OS.current}/${Architecture.current}), not ${code.targetOS}/${code.targetArchitecture}. '
-          'Set hooks.user_defines.morflow.native_lib to a library built for the target.',
-    );
-  }
+  if (!crate.existsSync()) return null;
+  if (code.targetOS != OS.current || code.targetArchitecture != Architecture.current) return null;
 
   final result = await Process.run(
     'cargo',
