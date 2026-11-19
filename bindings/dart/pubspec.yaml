@@ -2,7 +2,7 @@ name: morflow
 description: >-
   Data processing and tensor transformation engine. Run declarative .morf
   pipelines over tensors, images and audio with native performance.
-version: 0.3.3+1
+version: 0.3.3+2
 homepage: https://morflow.org
 repository: https://github.com/JiraPit/Morflow/tree/main/bindings/dart
 issue_tracker: https://github.com/JiraPit/Morflow/issues

@@ -1,3 +1,8 @@
+## 0.3.3+2
+
+- A shorter README: a step-by-step start, with links to the documentation.
+- Runs engine 0.3.3.
+
 ## 0.3.3+1
 
 - Install instructions for Flutter apps (`flutter pub add morflow`).
