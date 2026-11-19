@@ -1,4 +1,4 @@
-// Downloading native libraries from Morflow's releases (hook/release.dart)
+// Downloading native libraries from Morflow's releases (lib/src/hook/release.dart)
 // over HTTP, as the build hook does from GitHub.
 @TestOn('vm')
 library;
@@ -9,7 +9,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:test/test.dart';
 
-import '../hook/release.dart';
+import 'package:morflow/src/hook/release.dart';
 
 const tag = 'action_packs/base/v0.3.4';
 const asset = 'morflow_pack_base-0.3.4-android-aarch64.so';

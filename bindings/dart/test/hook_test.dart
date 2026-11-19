@@ -13,7 +13,7 @@ import 'package:crypto/crypto.dart';
 import 'package:morflow/src/version.dart';
 import 'package:test/test.dart';
 
-import '../hook/release.dart';
+import 'package:morflow/src/hook/release.dart';
 
 const platforms = [
   'android-aarch64',

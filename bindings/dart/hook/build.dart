@@ -30,7 +30,7 @@ import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:morflow/src/version.dart';
 
-import 'release.dart';
+import 'package:morflow/src/hook/release.dart';
 
 /// The asset id the Dart declarations in lib/src/bindings.dart load from.
 const _assetName = 'src/bindings.dart';

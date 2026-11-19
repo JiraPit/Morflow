@@ -1,8 +1,9 @@
 // Downloads Morflow's native libraries from its GitHub releases for the build
-// hook (hook/build.dart):
+// hook (hook/build.dart). It lives here because pub.dev accepts only
+// hook/build.dart in hook/. Not part of the package's API.
 //   - the C interface library, from the engine release v<version>;
-//   - pack libraries (every action of a pack in one library) for Android and
-//     iOS apps, from the pack's release action_packs/<pack>/v<version>.
+//   - pack libraries (every action of a pack in one library) that apps bundle,
+//     from the pack's release action_packs/<pack>/v<version>.
 // Every file is checked against the release's checksums.txt and kept in a
 // cache, so later builds work offline.
 import 'dart:convert';
