@@ -75,7 +75,7 @@ String pack(String name) => 'package:morflow/src/packs/$name';
 void main() {
   setUpAll(() {
     releases = Directory.systemTemp.createTempSync('morflow_releases');
-    release(engineTag(packageVersion), {for (final p in platforms) capiAsset(p): 'engine $p'});
+    release(engineTag(engineVersion), {for (final p in platforms) capiAsset(p): 'engine $p'});
     release(packTag('base', '0.3.4'), {for (final p in platforms) packAsset('base', '0.3.4', p): 'base 0.3.4 $p'});
     release(packTag('audio_basics', '0.2.4'), {
       for (final p in platforms) packAsset('audio_basics', '0.2.4', p): 'audio_basics 0.2.4 $p',
@@ -267,7 +267,7 @@ void main() {
       addTearDown(() => empty.deleteSync(recursive: true));
       final run = await runHook(os: 'ios', arch: 'arm64', defines: {'release_url': empty.uri.toString()});
       expect(run.ok, isFalse);
-      expect(run.log, contains('Could not find release ${engineTag(packageVersion)}'));
+      expect(run.log, contains('Could not find release ${engineTag(engineVersion)}'));
     });
   });
 }

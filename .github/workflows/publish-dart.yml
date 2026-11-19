@@ -5,6 +5,9 @@ name: Publish Dart package
 #
 #   git tag dart-v0.3.3 && git push origin dart-v0.3.3
 #
+# A release that changes only the Dart package adds a build number to the
+# package version in pubspec.yaml (0.3.3+1) and is tagged dart-v0.3.3+1.
+#
 # pub.dev only accepts automated publishing from a pushed tag that matches the
 # package's tag pattern (dart-v{{version}}, set in its admin tab), so the
 # engine workflow cannot start this itself. The first version of the package
@@ -13,6 +16,7 @@ on:
   push:
     tags:
       - 'dart-v[0-9]+.[0-9]+.[0-9]+'
+      - 'dart-v[0-9]+.[0-9]+.[0-9]+\+[0-9]+'
 
 permissions:
   contents: read

@@ -19,10 +19,10 @@ bool _versionChecked = false;
 void _checkVersion() {
   if (_versionChecked) return;
   final native = morflowVersion().toDartString();
-  if (native != packageVersion) {
+  if (native != engineVersion) {
     throw MorflowException(
-      'The Morflow native library is version $native, but package:morflow is $packageVersion. '
-      'Use a native library built from the matching release.',
+      'The Morflow native library is version $native, but package:morflow runs engine $engineVersion. '
+      'Use a native library built from engine release v$engineVersion.',
     );
   }
   _versionChecked = true;
