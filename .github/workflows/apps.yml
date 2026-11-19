@@ -259,3 +259,16 @@ jobs:
               lipo -info "$lib" | tee /dev/stderr | grep -q 'x86_64 arm64\|arm64 x86_64'
             done < libs.txt
           fi
+
+      - name: Run both architectures of the macOS app's libraries
+        # The Intel slice runs under Rosetta. The engine must find the
+        # math_basics pack among the app's frameworks.
+        if: runner.os == 'macOS'
+        working-directory: bindings/dart/example
+        run: |
+          /usr/bin/pgrep -q oahd || softwareupdate --install-rosetta --agree-to-license
+          capi=$(grep 'morflow_capi' libs.txt)
+          for arch in arm64 x86_64; do
+            clang -arch "$arch" -o "$RUNNER_TEMP/run_pipeline_$arch" "$GITHUB_WORKSPACE/bindings/capi/smoke/run_pipeline.c"
+            arch "-$arch" "$RUNNER_TEMP/run_pipeline_$arch" "$capi"
+          done
