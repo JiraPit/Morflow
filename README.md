@@ -147,5 +147,3 @@ Full end-to-end examples across Rust, Python, JavaScript, and Java are available
 ## 📄 License
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
-
-Native shape contracts use `Dimension::Known(usize)` and `Dimension::Unknown`. This retains partially known shapes such as `Tensor[*,*,3]` and distinguishes real zero-length dimensions from wildcards. Tensor `each` preserves row dimensions: `Tensor[*,3]` produces `Tensor[3]` loop variables. See [shape documentation](https://morflow.org/doc#types-shapechecking).
