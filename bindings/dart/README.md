@@ -10,17 +10,20 @@ Supported platforms: Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows 
 dart pub add morflow
 ```
 
-Pipelines run published actions, which the Morflow CLI downloads ahead of time. Install the CLI with the installer from [morflow.org](https://morflow.org), then prepare each pipeline:
+Pipelines run published actions. An app bundles the action packs it uses, so it runs on any computer or phone without setup. With the Morflow CLI (install it with the installer from [morflow.org](https://morflow.org)), run this in the app's root directory with every pipeline the app runs:
 
 ```sh
-morflow prep pipeline.morf
+morflow prep --target flutter pipelines/denoise.morf pipelines/classify.morf
 ```
 
-### Android and iOS
-
-Apps cannot download actions while they run, so a Flutter app for Android or iOS bundles whole action packs instead. List them, at exact versions, in the app's `pubspec.yaml`:
+It works out the packs and versions the pipelines need, shows the change to `pubspec.yaml` and applies it when you confirm (`--yes` skips the question). The packs are listed under `hooks`, and pipelines inside the app are added to its Flutter assets:
 
 ```yaml
+flutter:
+  assets:
+    - pipelines/denoise.morf
+    - pipelines/classify.morf
+
 hooks:
   user_defines:
     morflow:
@@ -29,9 +32,23 @@ hooks:
         audio_basics: 0.2.4
 ```
 
-`flutter build` downloads each pack for the app's platform from its GitHub release, checks it against the release's checksums and bundles it. A pipeline can use any action in a bundled pack, at `latest` or at the bundled version. The CLI is not needed for mobile apps.
+You can also write the `packs` list yourself, with exact versions. Run the command again after changing a pipeline; packs other pipelines need stay listed. In the app, load a pipeline from the assets:
 
-Packs that need a plugin (`image_opencv`, `linalg_blas`, `tensor_blas`) cannot be bundled; use their plugin-free counterparts. The `packs` list is ignored for desktop builds, which use the action cache.
+```dart
+import 'package:flutter/services.dart' show rootBundle;
+
+final pipeline = morflow.fromStr(await rootBundle.loadString('pipelines/denoise.morf'));
+```
+
+`flutter build` (or `dart build cli`, `flutter run`, `dart run`) downloads each pack for the target platform from its GitHub release, checks it against the release's checksums and bundles it next to the engine. A pipeline can use any action in a bundled pack, at `latest` or at the bundled version; a bundled pack is used before the action cache.
+
+Packs that need a plugin (`image_opencv`, `linalg_blas`, `tensor_blas`) cannot be bundled, so apps use their plugin-free counterparts. Plain Dart programs and development on Linux, macOS and Windows can also use the action cache, which `morflow prep` without `--target` fills and which supports plugins:
+
+```sh
+morflow prep pipeline.morf
+```
+
+The action cache lives on the computer that ran `morflow prep`, so an app you distribute should bundle its packs.
 
 ## Use
 

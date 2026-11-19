@@ -4,7 +4,7 @@ use crate::engine::collect_action_names;
 use crate::plugins::declarations;
 use crate::release::{PreparedRelease, ReleaseClient, Transport};
 use crate::resolver::ActionResolver;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -94,6 +94,100 @@ pub fn prepare<T: Transport>(
         actions: identities.len(),
         plugins: plugins.len(),
     })
+}
+
+/// Platforms an app can be built for, with their library file extension. A
+/// pack an app bundles needs a pack library for each.
+pub const APP_PLATFORMS: [(&str, &str); 8] = [
+    ("linux-x86_64", "so"),
+    ("linux-aarch64", "so"),
+    ("darwin-arm64", "dylib"),
+    ("windows-x86_64", "dll"),
+    ("android-aarch64", "so"),
+    ("android-x86_64", "so"),
+    ("ios-arm64", "dylib"),
+    ("ios-arm64-sim", "dylib"),
+];
+
+/// A pack library's file name in the pack's release (see scripts/native_targets.py).
+pub fn pack_library_asset(pack: &str, version: &str, platform: &str, extension: &str) -> String {
+    format!("morflow_pack_{pack}-{version}-{platform}.{extension}")
+}
+
+/// The packs an app must bundle to run `pipelines`: pack name -> exact
+/// version, checked to have a pack library for every app platform. An app
+/// bundles one version of each pack, which also serves `latest`, so a pack
+/// one pipeline pins is the version every pipeline gets.
+pub fn app_packs<T: Transport>(
+    pipelines: &[parser::ast::Pipeline],
+    client: &ReleaseClient<T>,
+) -> Result<BTreeMap<String, String>, String> {
+    let mut releases = HashMap::new();
+    let mut exact: BTreeMap<String, String> = BTreeMap::new();
+    let mut latest: HashSet<String> = HashSet::new();
+    for ast in pipelines {
+        crate::validator::validate_pipeline(ast).map_err(|e| e.to_string())?;
+        if let Some(plugin) = ast.plugins.first() {
+            return Err(format!(
+                "The pipeline uses plugin {}; apps cannot bundle plugins or the actions that need them. \
+                 Use a plugin-free pack instead.",
+                plugin.name
+            ));
+        }
+        let resolver = ActionResolver::from_imports(&ast.imports)?;
+        for name in collect_action_names(&ast.statements) {
+            let id = resolver.resolve(&name, |p, v| {
+                Ok(release(client, &mut releases, p, v)?
+                    .catalog
+                    .actions(crate::platform::host_platform().0))
+            })?;
+            if id.version == "latest" {
+                latest.insert(id.pack);
+            } else if let Some(other) = exact.get(&id.pack).filter(|v| **v != id.version) {
+                return Err(format!(
+                    "The pipelines need {} {} and {} {}, but an app bundles one version of each pack",
+                    id.pack, other, id.pack, id.version
+                ));
+            } else {
+                exact.insert(id.pack, id.version);
+            }
+        }
+    }
+    let mut packs = exact;
+    for pack in latest {
+        if let std::collections::btree_map::Entry::Vacant(entry) = packs.entry(pack) {
+            let concrete = release(client, &mut releases, entry.key(), "latest")?
+                .catalog
+                .concrete_version
+                .clone();
+            entry.insert(concrete);
+        }
+    }
+    for (pack, version) in &packs {
+        let checksums = &release(client, &mut releases, pack, version)?
+            .catalog
+            .checksums;
+        let missing: Vec<&str> = APP_PLATFORMS
+            .iter()
+            .filter(|(platform, ext)| {
+                !checksums.contains_key(&pack_library_asset(pack, version, platform, ext))
+            })
+            .map(|(platform, _)| *platform)
+            .collect();
+        if missing.len() == APP_PLATFORMS.len() {
+            return Err(format!(
+                "{pack} {version} has no pack library, so apps cannot bundle it \
+                 (its actions need a plugin, or it was released before pack libraries)"
+            ));
+        }
+        if !missing.is_empty() {
+            return Err(format!(
+                "{pack} {version} has no pack library for {} yet",
+                missing.join(", ")
+            ));
+        }
+    }
+    Ok(packs)
 }
 
 #[cfg(test)]
@@ -309,5 +403,160 @@ mod tests {
             .iter()
             .all(|url| !url.ends_with("/binary")));
         assert!(!action.path(actions.path()).exists());
+    }
+
+    /// Publishes `pack` `version` with `actions` and pack libraries for
+    /// `platforms`; `releases` lists every release for `latest` lookups.
+    fn pack_release(
+        fake: &Fake,
+        releases: &mut Vec<serde_json::Value>,
+        pack: &str,
+        version: &str,
+        actions: &[&str],
+        platforms: &[(&str, &str)],
+    ) {
+        let base = format!("test://action_packs/{pack}/{version}");
+        let mut names: Vec<String> = actions
+            .iter()
+            .map(|a| ActionIdentity::new(pack, version, a).unwrap().filename())
+            .collect();
+        names.extend(
+            platforms
+                .iter()
+                .map(|(p, e)| pack_library_asset(pack, version, p, e)),
+        );
+        let checksums: String = names
+            .iter()
+            .map(|n| format!("{}  {n}\n", digest(n.as_bytes())))
+            .collect();
+        let mut assets: Vec<_> = names
+            .iter()
+            .map(|n| serde_json::json!({"name": n, "browser_download_url": format!("{base}/{n}")}))
+            .collect();
+        assets.push(serde_json::json!({"name": "checksums.txt", "browser_download_url": format!("{base}/checksums")}));
+        let release = serde_json::json!({"tag_name": format!("action_packs/{pack}/v{version}"), "assets": assets});
+        let mut data = fake.data.lock().unwrap();
+        data.insert(format!("{base}/checksums"), checksums.into_bytes());
+        data.insert(
+            format!("https://api.github.com/repos/test/repo/releases/tags/action_packs%2F{pack}%2Fv{version}"),
+            serde_json::to_vec(&release).unwrap(),
+        );
+        releases.push(release);
+        data.insert(
+            "https://api.github.com/repos/test/repo/releases?per_page=100&page=1".into(),
+            serde_json::to_vec(&releases).unwrap(),
+        );
+    }
+
+    fn app_client() -> ReleaseClient<Fake> {
+        let fake = Fake::default();
+        let mut releases = Vec::new();
+        pack_release(
+            &fake,
+            &mut releases,
+            "base",
+            "0.3.3",
+            &["identity"],
+            &APP_PLATFORMS,
+        );
+        pack_release(
+            &fake,
+            &mut releases,
+            "base",
+            "0.3.4",
+            &["identity"],
+            &APP_PLATFORMS,
+        );
+        pack_release(
+            &fake,
+            &mut releases,
+            "math_basics",
+            "0.4.0",
+            &["abs"],
+            &APP_PLATFORMS,
+        );
+        pack_release(
+            &fake,
+            &mut releases,
+            "math_basics",
+            "0.4.1",
+            &["abs", "add"],
+            &APP_PLATFORMS,
+        );
+        pack_release(&fake, &mut releases, "old", "1.0.0", &["identity"], &[]);
+        pack_release(
+            &fake,
+            &mut releases,
+            "partial",
+            "1.0.0",
+            &["identity"],
+            &APP_PLATFORMS[..6],
+        );
+        ReleaseClient {
+            repository: "test/repo".into(),
+            transport: fake,
+        }
+    }
+
+    fn pipeline(body: &str) -> parser::ast::Pipeline {
+        parser::parse(&format!("accept Tensor $t\n{body}")).unwrap()
+    }
+
+    #[test]
+    fn app_packs_resolve_latest_and_let_a_pinned_version_serve_every_pipeline() {
+        let client = app_client();
+        let packs = app_packs(
+            &[
+                pipeline("$t >> base/latest/identity >> math_basics/latest/abs >> emit"),
+                parser::parse(
+                    "from base/0.3.3 import identity\naccept Tensor $t\n$t >> identity >> emit",
+                )
+                .unwrap(),
+            ],
+            &client,
+        )
+        .unwrap();
+        assert_eq!(
+            packs,
+            BTreeMap::from([
+                ("base".into(), "0.3.3".into()),
+                ("math_basics".into(), "0.4.1".into())
+            ])
+        );
+        // A whole-pack import needs the pack too.
+        let packs = app_packs(
+            &[parser::parse(
+                "import math_basics/0.4.0\naccept Tensor $t\n$t >> math_basics.abs >> emit",
+            )
+            .unwrap()],
+            &client,
+        )
+        .unwrap();
+        assert_eq!(
+            packs,
+            BTreeMap::from([("math_basics".into(), "0.4.0".into())])
+        );
+    }
+
+    #[test]
+    fn app_packs_reject_what_an_app_cannot_bundle() {
+        let client = app_client();
+        let error = |source: &str| app_packs(&[pipeline(source)], &client).unwrap_err();
+        assert!(
+            error("$t >> old/latest/identity >> emit").contains("old 1.0.0 has no pack library")
+        );
+        assert!(error("$t >> partial/latest/identity >> emit")
+            .contains("partial 1.0.0 has no pack library for ios-arm64, ios-arm64-sim yet"));
+        let both = app_packs(
+            &[
+                pipeline("$t >> base/0.3.3/identity >> emit"),
+                pipeline("$t >> base/0.3.4/identity >> emit"),
+            ],
+            &client,
+        )
+        .unwrap_err();
+        assert!(both.contains("need base 0.3.3 and base 0.3.4"), "{both}");
+        let plugin = app_packs(&[source("plugin opencv-bridge/0.1.0")], &client).unwrap_err();
+        assert!(plugin.contains("apps cannot bundle plugins"), "{plugin}");
     }
 }

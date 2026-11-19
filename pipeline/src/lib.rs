@@ -11,6 +11,8 @@ mod platform;
 pub mod plugins;
 #[cfg(feature = "cli")]
 pub mod preparation;
+#[cfg(feature = "cli")]
+pub mod pubspec;
 pub mod registry;
 #[cfg(feature = "cli")]
 pub mod release;
