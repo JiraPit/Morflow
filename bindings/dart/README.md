@@ -6,6 +6,14 @@ Supported platforms: Linux (x86_64, aarch64), macOS (Apple Silicon, and Intel wh
 
 ## Install
 
+In a Flutter app:
+
+```sh
+flutter pub add morflow
+```
+
+In a Dart program:
+
 ```sh
 dart pub add morflow
 ```
@@ -116,21 +124,4 @@ hooks:
       # Or a mirror of the releases (a URL or a directory) with the same
       # <tag>/<file> layout as https://github.com/JiraPit/Morflow/releases/download.
       release_url: https://mirror.example.com/morflow
-```
-
-## Development
-
-Inside a Morflow checkout, the build hook compiles the native library with `cargo`. Tests that execute actions need an action cache built from the checkout:
-
-```sh
-bash scripts/build-actions.sh
-python3 scripts/prepare_test_actions.py --profile release --cache /tmp/morflow-actions
-cd bindings/dart && MORFLOW_ACTIONS_PATH=/tmp/morflow-actions dart test
-```
-
-The Flutter app in `example/` runs every bundleable pack on a device. To test it against libraries built from the checkout, stage them like releases and add `release_url: ../../../target/staged-releases` to its `hooks.user_defines.morflow`:
-
-```sh
-python3 scripts/stage_release.py --platform android-x86_64 --out target/staged-releases
-cd bindings/dart/example && flutter test integration_test
 ```

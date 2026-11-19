@@ -1,0 +1,5 @@
+.dart_tool/
+build/
+pubspec.lock
+# Notes for working on the package in the Morflow repository
+DEVELOPMENT.md

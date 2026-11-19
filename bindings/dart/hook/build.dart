@@ -53,7 +53,7 @@ void main(List<String> args) async {
           await _buildFromCheckout(input, output, code) ??
           await _guardAsync(
             () async => (await downloader.fetch(
-              tag: engineTag(packageVersion),
+              tag: engineTag(engineVersion),
               asset: capiAsset(platform),
               saveAs: libraryFile('morflow_capi', platform),
             )).uri,

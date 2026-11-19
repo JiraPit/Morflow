@@ -669,8 +669,9 @@ void main() {
     test('package, pubspec and native library agree', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
       final version = RegExp(r'^version: (.+)$', multiLine: true).firstMatch(pubspec)!.group(1);
-      expect(version, packageVersion);
-      // Compiling checks the native library's version against packageVersion.
+      // The engine version, or the engine version plus a build number.
+      expect(version, matches(RegExp('^${RegExp.escape(engineVersion)}(\\+\\d+)?\$')));
+      // Compiling checks the native library's version against engineVersion.
       expect(() => morflow.fromStr(echo), returnsNormally);
     });
   });
