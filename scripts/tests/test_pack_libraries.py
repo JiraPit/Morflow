@@ -89,11 +89,11 @@ class DetectionTests(unittest.TestCase):
 
     def test_batches_stay_under_the_matrix_limit_and_continue(self):
         actions = [action(f"pack{i}", "identity", "1.0.0") for i in range(10)]
-        # 10 actions x 4 desktop platforms = 40 jobs; 10 packs x 8 platforms = 80 pack library jobs.
+        # 10 actions x 4 desktop platforms = 40 jobs; 10 packs x 9 platforms = 90 pack library jobs.
         result = self.detect(actions, {}, "--max-jobs", "50")
         self.assertEqual(len(result["matrix"]), 50)
         self.assertEqual(result["has_more"], "true")
-        self.assertEqual(result["remaining"], 70)
+        self.assertEqual(result["remaining"], 80)
         library_packs = {pack for pack, _ in self.libraries(result)}
         self.assertTrue(library_packs <= {p["name"] for p in result["packs"]})
 
@@ -117,7 +117,7 @@ class NamingTests(unittest.TestCase):
         self.assertEqual(native_targets.library_file("morflow_capi", "darwin-arm64"), "libmorflow_capi.dylib")
 
     def test_every_platform_is_desktop_or_mobile(self):
-        self.assertEqual(set(native_targets.PLATFORMS), set(native_targets.DESKTOP_PLATFORMS) | set(native_targets.MOBILE_PLATFORMS))
+        self.assertEqual(set(native_targets.PLATFORMS), set(native_targets.DESKTOP_PLATFORMS) | set(native_targets.MOBILE_PLATFORMS) | set(native_targets.APP_ONLY_PLATFORMS))
         self.assertEqual({p for p, _ in detect_changed_actions.TARGET_PLATFORMS}, set(native_targets.DESKTOP_PLATFORMS))
         for platform, ext in detect_changed_actions.TARGET_PLATFORMS:
             self.assertEqual(native_targets.extension(platform), ext)

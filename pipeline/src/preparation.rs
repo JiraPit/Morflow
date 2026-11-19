@@ -98,10 +98,12 @@ pub fn prepare<T: Transport>(
 
 /// Platforms an app can be built for, with their library file extension. A
 /// pack an app bundles needs a pack library for each.
-pub const APP_PLATFORMS: [(&str, &str); 8] = [
+pub const APP_PLATFORMS: [(&str, &str); 9] = [
     ("linux-x86_64", "so"),
     ("linux-aarch64", "so"),
     ("darwin-arm64", "dylib"),
+    // macOS release builds are universal, so Intel Macs too.
+    ("darwin-x86_64", "dylib"),
     ("windows-x86_64", "dll"),
     ("android-aarch64", "so"),
     ("android-x86_64", "so"),
@@ -490,7 +492,7 @@ mod tests {
             "partial",
             "1.0.0",
             &["identity"],
-            &APP_PLATFORMS[..6],
+            &APP_PLATFORMS[..7],
         );
         ReleaseClient {
             repository: "test/repo".into(),

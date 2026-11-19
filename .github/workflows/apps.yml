@@ -172,15 +172,17 @@ jobs:
         include:
           - name: Linux
             os: ubuntu-latest
-            platform: linux-x86_64
+            platforms: --platform linux-x86_64
             device: linux
           - name: macOS
             os: macos-latest
-            platform: darwin-arm64
+            # Release builds are universal: Apple Silicon and Intel.
+            platforms: --platform darwin-arm64 --platform darwin-x86_64
+            targets: x86_64-apple-darwin
             device: macos
           - name: Windows
             os: windows-latest
-            platform: windows-x86_64
+            platforms: --platform windows-x86_64
             device: windows
     runs-on: ${{ matrix.os }}
     defaults:
@@ -192,6 +194,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -205,7 +209,7 @@ jobs:
           sudo apt-get install -y ninja-build libgtk-3-dev xvfb
 
       - name: Stage releases
-        run: python3 scripts/stage_release.py --platform ${{ matrix.platform }} --out "$GITHUB_WORKSPACE/target/staged-releases"
+        run: python3 scripts/stage_release.py ${{ matrix.platforms }} --out "$GITHUB_WORKSPACE/target/staged-releases"
 
       - name: Use the staged releases
         working-directory: bindings/dart/example
@@ -243,8 +247,15 @@ jobs:
         run: |
           flutter build ${{ matrix.device }} --release
           case "$RUNNER_OS" in
-            Linux) find build/linux/x64/release/bundle/lib -name '*morflow*' ;;
-            macOS) find build/macos/Build/Products/Release/morflow_example.app/Contents/Frameworks -name '*morflow*' -type f ;;
-            Windows) find build/windows/x64/runner/Release -name '*morflow*' ;;
-          esac | sort | tee libs.txt
+            Linux) dir=build/linux/x64/release/bundle/lib ;;
+            macOS) dir=build/macos/Build/Products/Release/morflow_example.app/Contents/Frameworks ;;
+            Windows) dir=build/windows/x64/runner/Release ;;
+          esac
+          find "$dir" -type f \( -name '*morflow_capi*' -o -name '*morflow_pack_*' \) | sort | tee libs.txt
           test "$(wc -l < libs.txt)" -eq 9
+          if [ "$RUNNER_OS" = macOS ]; then
+            # Every library holds both architectures of the universal app.
+            while read -r lib; do
+              lipo -info "$lib" | tee /dev/stderr | grep -q 'x86_64 arm64\|arm64 x86_64'
+            done < libs.txt
+          fi

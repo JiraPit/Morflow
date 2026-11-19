@@ -23,6 +23,7 @@ const platforms = [
   'linux-x86_64',
   'linux-aarch64',
   'darwin-arm64',
+  'darwin-x86_64',
   'windows-x86_64',
 ];
 

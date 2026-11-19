@@ -14,6 +14,7 @@ PLATFORMS = {
     "linux-x86_64": {"triple": "x86_64-unknown-linux-gnu", "os": "ubuntu-latest"},
     "linux-aarch64": {"triple": "aarch64-unknown-linux-gnu", "os": "ubuntu-24.04-arm"},
     "darwin-arm64": {"triple": "aarch64-apple-darwin", "os": "macos-latest"},
+    "darwin-x86_64": {"triple": "x86_64-apple-darwin", "os": "macos-latest"},
     "windows-x86_64": {"triple": "x86_64-pc-windows-msvc", "os": "windows-latest"},
     "android-aarch64": {"triple": "aarch64-linux-android", "os": "ubuntu-latest"},
     "android-x86_64": {"triple": "x86_64-linux-android", "os": "ubuntu-latest"},
@@ -23,6 +24,10 @@ PLATFORMS = {
 
 DESKTOP_PLATFORMS = ["linux-x86_64", "linux-aarch64", "darwin-arm64", "windows-x86_64"]
 MOBILE_PLATFORMS = ["android-aarch64", "android-x86_64", "ios-arm64", "ios-arm64-sim"]
+# Flutter's macOS release builds are universal (Apple Silicon and Intel), so
+# apps need the engine and pack libraries for Intel Macs, although actions are
+# not released for them. Cross-compiled on Apple Silicon.
+APP_ONLY_PLATFORMS = ["darwin-x86_64"]
 
 # Oldest Android API level and iOS version the libraries run on. Flutter's
 # own minimums are Android 24 (7.0) and iOS 13.
