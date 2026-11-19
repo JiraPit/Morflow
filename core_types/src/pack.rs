@@ -1,6 +1,6 @@
 //! Pack libraries: every action of one pack linked into a single native
 //! library, for apps that bundle actions instead of loading them from the
-//! action cache (Android and iOS).
+//! action cache, which a user's phone or computer does not have.
 //!
 //! An action normally exports `process`, `shapecheck`, `get_input_type` and
 //! `get_output_type` by those names. Built with `--cfg morflow_pack`, actions

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a pack library: every action of one pack linked into one native library.
 
-Apps that bundle actions (Android and iOS) ship one pack library per pack
+Apps that bundle actions ship one pack library per pack
 instead of one library per action. See core_types/src/pack.rs.
 
     python3 scripts/build_pack.py base --out dist/

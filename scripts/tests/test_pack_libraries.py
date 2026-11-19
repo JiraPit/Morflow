@@ -44,10 +44,10 @@ class DetectionTests(unittest.TestCase):
     def libraries(result):
         return sorted((j["pack_library"]["pack"], j["target"]["platform"]) for j in result["matrix"] if "pack_library" in j)
 
-    def test_unreleased_pack_builds_its_library_for_every_mobile_platform(self):
+    def test_unreleased_pack_builds_its_library_for_every_platform(self):
         actions = [action("base", "identity", "0.3.4"), action("base", "to_tensor", "0.3.4")]
         result = self.detect(actions, {})
-        self.assertEqual(self.libraries(result), [("base", p) for p in sorted(native_targets.MOBILE_PLATFORMS)])
+        self.assertEqual(self.libraries(result), [("base", p) for p in sorted(native_targets.PLATFORMS)])
         job = next(j for j in result["matrix"] if j.get("target", {}).get("platform") == "ios-arm64-sim" and "pack_library" in j)
         self.assertEqual(job["pack_library"], {"pack": "base", "version": "0.3.4"})
         self.assertEqual(job["target"], {"platform": "ios-arm64-sim", "ext": "dylib",
@@ -57,7 +57,7 @@ class DetectionTests(unittest.TestCase):
     def test_released_pack_libraries_are_never_rebuilt(self):
         actions = [action("base", "identity", "0.3.4")]
         tag = "action_packs/base/v0.3.4"
-        assets = released_actions(*actions) | {native_targets.pack_asset("base", "0.3.4", p) for p in native_targets.MOBILE_PLATFORMS}
+        assets = released_actions(*actions) | {native_targets.pack_asset("base", "0.3.4", p) for p in native_targets.PLATFORMS}
         result = self.detect(actions, {tag: assets})
         self.assertEqual(result["matrix"], [])
         self.assertEqual(result["has_actions"], "false")
@@ -66,7 +66,7 @@ class DetectionTests(unittest.TestCase):
         actions = [action("base", "identity", "0.3.4")]
         assets = released_actions(*actions) | {native_targets.pack_asset("base", "0.3.4", "android-aarch64")}
         result = self.detect(actions, {"action_packs/base/v0.3.4": assets})
-        self.assertEqual(self.libraries(result), [("base", "android-x86_64"), ("base", "ios-arm64"), ("base", "ios-arm64-sim")])
+        self.assertEqual(self.libraries(result), [("base", p) for p in sorted(native_targets.PLATFORMS) if p != "android-aarch64"])
         # The pack's release is updated even though every action is released.
         self.assertEqual(result["packs"], [{"name": "base", "version": "0.3.4"}])
 
@@ -83,17 +83,17 @@ class DetectionTests(unittest.TestCase):
 
     def test_force_rebuilds_released_libraries(self):
         actions = [action("base", "identity", "0.3.4")]
-        assets = released_actions(*actions) | {native_targets.pack_asset("base", "0.3.4", p) for p in native_targets.MOBILE_PLATFORMS}
+        assets = released_actions(*actions) | {native_targets.pack_asset("base", "0.3.4", p) for p in native_targets.PLATFORMS}
         result = self.detect(actions, {"action_packs/base/v0.3.4": assets}, "--force", "true")
-        self.assertEqual(len(self.libraries(result)), 4)
+        self.assertEqual(len(self.libraries(result)), len(native_targets.PLATFORMS))
 
     def test_batches_stay_under_the_matrix_limit_and_continue(self):
         actions = [action(f"pack{i}", "identity", "1.0.0") for i in range(10)]
-        # 10 actions x 4 desktop platforms = 40 jobs; 40 pack library jobs.
+        # 10 actions x 4 desktop platforms = 40 jobs; 10 packs x 8 platforms = 80 pack library jobs.
         result = self.detect(actions, {}, "--max-jobs", "50")
         self.assertEqual(len(result["matrix"]), 50)
         self.assertEqual(result["has_more"], "true")
-        self.assertEqual(result["remaining"], 30)
+        self.assertEqual(result["remaining"], 70)
         library_packs = {pack for pack, _ in self.libraries(result)}
         self.assertTrue(library_packs <= {p["name"] for p in result["packs"]})
 

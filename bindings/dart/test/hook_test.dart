@@ -6,6 +6,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -14,7 +15,16 @@ import 'package:test/test.dart';
 
 import '../hook/release.dart';
 
-const mobile = ['android-aarch64', 'android-x86_64', 'ios-arm64', 'ios-arm64-sim'];
+const platforms = [
+  'android-aarch64',
+  'android-x86_64',
+  'ios-arm64',
+  'ios-arm64-sim',
+  'linux-x86_64',
+  'linux-aarch64',
+  'darwin-arm64',
+  'windows-x86_64',
+];
 
 late Directory releases;
 
@@ -64,12 +74,10 @@ String pack(String name) => 'package:morflow/src/packs/$name';
 void main() {
   setUpAll(() {
     releases = Directory.systemTemp.createTempSync('morflow_releases');
-    release(engineTag(packageVersion), {
-      for (final p in [...mobile, 'windows-x86_64']) capiAsset(p): 'engine $p',
-    });
-    release(packTag('base', '0.3.4'), {for (final p in mobile) packAsset('base', '0.3.4', p): 'base 0.3.4 $p'});
+    release(engineTag(packageVersion), {for (final p in platforms) capiAsset(p): 'engine $p'});
+    release(packTag('base', '0.3.4'), {for (final p in platforms) packAsset('base', '0.3.4', p): 'base 0.3.4 $p'});
     release(packTag('audio_basics', '0.2.4'), {
-      for (final p in mobile) packAsset('audio_basics', '0.2.4', p): 'audio_basics 0.2.4 $p',
+      for (final p in platforms) packAsset('audio_basics', '0.2.4', p): 'audio_basics 0.2.4 $p',
     });
   });
   tearDownAll(() => releases.deleteSync(recursive: true));
@@ -128,7 +136,7 @@ void main() {
     expect(simulator.assets[pack('base')]!['content'], 'base 0.3.4 ios-arm64-sim');
   });
 
-  test('desktop downloads only the engine; packs come from the action cache there', () async {
+  test('desktop apps bundle the listed packs too', () async {
     // Windows is never the host of a checkout build here, so the engine is
     // downloaded on every test platform.
     final run = await runHook(
@@ -140,8 +148,25 @@ void main() {
     );
     expect(run.assets, {
       engine: {'file': 'morflow_capi.dll', 'content': 'engine windows-x86_64'},
+      pack('base'): {'file': 'morflow_pack_base.dll', 'content': 'base 0.3.4 windows-x86_64'},
     });
   }, skip: Platform.isWindows ? 'Windows builds the engine from this checkout' : false);
+
+  test('macOS and Linux arm64 get their own pack libraries', () async {
+    for (final (os, platform, file) in [
+      ('macos', 'darwin-arm64', 'libmorflow_pack_base.dylib'),
+      ('linux', 'linux-aarch64', 'libmorflow_pack_base.so'),
+    ]) {
+      final run = await runHook(
+        os: os,
+        arch: 'arm64',
+        defines: {
+          'packs': {'base': '0.3.4'},
+        },
+      );
+      expect(run.assets[pack('base')], {'file': file, 'content': 'base 0.3.4 $platform'});
+    }
+  }, skip: [Abi.macosArm64, Abi.linuxArm64].contains(Abi.current()) ? 'the host builds its own engine' : false);
 
   test('release_url may be a plain directory path', () async {
     final run = await runHook(os: 'android', arch: 'arm64', defines: {'release_url': releases.path});

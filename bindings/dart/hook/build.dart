@@ -1,5 +1,5 @@
 // Provides the Morflow native library (bindings/capi) to Dart and Flutter
-// builds, and the action packs that Android and iOS apps bundle.
+// builds, and the action packs that apps bundle.
 // Applications never call it directly.
 //
 // The engine library comes from, in order:
@@ -11,10 +11,9 @@
 //   3. A Morflow repository checkout, for the host platform: built with cargo.
 //   4. Otherwise, the engine's GitHub release for this package's version.
 //
-// Android and iOS apps cannot download actions at run time, so they bundle
-// the action packs listed in the `packs` user-define, downloaded from each
-// pack's GitHub release. Desktop programs use the action cache instead
-// (`morflow prep`), so the list is ignored there:
+// Apps bundle the action packs listed in the `packs` user-define, downloaded
+// from each pack's GitHub release, so their pipelines run without the action
+// cache that `morflow prep` fills on a developer's computer:
 //
 //   hooks:
 //     user_defines:
@@ -41,7 +40,6 @@ void main(List<String> args) async {
     if (!input.config.buildCodeAssets) return;
     final code = input.config.code;
     final platform = platformName(code);
-    final mobile = code.targetOS == OS.android || code.targetOS == OS.iOS;
     final prebuilt = _prebuiltLibraries(input, output, code);
     final requested = _guard(() => parsePacks(input.userDefines['packs']));
     final downloader = ReleaseDownloader(
@@ -67,21 +65,19 @@ void main(List<String> args) async {
       // Pack libraries are loaded by the engine, not from Dart, but must ship
       // inside the app like the engine itself.
       final packs = {...?prebuilt?.packs};
-      if (mobile) {
-        for (final MapEntry(key: pack, value: version) in requested.entries) {
-          if (packs.containsKey(pack)) {
-            throw BuildError(
-              message: '$pack is both in hooks.user_defines.morflow.packs and in prebuilt_dir; list it once.',
-            );
-          }
-          packs[pack] = await _guardAsync(
-            () async => (await downloader.fetch(
-              tag: packTag(pack, version),
-              asset: packAsset(pack, version, platform),
-              saveAs: libraryFile('morflow_pack_$pack', platform),
-            )).uri,
+      for (final MapEntry(key: pack, value: version) in requested.entries) {
+        if (packs.containsKey(pack)) {
+          throw BuildError(
+            message: '$pack is both in hooks.user_defines.morflow.packs and in prebuilt_dir; list it once.',
           );
         }
+        packs[pack] = await _guardAsync(
+          () async => (await downloader.fetch(
+            tag: packTag(pack, version),
+            asset: packAsset(pack, version, platform),
+            saveAs: libraryFile('morflow_pack_$pack', platform),
+          )).uri,
+        );
       }
       for (final MapEntry(key: pack, value: file) in packs.entries) {
         output.assets.code.add(

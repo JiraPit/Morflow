@@ -1,5 +1,7 @@
-// Runs on a device or emulator: every action comes from the pack libraries
-// bundled into the app, since mobile apps have no action cache.
+// Runs on a device, an emulator or the desktop: every action comes from the
+// pack libraries bundled into the app, as on a user's machine, where there is
+// no action cache.
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -159,15 +161,21 @@ void main() {
     expect(output.toInt64Array(), [4, 6]);
   });
 
-  test('plugins are rejected on mobile', () {
-    expect(
-      () => morflow.fromStr(
-        'plugin opencv-bridge/0.1.3\nfrom image_opencv/0.1.3 import resize\n'
-        'accept Tensor[6,8,3] \$image\n\$image >> resize(4,3) >> emit',
-      ),
-      throwsMorflow('Plugins are not available on Android and iOS'),
-    );
-  });
+  test(
+    'plugins are rejected on mobile',
+    () {
+      expect(
+        () => morflow.fromStr(
+          'plugin opencv-bridge/0.1.3\nfrom image_opencv/0.1.3 import resize\n'
+          'accept Tensor[6,8,3] \$image\n\$image >> resize(4,3) >> emit',
+        ),
+        throwsMorflow('Plugins are not available on Android and iOS'),
+      );
+    },
+    skip: Platform.isAndroid || Platform.isIOS
+        ? false
+        : 'desktop apps can use plugins',
+  );
 
   test('Composites round-trip', () {
     final pipeline = morflow.fromStr('accept Composite \$pair\n\$pair >> emit');

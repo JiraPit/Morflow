@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # One entry per (action, platform) and per (pack library, mobile
+        # One entry per (action, platform) and per (pack library,
         # platform) still missing from its release; targets are defined in
         # scripts/detect_changed_actions.py and scripts/native_targets.py.
         include: ${{ fromJson(needs.detect-actions.outputs.matrix) }}
@@ -99,8 +99,8 @@ jobs:
           python-version: '3.11'
 
       - name: Build Pack Library (${{ matrix.pack_library.pack }})
-        # Every action of the pack linked into one library, which Android and
-        # iOS apps bundle (see core_types/src/pack.rs).
+        # Every action of the pack linked into one library, which apps bundle
+        # (see core_types/src/pack.rs).
         if: matrix.pack_library
         shell: bash
         run: |
@@ -201,7 +201,7 @@ jobs:
             echo "Creating new release $TAG_NAME..."
             gh release create "$TAG_NAME" release_assets/* \
               --title "$RELEASE_TITLE" \
-              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}, plus the pack library (every action in one library) for Android and iOS apps when the pack needs no plugin."
+              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}, plus, when the pack needs no plugin, the pack library (every action in one library) that apps bundle, for those platforms, Android and iOS."
           fi
 
   trigger-next-batch:

@@ -309,9 +309,15 @@ mod tests {
 
     #[test]
     fn plugins_are_rejected_on_mobile_only() {
-        let decl = |name: &str| parser::ast::PluginDecl { name: name.into(), version: "0.1.3".into() };
+        let decl = |name: &str| parser::ast::PluginDecl {
+            name: name.into(),
+            version: "0.1.3".into(),
+        };
         let error = reject_on_mobile(&[decl("opencv-bridge")], true).unwrap_err();
-        assert!(error.contains("Plugins are not available on Android and iOS"), "{error}");
+        assert!(
+            error.contains("Plugins are not available on Android and iOS"),
+            "{error}"
+        );
         assert!(error.contains("plugin opencv-bridge"), "{error}");
         assert!(reject_on_mobile(&[decl("opencv-bridge")], false).is_ok());
         assert!(reject_on_mobile(&[], true).is_ok());

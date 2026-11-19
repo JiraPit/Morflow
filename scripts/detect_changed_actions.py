@@ -165,7 +165,7 @@ def build_job(act: dict, plat: str, ext: str) -> dict:
 
 def bundleable_packs(actions: list) -> dict:
     """Pack name -> version for every pack that can be built as one pack
-    library for Android and iOS apps: no action needs a plugin and every
+    library for apps to bundle: no action needs a plugin and every
     action has the same version (see scripts/build_pack.py)."""
     by_pack = {}
     for act in actions:
@@ -185,7 +185,7 @@ def bundleable_packs(actions: list) -> dict:
 
 def missing_pack_libraries(pack: str, version: str, release_assets: set) -> list:
     return [
-        platform for platform in native_targets.MOBILE_PLATFORMS
+        platform for platform in native_targets.PLATFORMS
         if native_targets.pack_asset(pack, version, platform) not in release_assets
     ]
 
@@ -272,8 +272,8 @@ def main():
     print(f"Already released actions skipped: {already_released_count}")
     print(f"Total actions requiring build: {len(unbuilt_actions)}")
 
-    # Pack libraries (every action of a pack in one library) for Android and
-    # iOS, released next to the pack's actions. A whole pack is built, so an
+    # Pack libraries (every action of a pack in one library), which apps
+    # bundle, released next to the pack's actions for every platform. A whole pack is built, so an
     # action filter skips them.
     pending_libraries = []
     if args.action == "all":
@@ -282,7 +282,7 @@ def main():
                 continue
             tag = f"action_packs/{pack}/v{version}"
             if force_build:
-                missing = list(native_targets.MOBILE_PLATFORMS)
+                missing = list(native_targets.PLATFORMS)
             else:
                 if tag not in release_cache:
                     release_cache[tag] = get_release_assets(repo, tag, token)

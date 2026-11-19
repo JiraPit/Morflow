@@ -1,15 +1,19 @@
 //! Actions bundled into an app as pack libraries (see `core_types::pack`).
 //!
-//! Android and iOS apps cannot load actions downloaded into the action cache,
-//! so they ship one pack library per pack inside the app instead. The engine
-//! falls back to these when an action is not in the cache. The operating
-//! system verifies bundled code when the app is installed, so there are no
-//! receipts or checksums to check.
+//! An app ships one pack library per pack it uses, so its pipelines run
+//! without the action cache: Android and iOS apps cannot download actions,
+//! and a desktop app's users have no Morflow CLI. A bundled pack serves the
+//! actions of its version (and `latest`) before the action cache does. The
+//! operating system or the app's installer verifies bundled code, so there are
+//! no receipts or checksums to check.
 //!
 //! Pack libraries are found:
-//! - in the directories listed in `MORFLOW_PACKS_PATH` (desktop and tests);
+//! - in the directories listed in `MORFLOW_PACKS_PATH`;
 //! - on Android, by library name, among the app's native libraries;
-//! - on iOS, as frameworks next to the engine's own framework.
+//! - next to the library the engine itself was loaded from, where Dart and
+//!   Flutter put every bundled native library on Linux and Windows;
+//! - on macOS and iOS, as frameworks in the `Frameworks` directory that holds
+//!   the engine's own framework.
 
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -76,33 +80,80 @@ fn candidates(pack: &str) -> Vec<PathBuf> {
     if cfg!(target_os = "android") {
         // A bare name makes the dynamic linker search the app's libraries.
         paths.push(PathBuf::from(library_file(&stem)));
+    } else if let Some(engine) = own_library() {
+        paths.extend(beside_engine(&engine, &stem, &library_file(&stem)));
     }
-    if cfg!(target_os = "ios") {
-        // Flutter bundles libmorflow_pack_<pack>.dylib as
-        // Frameworks/morflow_pack_<pack>.framework/morflow_pack_<pack>.
-        if let Some(frameworks) = own_frameworks_dir() {
-            paths.push(frameworks.join(format!("{stem}.framework")).join(&stem));
+    paths
+}
+
+/// Where an app bundles `stem` relative to the engine library at `engine`.
+fn beside_engine(engine: &Path, stem: &str, file: &str) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Some(dir) = engine.parent() {
+        paths.push(dir.join(file));
+    }
+    if cfg!(target_vendor = "apple") {
+        // Flutter bundles libX.dylib as Frameworks/X.framework/X (on macOS
+        // through Versions/A), so look in the nearest Frameworks directory.
+        if let Some(frameworks) = engine
+            .ancestors()
+            .find(|dir| dir.file_name().is_some_and(|n| n == "Frameworks"))
+        {
+            paths.push(frameworks.join(format!("{stem}.framework")).join(stem));
         }
     }
     paths
 }
 
-/// The directory holding the framework this engine was loaded from, found
-/// from the address of one of its own functions.
+/// The file this engine was loaded from, found from the address of one of
+/// its own functions.
 #[cfg(unix)]
-fn own_frameworks_dir() -> Option<PathBuf> {
+fn own_library() -> Option<PathBuf> {
     let mut info: libc_dl::DlInfo = unsafe { std::mem::zeroed() };
-    let found = unsafe { libc_dl::dladdr(own_frameworks_dir as *const _, &mut info) };
+    let found = unsafe { libc_dl::dladdr(own_library as *const _, &mut info) };
     if found == 0 || info.dli_fname.is_null() {
         return None;
     }
-    let binary = PathBuf::from(unsafe { CStr::from_ptr(info.dli_fname) }.to_str().ok()?);
-    // .../Frameworks/<engine>.framework/<engine> -> .../Frameworks
-    binary.parent()?.parent().map(Path::to_path_buf)
+    let path = PathBuf::from(unsafe { CStr::from_ptr(info.dli_fname) }.to_str().ok()?);
+    // A program linking the engine statically reports its own path, which may
+    // be relative to where it started; bundled libraries are found by path.
+    path.is_absolute().then_some(path)
 }
 
-#[cfg(not(unix))]
-fn own_frameworks_dir() -> Option<PathBuf> {
+#[cfg(windows)]
+fn own_library() -> Option<PathBuf> {
+    use std::ffi::{c_void, OsString};
+    use std::os::windows::ffi::OsStringExt;
+
+    const FROM_ADDRESS: u32 = 0x4;
+    const UNCHANGED_REFCOUNT: u32 = 0x2;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetModuleHandleExW(flags: u32, address: *const c_void, module: *mut *mut c_void) -> i32;
+        fn GetModuleFileNameW(module: *mut c_void, name: *mut u16, size: u32) -> u32;
+    }
+    let mut module = std::ptr::null_mut();
+    let found = unsafe {
+        GetModuleHandleExW(
+            FROM_ADDRESS | UNCHANGED_REFCOUNT,
+            own_library as *const c_void,
+            &mut module,
+        )
+    };
+    if found == 0 {
+        return None;
+    }
+    let mut name = vec![0u16; 32_768];
+    let length =
+        unsafe { GetModuleFileNameW(module, name.as_mut_ptr(), name.len() as u32) } as usize;
+    if length == 0 || length >= name.len() {
+        return None;
+    }
+    Some(PathBuf::from(OsString::from_wide(&name[..length])))
+}
+
+#[cfg(not(any(unix, windows)))]
+fn own_library() -> Option<PathBuf> {
     None
 }
 
@@ -138,7 +189,10 @@ unsafe fn read(path: &Path, library: Arc<Library>, pack: &str) -> Result<Bundled
     }
     let name = CStr::from_ptr(manifest.pack).to_string_lossy();
     if name != pack {
-        return Err(format!("{} contains pack {name}, not {pack}", path.display()));
+        return Err(format!(
+            "{} contains pack {name}, not {pack}",
+            path.display()
+        ));
     }
     let actions = std::slice::from_raw_parts(manifest.actions, manifest.action_count)
         .iter()
@@ -157,7 +211,9 @@ unsafe fn read(path: &Path, library: Arc<Library>, pack: &str) -> Result<Bundled
         })
         .collect();
     Ok(BundledPack {
-        version: CStr::from_ptr(manifest.version).to_string_lossy().into_owned(),
+        version: CStr::from_ptr(manifest.version)
+            .to_string_lossy()
+            .into_owned(),
         path: path.to_path_buf(),
         library,
         actions,
@@ -167,14 +223,17 @@ unsafe fn read(path: &Path, library: Arc<Library>, pack: &str) -> Result<Bundled
 /// The bundled pack library for `pack`: `Ok(None)` when it is not bundled,
 /// or an error when a library was found but cannot be used.
 pub(crate) fn find(pack: &str) -> Result<Option<Arc<BundledPack>>, String> {
-    static PACKS: OnceLock<Mutex<HashMap<String, Arc<BundledPack>>>> = OnceLock::new();
+    // Looked up once per pack: an app's bundled libraries do not change while
+    // it runs, and most packs are not bundled outside apps.
+    static PACKS: OnceLock<Mutex<HashMap<String, Option<Arc<BundledPack>>>>> = OnceLock::new();
     let mut packs = PACKS
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
         .map_err(|e| e.to_string())?;
     if let Some(found) = packs.get(pack) {
-        return Ok(Some(Arc::clone(found)));
+        return Ok(found.clone());
     }
+    let mut found = None;
     for path in candidates(pack) {
         // A bare name is resolved by the dynamic linker; a path must exist.
         if path.components().count() > 1 && !path.exists() {
@@ -183,9 +242,48 @@ pub(crate) fn find(pack: &str) -> Result<Option<Arc<BundledPack>>, String> {
         let Ok(library) = crate::native::library(&path) else {
             continue;
         };
-        let loaded = Arc::new(unsafe { read(&path, library, pack) }?);
-        packs.insert(pack.to_string(), Arc::clone(&loaded));
-        return Ok(Some(loaded));
+        found = Some(Arc::new(unsafe { read(&path, library, pack) }?));
+        break;
     }
-    Ok(None)
+    packs.insert(pack.to_string(), found.clone());
+    Ok(found)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn packs_are_looked_up_beside_the_engine() {
+        let file = library_file("morflow_pack_base");
+        let engine = Path::new("/app/lib").join(library_file("morflow_capi"));
+        let paths = beside_engine(&engine, "morflow_pack_base", &file);
+        assert_eq!(paths[0], Path::new("/app/lib").join(&file));
+    }
+
+    #[test]
+    #[cfg(target_vendor = "apple")]
+    fn packs_are_looked_up_among_frameworks() {
+        for engine in [
+            "/A.app/Frameworks/morflow_capi.framework/morflow_capi",
+            "/A.app/Contents/Frameworks/morflow_capi.framework/Versions/A/morflow_capi",
+        ] {
+            let paths = beside_engine(
+                Path::new(engine),
+                "morflow_pack_base",
+                "libmorflow_pack_base.dylib",
+            );
+            let frameworks = engine.split("/morflow_capi.framework").next().unwrap();
+            assert_eq!(
+                paths.last().unwrap(),
+                &Path::new(frameworks).join("morflow_pack_base.framework/morflow_pack_base")
+            );
+        }
+    }
+
+    #[test]
+    fn the_engine_knows_its_own_library() {
+        let path = own_library().expect("the test binary's path");
+        assert!(path.is_absolute() && path.exists(), "{}", path.display());
+    }
 }

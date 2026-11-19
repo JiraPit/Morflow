@@ -1,10 +1,11 @@
-name: Mobile
+name: Apps
 
-# Android and iOS apps: builds the engine and every plugin-free pack library
-# from this checkout with the release scripts, lays them out like the GitHub
-# releases (scripts/stage_release.py), and runs the Flutter example app's
-# integration test against them, downloading them through the Dart build hook
-# exactly as apps do from real releases.
+# Flutter apps on Android, iOS, Linux, macOS and Windows: builds the engine and
+# every plugin-free pack library from this checkout with the release scripts,
+# lays them out like the GitHub releases (scripts/stage_release.py), and runs
+# the Flutter example app's integration test against them, downloading them
+# through the Dart build hook exactly as apps do from real releases. No job
+# has an action cache, so every action comes from the packs bundled in the app.
 on:
   push:
     branches: [dev-dart-support]
@@ -18,7 +19,7 @@ on:
       - 'scripts/build_capi.py'
       - 'scripts/native_targets.py'
       - 'scripts/stage_release.py'
-      - '.github/workflows/mobile.yml'
+      - '.github/workflows/apps.yml'
   workflow_dispatch:
 
 permissions:
@@ -161,4 +162,89 @@ jobs:
         run: |
           flutter build apk --release --target-platform android-arm64
           unzip -l build/app/outputs/flutter-apk/app-release.apk | grep -E 'lib/arm64-v8a/lib(morflow_capi|morflow_pack_[a-z_]+)\.so' | tee libs.txt
+          test "$(wc -l < libs.txt)" -eq 9
+
+  desktop:
+    name: ${{ matrix.name }} (desktop test, release build)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            platform: linux-x86_64
+            device: linux
+          - name: macOS
+            os: macos-latest
+            platform: darwin-arm64
+            device: macos
+          - name: Windows
+            os: windows-latest
+            platform: windows-x86_64
+            device: windows
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev xvfb
+
+      - name: Stage releases
+        run: python3 scripts/stage_release.py --platform ${{ matrix.platform }} --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Use the staged releases
+        working-directory: bindings/dart/example
+        run: |
+          python3 - "$GITHUB_WORKSPACE/target/staged-releases" <<'PY'
+          import sys
+          from pathlib import Path
+          pubspec = Path("pubspec.yaml")
+          text = pubspec.read_text()
+          assert "\n    morflow:\n" in text
+          release_url = Path(sys.argv[1]).resolve().as_uri()
+          pubspec.write_text(text.replace("\n    morflow:\n", f"\n    morflow:\n      release_url: {release_url}\n", 1))
+          PY
+          grep -A2 'morflow:$' pubspec.yaml
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Run the integration test
+        timeout-minutes: 25
+        working-directory: bindings/dart/example
+        run: |
+          flutter pub get
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a flutter test integration_test -d linux
+          else
+            flutter test integration_test -d ${{ matrix.device }}
+          fi
+
+      - name: Build a release app
+        working-directory: bindings/dart/example
+        run: |
+          flutter build ${{ matrix.device }} --release
+          case "$RUNNER_OS" in
+            Linux) find build/linux/x64/release/bundle/lib -name '*morflow*' ;;
+            macOS) find build/macos/Build/Products/Release/morflow_example.app/Contents/Frameworks -name '*morflow*' -type f ;;
+            Windows) find build/windows/x64/runner/Release -name '*morflow*' ;;
+          esac | sort | tee libs.txt
           test "$(wc -l < libs.txt)" -eq 9

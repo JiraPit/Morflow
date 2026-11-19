@@ -187,16 +187,18 @@ impl ActionRegistry {
         self.search_paths.push(path.as_ref().into());
     }
     pub fn catalog(&self, pack: &str, version: &str) -> Result<Vec<String>, String> {
+        // A pack bundled into the app comes first: the app chose its version.
+        let bundle = crate::bundled::find(pack)?;
+        if let Some(bundle) = bundle.as_ref().filter(|b| b.serves(version)) {
+            return Ok(bundle.action_names());
+        }
         for root in &self.search_paths {
             if ReleaseCatalog::path(root, pack, version).is_file() {
                 return Ok(ReleaseCatalog::read(root, pack, version)?
                     .actions(crate::platform::host_platform().0));
             }
         }
-        if let Some(bundle) = crate::bundled::find(pack)? {
-            if bundle.serves(version) {
-                return Ok(bundle.action_names());
-            }
+        if let Some(bundle) = bundle {
             return Err(format!(
                 "{pack}/{version} is not bundled; this app bundles {pack} {}",
                 bundle.version
@@ -227,6 +229,12 @@ impl ActionRegistry {
         if let Some(action) = cache.get(identity) {
             return Ok(Arc::clone(action));
         }
+        let bundle = crate::bundled::find(&identity.pack)?;
+        if let Some(bundle) = bundle.as_ref().filter(|b| b.serves(&identity.version)) {
+            let action = Arc::new(Self::bundled_action(identity, bundle)?);
+            cache.insert(identity.clone(), Arc::clone(&action));
+            return Ok(action);
+        }
         for root in &self.search_paths {
             if identity.path(root).exists()
                 || crate::artifact::receipt_path(&identity.path(root)).exists()
@@ -240,10 +248,11 @@ impl ActionRegistry {
                 return Ok(action);
             }
         }
-        if let Some(bundle) = crate::bundled::find(&identity.pack)? {
-            let action = Arc::new(Self::bundled_action(identity, &bundle)?);
-            cache.insert(identity.clone(), Arc::clone(&action));
-            return Ok(action);
+        if let Some(bundle) = bundle {
+            // Explains that the app bundles another version.
+            return Err(Self::bundled_action(identity, &bundle)
+                .err()
+                .unwrap_or_default());
         }
         Err(format!(
             "Verified binary for {identity} is missing; run morflow prep or install"
