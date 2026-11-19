@@ -166,9 +166,9 @@ impl Out {
         match self {
             Out::Tensor { dtype, data, .. } => {
                 assert_eq!(dtype, "f32");
-                data.chunks_exact(4)
-                    .map(|c| f32::from_ne_bytes(c.try_into().unwrap()))
-                    .collect()
+                let (chunks, rest) = data.as_chunks::<4>();
+                assert!(rest.is_empty());
+                chunks.iter().map(|c| f32::from_ne_bytes(*c)).collect()
             }
             other => panic!("expected a tensor, got {:?}", other),
         }
