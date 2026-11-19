@@ -160,10 +160,12 @@ impl Doc {
     /// line after its last content line, where new children go.
     fn block(&self, parent: Option<usize>) -> (usize, usize, usize) {
         let Some(parent) = parent else {
+            // New top-level sections go at the end, after any trailing
+            // comments, so they don't split commented-out template sections.
             let last = self
                 .lines
                 .iter()
-                .rposition(|l| is_content(l))
+                .rposition(|l| !l.trim().is_empty())
                 .map_or(0, |i| i + 1);
             return (0, self.lines.len(), last);
         };
@@ -429,6 +431,43 @@ hooks:
 flutter:
   assets:
   - images/
+"
+        );
+    }
+
+    #[test]
+    fn adds_new_sections_after_trailing_comments() {
+        let before = "name: app
+flutter:
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+";
+        let after = update(
+            before,
+            &packs(&[("base", "0.3.4")]),
+            &["pipelines/a.morf".into()],
+        )
+        .unwrap();
+        assert_eq!(
+            after,
+            "name: app
+flutter:
+  uses-material-design: true
+  assets:
+    - pipelines/a.morf
+
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+
+hooks:
+  user_defines:
+    morflow:
+      packs:
+        base: 0.3.4
 "
         );
     }
