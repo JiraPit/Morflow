@@ -567,10 +567,11 @@ jobs:
 
       - name: Analyze the Dart package
         working-directory: bindings/dart
+        # example/ is a Flutter app, and this job has only the Dart SDK.
         run: |
-          dart pub get
+          dart pub get --no-example
           dart format --output=none --set-exit-if-changed lib hook test
-          dart analyze --fatal-infos
+          dart analyze --fatal-infos lib hook test
 
       - name: Test the Dart package
         working-directory: bindings/dart
