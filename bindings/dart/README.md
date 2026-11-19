@@ -2,7 +2,7 @@
 
 Run declarative `.morf` data processing pipelines over tensors, images and audio from Dart and Flutter, with the native Morflow engine underneath. The API matches the Node.js package method for method.
 
-Supported platforms: Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64), including Flutter desktop apps, and Flutter apps on Android (arm64, x86_64) and iOS (devices and the simulator).
+Supported platforms: Linux (x86_64, aarch64), macOS (Apple Silicon, and Intel when the app bundles its packs) and Windows (x86_64), including Flutter desktop apps, and Flutter apps on Android (arm64, x86_64) and iOS (devices and the simulator).
 
 ## Install
 
