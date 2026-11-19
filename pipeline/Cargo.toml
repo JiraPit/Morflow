@@ -21,7 +21,7 @@ default = ["cli"]
 cli = ["dep:clap", "dep:ureq", "dep:rich_rust", "dep:ariadne", "dep:chumsky"]
 
 [dependencies]
-core_types = { package = "morflow-core-types", version = "0.4.3", path = "../core_types" }
+core_types = { package = "morflow-core-types", version = "0.4.4", path = "../core_types" }
 parser = { package = "morflow-parser", version = "0.3.0", path = "../parser" }
 libloading = "0.8"
 abi_stable = "0.11"
