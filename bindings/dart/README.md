@@ -13,7 +13,7 @@ dart pub add morflow
 Pipelines run published actions. An app bundles the action packs it uses, so it runs on any computer or phone without setup. With the Morflow CLI (install it with the installer from [morflow.org](https://morflow.org)), run this in the app's root directory with every pipeline the app runs:
 
 ```sh
-morflow prep --target flutter pipelines/denoise.morf pipelines/classify.morf
+morflow prep --prod-target flutter pipelines/denoise.morf pipelines/classify.morf
 ```
 
 It works out the packs and versions the pipelines need, shows the change to `pubspec.yaml` and applies it when you confirm (`--yes` skips the question). The packs are listed under `hooks`, and pipelines inside the app are added to its Flutter assets:
@@ -42,7 +42,7 @@ final pipeline = morflow.fromStr(await rootBundle.loadString('pipelines/denoise.
 
 `flutter build` (or `dart build cli`, `flutter run`, `dart run`) downloads each pack for the target platform from its GitHub release, checks it against the release's checksums and bundles it next to the engine. A pipeline can use any action in a bundled pack, at `latest` or at the bundled version; a bundled pack is used before the action cache.
 
-Packs that need a plugin (`image_opencv`, `linalg_blas`, `tensor_blas`) cannot be bundled, so apps use their plugin-free counterparts. Plain Dart programs and development on Linux, macOS and Windows can also use the action cache, which `morflow prep` without `--target` fills and which supports plugins:
+Packs that need a plugin (`image_opencv`, `linalg_blas`, `tensor_blas`) cannot be bundled, so apps use their plugin-free counterparts. Plain Dart programs and development on Linux, macOS and Windows can also use the action cache, which `morflow prep` without `--prod-target` fills and which supports plugins:
 
 ```sh
 morflow prep pipeline.morf

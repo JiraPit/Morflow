@@ -34,7 +34,7 @@ enum Commands {
         long_about = "Prepare the actions and plugins declared in a .morf pipeline for offline use. Verify published checksums and check that declared plugin versions satisfy action requirements. Each latest declaration is resolved again; exact versions remain installed alongside it. External system libraries are loaded during execution, not preparation."
     )]
     #[command(
-        after_help = "For an app: run morflow prep --target flutter <pipelines...> in a Flutter or Dart app's root directory. It lists the action packs the pipelines need in pubspec.yaml (hooks.user_defines.morflow.packs), which the app then bundles on every platform, and adds the pipelines to the app's assets. Nothing is downloaded into the action cache."
+        after_help = "For an app: run morflow prep --prod-target flutter <pipelines...> in a Flutter or Dart app's root directory. It lists the action packs the pipelines need in pubspec.yaml (hooks.user_defines.morflow.packs), which the app then bundles on every platform, and adds the pipelines to the app's assets. Nothing is downloaded into the action cache."
     )]
     Prep {
         /// Paths to .morf pipeline definition files
@@ -43,10 +43,10 @@ enum Commands {
 
         /// Prepare an app that bundles its actions, editing pubspec.yaml in the current directory instead of filling the action cache
         #[arg(long, value_enum)]
-        target: Option<AppTarget>,
+        prod_target: Option<AppTarget>,
 
-        /// Apply pubspec.yaml changes without asking (with --target)
-        #[arg(short, long, requires = "target")]
+        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        #[arg(short, long, requires = "prod_target")]
         yes: bool,
 
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
@@ -311,7 +311,7 @@ fn prefixed(file: &Path, files: &[PathBuf], error: String) -> String {
     }
 }
 
-/// `morflow prep --target flutter`: lists the packs the pipelines need in the
+/// `morflow prep --prod-target flutter`: lists the packs the pipelines need in the
 /// app's pubspec.yaml and adds the pipelines to its assets, after showing the
 /// change and asking.
 fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -320,7 +320,7 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
     let root = env::current_dir()?;
     let pubspec_path = root.join("pubspec.yaml");
     if !pubspec_path.is_file() {
-        return Err("There is no pubspec.yaml here; run morflow prep --target flutter in your app's root directory".into());
+        return Err("There is no pubspec.yaml here; run morflow prep --prod-target flutter in your app's root directory".into());
     }
     let mut asts = Vec::new();
     for file in files {
@@ -518,7 +518,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         )?,
         Commands::Prep {
             files,
-            target: Some(AppTarget::Flutter),
+            prod_target: Some(AppTarget::Flutter),
             yes,
             ..
         } => prep_app(&files, yes)?,
