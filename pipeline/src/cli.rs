@@ -33,9 +33,21 @@ enum Commands {
     #[command(
         long_about = "Prepare the actions and plugins declared in a .morf pipeline for offline use. Verify published checksums and check that declared plugin versions satisfy action requirements. Each latest declaration is resolved again; exact versions remain installed alongside it. External system libraries are loaded during execution, not preparation."
     )]
+    #[command(
+        after_help = "For an app: run morflow prep --prod-target flutter <pipelines...> in a Flutter or Dart app's root directory. It lists the action packs the pipelines need in pubspec.yaml (hooks.user_defines.morflow.packs), which the app then bundles on every platform, and adds the pipelines to the app's assets. Nothing is downloaded into the action cache."
+    )]
     Prep {
-        /// Path to the .morf pipeline definition file
-        file: PathBuf,
+        /// Paths to .morf pipeline definition files
+        #[arg(required = true, value_name = "FILE")]
+        files: Vec<PathBuf>,
+
+        /// Prepare an app that bundles its actions, editing pubspec.yaml in the current directory instead of filling the action cache
+        #[arg(long, value_enum)]
+        prod_target: Option<AppTarget>,
+
+        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        #[arg(short, long, requires = "prod_target")]
+        yes: bool,
 
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long)]
@@ -162,36 +174,7 @@ enum PluginCommands {
 }
 
 pub(crate) fn get_host_platform() -> (&'static str, &'static str) {
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        ("linux-x86_64", "so")
-    }
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        ("linux-aarch64", "so")
-    }
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        ("darwin-arm64", "dylib")
-    }
-    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        ("darwin-x86_64", "dylib")
-    }
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        ("windows-x86_64", "dll")
-    }
-    #[cfg(not(any(
-        all(target_os = "linux", target_arch = "x86_64"),
-        all(target_os = "linux", target_arch = "aarch64"),
-        all(target_os = "macos", target_arch = "aarch64"),
-        all(target_os = "macos", target_arch = "x86_64"),
-        all(target_os = "windows", target_arch = "x86_64")
-    )))]
-    {
-        ("unsupported", "bin")
-    }
+    crate::platform::host_platform()
 }
 
 pub(crate) fn resolve_action_cache_dir(custom: Option<PathBuf>) -> PathBuf {
@@ -300,6 +283,133 @@ fn spec_target(action: &str) -> Result<ActionIdentity, String> {
         )),
     }
 }
+/// Where a prepared pipeline runs, when it is not the action cache.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+enum AppTarget {
+    /// A Flutter or Dart app (Android, iOS, Linux, macOS, Windows), which bundles its packs
+    Flutter,
+}
+
+fn parse_pipeline_file(file: &Path) -> Result<parser::ast::Pipeline, String> {
+    let source =
+        fs::read_to_string(file).map_err(|e| format!("Cannot read {}: {e}", file.display()))?;
+    parser::parse(&source).map_err(|errors| {
+        errors
+            .iter()
+            .map(parser::format_error)
+            .collect::<Vec<_>>()
+            .join("\n")
+    })
+}
+
+/// `error`, naming `file` when several files were given.
+fn prefixed(file: &Path, files: &[PathBuf], error: String) -> String {
+    if files.len() > 1 {
+        format!("{}: {error}", file.display())
+    } else {
+        error
+    }
+}
+
+/// `morflow prep --prod-target flutter`: lists the packs the pipelines need in the
+/// app's pubspec.yaml and adds the pipelines to its assets, after showing the
+/// change and asking.
+fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::{BufRead, IsTerminal, Write};
+
+    let root = env::current_dir()?;
+    let pubspec_path = root.join("pubspec.yaml");
+    if !pubspec_path.is_file() {
+        return Err("There is no pubspec.yaml here; run morflow prep --prod-target flutter in your app's root directory".into());
+    }
+    let mut asts = Vec::new();
+    for file in files {
+        asts.push(parse_pipeline_file(file).map_err(|e| prefixed(file, files, e))?);
+    }
+    let client = ReleaseClient::new(resolve_repo())?;
+    let packs = crate::preparation::app_packs(&asts, &client)?;
+
+    // Pipelines inside the app become Flutter assets, at their path from the root.
+    let canonical_root = root.canonicalize()?;
+    let mut assets = Vec::new();
+    let mut outside = Vec::new();
+    for file in files {
+        let path = file.canonicalize()?;
+        match path.strip_prefix(&canonical_root) {
+            Ok(relative) => assets.push(
+                relative
+                    .components()
+                    .map(|c| c.as_os_str().to_string_lossy())
+                    .collect::<Vec<_>>()
+                    .join("/"),
+            ),
+            Err(_) => outside.push(file.display().to_string()),
+        }
+    }
+
+    let before = fs::read_to_string(&pubspec_path)?;
+    let flutter_app = before.lines().any(|l| l.starts_with("flutter:"));
+    let after = crate::pubspec::update(&before, &packs, if flutter_app { &assets } else { &[] })?;
+    let listed = packs
+        .iter()
+        .map(|(p, v)| format!("{p} {v}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    println!(
+        "Packs these pipelines need: {}",
+        if listed.is_empty() { "none" } else { &listed }
+    );
+
+    if before == after {
+        println!("pubspec.yaml is already up to date.");
+    } else {
+        println!("\nChanges to pubspec.yaml:\n");
+        let color = std::io::stdout().is_terminal();
+        for line in crate::pubspec::diff(&before, &after, 3).lines() {
+            match (color, line.chars().next()) {
+                (true, Some('+')) => println!("\x1b[32m{line}\x1b[0m"),
+                (true, Some('-')) => println!("\x1b[31m{line}\x1b[0m"),
+                (true, Some('@')) => println!("\x1b[36m{line}\x1b[0m"),
+                _ => println!("{line}"),
+            }
+        }
+        println!();
+        if !yes {
+            if !std::io::stdin().is_terminal() {
+                return Err("Not applied: pass --yes to change pubspec.yaml without asking".into());
+            }
+            print!("Apply these changes? [Y/n] ");
+            std::io::stdout().flush()?;
+            let mut answer = String::new();
+            std::io::stdin().lock().read_line(&mut answer)?;
+            if !matches!(answer.trim().to_lowercase().as_str(), "" | "y" | "yes") {
+                println!("pubspec.yaml left unchanged.");
+                return Ok(());
+            }
+        }
+        fs::write(&pubspec_path, &after)?;
+        println!("Updated pubspec.yaml.");
+    }
+
+    if !crate::pubspec::depends_on(&after, "morflow") {
+        println!("Add the Morflow package too: flutter pub add morflow");
+    }
+    for file in &outside {
+        println!("{file} is outside this app, so it was not added to its assets; move it into the app to ship it.");
+    }
+    if flutter_app {
+        if let Some(asset) = assets.first() {
+            println!(
+                "Load each pipeline from the app's assets, such as:\n  morflow.fromStr(await rootBundle.loadString('{asset}'))"
+            );
+        }
+    }
+    if !packs.is_empty() {
+        println!("flutter run and flutter build now bundle these packs for every platform.");
+    }
+    Ok(())
+}
+
 /// The spinner text shown while a command waits on GitHub.
 fn progress_message(command: &Commands) -> Option<&'static str> {
     match command {
@@ -407,31 +517,38 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             plugins_path.as_deref(),
         )?,
         Commands::Prep {
-            file,
+            files,
+            prod_target: Some(AppTarget::Flutter),
+            yes,
+            ..
+        } => prep_app(&files, yes)?,
+        Commands::Prep {
+            files,
             path,
             plugins_path,
             force,
+            ..
         } => {
-            let source = fs::read_to_string(&file)?;
-            let ast = parser::parse(&source).map_err(|errors| {
-                errors
-                    .iter()
-                    .map(parser::format_error)
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            })?;
             let client = ReleaseClient::new(resolve_repo())?;
             let root = resolve_action_cache_dir(path);
             let plugin_root = crate::plugins::cache_dir(plugins_path);
-            let result = crate::preparation::prepare(&ast, &client, &root, &plugin_root, force)?;
-            println!(
-                "Pipeline ready: {} verified action(s), {} verified plugin(s)",
-                result.actions, result.plugins
-            );
-            println!("Actions: {}", root.display());
-            if result.plugins > 0 {
-                println!("Plugins: {}", plugin_root.display());
+            for file in &files {
+                let ast = parse_pipeline_file(file)?;
+                let result = crate::preparation::prepare(&ast, &client, &root, &plugin_root, force)
+                    .map_err(|e| prefixed(file, &files, e))?;
+                println!(
+                    "{}ready: {} verified action(s), {} verified plugin(s)",
+                    if files.len() > 1 {
+                        format!("{}: ", file.display())
+                    } else {
+                        "Pipeline ".into()
+                    },
+                    result.actions,
+                    result.plugins
+                );
             }
+            println!("Actions: {}", root.display());
+            println!("Plugins: {}", plugin_root.display());
         }
         Commands::Install {
             action,

@@ -2,12 +2,12 @@ use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload};
 use core_types::{Shape, ShapeResult};
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Any
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Any
 }
@@ -24,7 +24,7 @@ pub fn get_output_value_shape(
     core_types::ValueShapeResult::Ok(input)
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -33,7 +33,7 @@ fn process_impl(payload: Payload, _prepared: core_types::PreparedData) -> Payloa
     payload.into_unwrapped()
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

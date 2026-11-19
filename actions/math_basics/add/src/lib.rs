@@ -5,12 +5,12 @@ use core_types::{
 };
 use rayon::prelude::*;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Tensor | DataType::Scalar | DataType::Composite
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor | DataType::Scalar
 }
@@ -46,7 +46,7 @@ impl BinaryOp for Op {
     }
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -119,7 +119,7 @@ fn with_scalar(
     }
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

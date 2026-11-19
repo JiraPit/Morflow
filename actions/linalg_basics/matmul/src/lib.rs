@@ -2,12 +2,12 @@ use core_types::shapecheck::PreparedArgs;
 use core_types::{DataType, Payload, Tensor};
 use rayon::prelude::*;
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_input_type() -> DataType {
     DataType::Composite | DataType::Tensor
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn get_output_type() -> DataType {
     DataType::Tensor
 }
@@ -20,7 +20,7 @@ pub fn get_output_value_shape<A: Into<PreparedArgs>>(
     core_types::composite_contract::matmul(input, args)
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn process(payload: Payload, prepared: core_types::PreparedData) -> Payload {
     process_impl(payload, prepared)
 }
@@ -114,7 +114,7 @@ fn compute_matmul(
     Tensor::from_f32_vec(out_vals, out_shape).map_err(|e| e.to_string())
 }
 
-#[no_mangle]
+#[cfg_attr(not(morflow_pack), no_mangle)]
 pub extern "C" fn shapecheck(
     input: core_types::InputDescriptor,
     args: core_types::ActionArgs,

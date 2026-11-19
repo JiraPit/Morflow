@@ -3,6 +3,7 @@ pub mod composite_contract;
 pub mod contract;
 pub mod image;
 pub mod numeric;
+pub mod pack;
 pub mod plugins;
 pub mod shape;
 pub mod shapecheck;

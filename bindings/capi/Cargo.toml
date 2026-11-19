@@ -1,0 +1,16 @@
+[package]
+publish = false
+name = "morflow-capi"
+version = "0.3.3"
+edition = "2021"
+description = "C interface to the Morflow engine, used by the Dart package"
+
+[lib]
+name = "morflow_capi"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+core_types = { package = "morflow-core-types", version = "0.4.3", path = "../../core_types" }
+# Only the engine: no developer CLI, download or terminal code.
+morflow = { package = "morflow", version = "0.3.3", path = "../../pipeline", default-features = false }
+abi_stable = "0.11"

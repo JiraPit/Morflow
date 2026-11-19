@@ -1,0 +1,274 @@
+name: Apps
+
+# Flutter apps on Android, iOS, Linux, macOS and Windows: builds the engine and
+# every plugin-free pack library from this checkout with the release scripts,
+# lays them out like the GitHub releases (scripts/stage_release.py), and runs
+# the Flutter example app's integration test against them, downloading them
+# through the Dart build hook exactly as apps do from real releases. No job
+# has an action cache, so every action comes from the packs bundled in the app.
+on:
+  push:
+    branches: [dev-dart-support]
+    paths:
+      - 'bindings/capi/**'
+      - 'bindings/dart/**'
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'actions/**'
+      - 'scripts/build_pack.py'
+      - 'scripts/build_capi.py'
+      - 'scripts/native_targets.py'
+      - 'scripts/stage_release.py'
+      - '.github/workflows/apps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iOS (simulator test, device build)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: python3 scripts/stage_release.py --platform ios-arm64-sim --platform ios-arm64 --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Use the staged releases
+        working-directory: bindings/dart/example
+        run: |
+          python3 - "$GITHUB_WORKSPACE/target/staged-releases" <<'PY'
+          import sys
+          from pathlib import Path
+          pubspec = Path("pubspec.yaml")
+          text = pubspec.read_text()
+          assert "\n    morflow:\n" in text
+          pubspec.write_text(text.replace("\n    morflow:\n", f"\n    morflow:\n      release_url: {sys.argv[1]}\n", 1))
+          PY
+          grep -A2 'morflow:$' pubspec.yaml
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Boot a simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
+          print(next(d["udid"] for r in runtimes for d in devices[r] if d["name"].startswith("iPhone")))')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Run the integration test on the simulator
+        timeout-minutes: 25
+        working-directory: bindings/dart/example
+        run: |
+          flutter pub get
+          flutter test integration_test -d "${{ steps.simulator.outputs.udid }}"
+
+      - name: Build for devices
+        working-directory: bindings/dart/example
+        run: |
+          flutter build ios --release --no-codesign
+          frameworks=build/ios/iphoneos/Runner.app/Frameworks
+          find "$frameworks" -maxdepth 2 | sort
+          for pack in base audio_basics image_basics linalg_basics math_basics nn_basics tensor_basics tensor_stats; do
+            lipo -info "$frameworks/morflow_pack_$pack.framework/morflow_pack_$pack" | grep -q arm64
+          done
+
+  android:
+    name: Android (emulator test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android,aarch64-linux-android
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: python3 scripts/stage_release.py --platform android-x86_64 --platform android-aarch64 --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Use the staged releases
+        working-directory: bindings/dart/example
+        run: |
+          python3 - "$GITHUB_WORKSPACE/target/staged-releases" <<'PY'
+          import sys
+          from pathlib import Path
+          pubspec = Path("pubspec.yaml")
+          text = pubspec.read_text()
+          assert "\n    morflow:\n" in text
+          pubspec.write_text(text.replace("\n    morflow:\n", f"\n    morflow:\n      release_url: {sys.argv[1]}\n", 1))
+          PY
+          grep -A2 'morflow:$' pubspec.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the integration test on an emulator
+        timeout-minutes: 30
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: bindings/dart/example
+          script: flutter test integration_test
+
+      - name: Build an arm64 APK
+        working-directory: bindings/dart/example
+        run: |
+          flutter build apk --release --target-platform android-arm64
+          unzip -l build/app/outputs/flutter-apk/app-release.apk | grep -E 'lib/arm64-v8a/lib(morflow_capi|morflow_pack_[a-z_]+)\.so' | tee libs.txt
+          test "$(wc -l < libs.txt)" -eq 9
+
+  desktop:
+    name: ${{ matrix.name }} (desktop test, release build)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            platforms: --platform linux-x86_64
+            device: linux
+          - name: macOS
+            os: macos-latest
+            # Release builds are universal: Apple Silicon and Intel.
+            platforms: --platform darwin-arm64 --platform darwin-x86_64
+            targets: x86_64-apple-darwin
+            device: macos
+          - name: Windows
+            os: windows-latest
+            platforms: --platform windows-x86_64
+            device: windows
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev xvfb
+
+      - name: Stage releases
+        run: python3 scripts/stage_release.py ${{ matrix.platforms }} --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Use the staged releases
+        working-directory: bindings/dart/example
+        run: |
+          python3 - "$GITHUB_WORKSPACE/target/staged-releases" <<'PY'
+          import sys
+          from pathlib import Path
+          pubspec = Path("pubspec.yaml")
+          text = pubspec.read_text()
+          assert "\n    morflow:\n" in text
+          release_url = Path(sys.argv[1]).resolve().as_uri()
+          pubspec.write_text(text.replace("\n    morflow:\n", f"\n    morflow:\n      release_url: {release_url}\n", 1))
+          PY
+          grep -A2 'morflow:$' pubspec.yaml
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Run the integration test
+        timeout-minutes: 25
+        working-directory: bindings/dart/example
+        run: |
+          flutter pub get
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a flutter test integration_test -d linux
+          else
+            flutter test integration_test -d ${{ matrix.device }}
+          fi
+
+      - name: Build a release app
+        working-directory: bindings/dart/example
+        run: |
+          flutter build ${{ matrix.device }} --release
+          case "$RUNNER_OS" in
+            Linux) dir=build/linux/x64/release/bundle/lib ;;
+            macOS) dir=build/macos/Build/Products/Release/morflow_example.app/Contents/Frameworks ;;
+            Windows) dir=build/windows/x64/runner/Release ;;
+          esac
+          find "$dir" -type f \( -name '*morflow_capi*' -o -name '*morflow_pack_*' \) | sort | tee libs.txt
+          test "$(wc -l < libs.txt)" -eq 9
+          if [ "$RUNNER_OS" = macOS ]; then
+            # Every library holds both architectures of the universal app.
+            while read -r lib; do
+              lipo -info "$lib" | tee /dev/stderr | grep -q 'x86_64 arm64\|arm64 x86_64'
+            done < libs.txt
+          fi
+
+      - name: Run both architectures of the macOS app's libraries
+        # The Intel slice runs under Rosetta. The engine must find the
+        # math_basics pack among the app's frameworks.
+        if: runner.os == 'macOS'
+        working-directory: bindings/dart/example
+        run: |
+          /usr/bin/pgrep -q oahd || softwareupdate --install-rosetta --agree-to-license
+          capi=$(grep 'morflow_capi' libs.txt)
+          for arch in arm64 x86_64; do
+            clang -arch "$arch" -o "$RUNNER_TEMP/run_pipeline_$arch" "$GITHUB_WORKSPACE/bindings/capi/smoke/run_pipeline.c"
+            arch "-$arch" "$RUNNER_TEMP/run_pipeline_$arch" "$capi"
+          done

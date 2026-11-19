@@ -40,17 +40,11 @@ impl PluginIdentity {
         Ok(Self {
             name: name.into(),
             version: normalize_version(version)?,
-            platform: crate::cli::get_host_platform().0.into(),
+            platform: crate::platform::host_platform().0.into(),
         })
     }
     pub fn filename(&self) -> String {
-        let ext = if self.platform.starts_with("windows-") {
-            "dll"
-        } else if self.platform.starts_with("darwin-") {
-            "dylib"
-        } else {
-            "so"
-        };
+        let ext = crate::platform::library_extension(&self.platform);
         format!(
             "{}_plugin-{}-{}.{}",
             self.name, self.version, self.platform, ext
@@ -177,6 +171,7 @@ impl PluginSet {
         decls: &[parser::ast::PluginDecl],
         paths: &[PathBuf],
     ) -> Result<Arc<Self>, String> {
+        reject_on_mobile(decls, cfg!(any(target_os = "android", target_os = "ios")))?;
         let mut selected = BTreeMap::new();
         for (name, id) in declarations(decls)? {
             let root = paths
@@ -294,9 +289,40 @@ pub fn native_requirements(values: RVec<PluginRequirement>) -> Vec<Requirement> 
         .collect()
 }
 
+/// Plugins depend on system libraries that phones do not have, so apps on
+/// Android and iOS cannot use them. Plugin-free pack equivalents cover the
+/// same operations (for example image_basics instead of image_opencv).
+fn reject_on_mobile(decls: &[parser::ast::PluginDecl], mobile: bool) -> Result<(), String> {
+    match decls.first() {
+        Some(first) if mobile => Err(format!(
+            "Plugins are not available on Android and iOS, but this pipeline declares plugin {}. \
+             Use the plugin-free action packs instead.",
+            first.name
+        )),
+        _ => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plugins_are_rejected_on_mobile_only() {
+        let decl = |name: &str| parser::ast::PluginDecl {
+            name: name.into(),
+            version: "0.1.3".into(),
+        };
+        let error = reject_on_mobile(&[decl("opencv-bridge")], true).unwrap_err();
+        assert!(
+            error.contains("Plugins are not available on Android and iOS"),
+            "{error}"
+        );
+        assert!(error.contains("plugin opencv-bridge"), "{error}");
+        assert!(reject_on_mobile(&[decl("opencv-bridge")], false).is_ok());
+        assert!(reject_on_mobile(&[], true).is_ok());
+    }
+
     fn publish(root: &Path, version: &str, concrete: &str, bytes: &[u8]) -> PluginIdentity {
         let id = PluginIdentity::new("fixture-bridge", version).unwrap();
         let receipt = PluginReceipt {

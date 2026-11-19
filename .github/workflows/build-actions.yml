@@ -9,6 +9,8 @@ on:
       - 'plugins/*/src/interface.rs'
       - 'scripts/package_action.py'
       - 'scripts/detect_changed_actions.py'
+      - 'scripts/build_pack.py'
+      - 'scripts/native_targets.py'
       - 'scripts/merge_release_assets.py'
       - '.github/workflows/build-actions.yml'
   workflow_dispatch:
@@ -70,14 +72,15 @@ jobs:
             --repo "${{ github.repository }}"
 
   build-action:
-    name: Build ${{ matrix.action.name }} (${{ matrix.target.platform }})
+    name: Build ${{ matrix.action.name || format('{0} pack library', matrix.pack_library.pack) }} (${{ matrix.target.platform }})
     needs: detect-actions
     if: needs.detect-actions.outputs.has_actions == 'true'
     strategy:
       fail-fast: false
       matrix:
-        # One entry per (action, platform) still missing from its release;
-        # targets are defined in scripts/detect_changed_actions.py.
+        # One entry per (action, platform) and per (pack library,
+        # platform) still missing from its release; targets are defined in
+        # scripts/detect_changed_actions.py and scripts/native_targets.py.
         include: ${{ fromJson(needs.detect-actions.outputs.matrix) }}
     runs-on: ${{ matrix.target.os }}
     steps:
@@ -89,7 +92,24 @@ jobs:
         with:
           targets: ${{ matrix.target.triple }}
 
+      - name: Set up Python
+        if: matrix.pack_library
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Pack Library (${{ matrix.pack_library.pack }})
+        # Every action of the pack linked into one library, which apps bundle
+        # (see core_types/src/pack.rs).
+        if: matrix.pack_library
+        shell: bash
+        run: |
+          python3 scripts/build_pack.py "${{ matrix.pack_library.pack }}" \
+            --platform "${{ matrix.target.platform }}" --release-asset --out dist
+          test -f "dist/morflow_pack_${{ matrix.pack_library.pack }}-${{ matrix.pack_library.version }}-${{ matrix.target.platform }}.${{ matrix.target.ext }}"
+
       - name: Build Action Binary (${{ matrix.action.name }})
+        if: matrix.action
         shell: bash
         run: |
           cargo build --release --manifest-path "${{ matrix.action.path }}/Cargo.toml" --target "${{ matrix.target.triple }}"
@@ -113,7 +133,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "pack-${{ matrix.action.pack }}-${{ matrix.action.version }}-${{ matrix.action.name }}-${{ matrix.target.platform }}"
+          name: "pack-${{ matrix.action.pack || matrix.pack_library.pack }}-${{ matrix.action.version || matrix.pack_library.version }}-${{ matrix.action.name || 'pack-library' }}-${{ matrix.target.platform }}"
           path: dist/*
           retention-days: 1
 
@@ -181,7 +201,7 @@ jobs:
             echo "Creating new release $TAG_NAME..."
             gh release create "$TAG_NAME" release_assets/* \
               --title "$RELEASE_TITLE" \
-              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}."
+              --notes "Precompiled cross-platform dynamic libraries (.so, .dylib, .dll) for Linux (x86_64, aarch64), macOS (Apple Silicon) and Windows (x86_64) for **${{ matrix.pack.name }}** Action Pack v${{ matrix.pack.version }}, plus, when the pack needs no plugin, the pack library (every action in one library) that apps bundle, for those platforms, Android and iOS."
           fi
 
   trigger-next-batch:

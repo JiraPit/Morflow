@@ -1,6 +1,6 @@
 [package]
 name = "morflow"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 rust-version = "1.89"
 description = "Data Processing & Tensor Transformation Engine"
@@ -11,19 +11,27 @@ readme = "../README.md"
 [[bin]]
 name = "morflow"
 path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["cli"]
+# The developer CLI (prep, install, check, search, …) and its download and
+# terminal dependencies. Applications that only run pipelines, such as mobile
+# apps through bindings/capi, build without it.
+cli = ["dep:clap", "dep:ureq", "dep:rich_rust", "dep:ariadne", "dep:chumsky"]
 
 [dependencies]
-core_types = { package = "morflow-core-types", version = "0.4.3", path = "../core_types" }
+core_types = { package = "morflow-core-types", version = "0.4.4", path = "../core_types" }
 parser = { package = "morflow-parser", version = "0.3.0", path = "../parser" }
 libloading = "0.8"
 abi_stable = "0.11"
 rayon = "1.10"
-clap = { version = "4.5", features = ["derive"] }
-ureq = { version = "2.12", default-features = false, features = ["tls", "native-tls"] }
+clap = { version = "4.5", features = ["derive"], optional = true }
+ureq = { version = "2.12", default-features = false, features = ["tls", "native-tls"], optional = true }
 dirs = "6.0"
-rich_rust = { version = "0.2.3", features = ["markdown"] }
-ariadne = "0.5"
-chumsky = "0.9"
+rich_rust = { version = "0.2.3", features = ["markdown"], optional = true }
+ariadne = { version = "0.5", optional = true }
+chumsky = { version = "0.9", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

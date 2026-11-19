@@ -187,11 +187,22 @@ impl ActionRegistry {
         self.search_paths.push(path.as_ref().into());
     }
     pub fn catalog(&self, pack: &str, version: &str) -> Result<Vec<String>, String> {
+        // A pack bundled into the app comes first: the app chose its version.
+        let bundle = crate::bundled::find(pack)?;
+        if let Some(bundle) = bundle.as_ref().filter(|b| b.serves(version)) {
+            return Ok(bundle.action_names());
+        }
         for root in &self.search_paths {
             if ReleaseCatalog::path(root, pack, version).is_file() {
                 return Ok(ReleaseCatalog::read(root, pack, version)?
-                    .actions(crate::cli::get_host_platform().0));
+                    .actions(crate::platform::host_platform().0));
             }
+        }
+        if let Some(bundle) = bundle {
+            return Err(format!(
+                "{pack}/{version} is not bundled; this app bundles {pack} {}",
+                bundle.version
+            ));
         }
         Err(format!(
             "No prepared catalog for {pack}/{version}; run morflow prep or install"
@@ -207,16 +218,22 @@ impl ActionRegistry {
         if canonical != *identity {
             return Err("Noncanonical action identity".into());
         }
-        if identity.platform != crate::cli::get_host_platform().0 {
+        if identity.platform != crate::platform::host_platform().0 {
             return Err(format!(
                 "Cannot load {identity} on {}",
-                crate::cli::get_host_platform().0
+                crate::platform::host_platform().0
             ));
         }
         // Serialize first loads so handles cannot race against refreshes.
         let mut cache = self.cache.write().map_err(|e| e.to_string())?;
         if let Some(action) = cache.get(identity) {
             return Ok(Arc::clone(action));
+        }
+        let bundle = crate::bundled::find(&identity.pack)?;
+        if let Some(bundle) = bundle.as_ref().filter(|b| b.serves(&identity.version)) {
+            let action = Arc::new(Self::bundled_action(identity, bundle)?);
+            cache.insert(identity.clone(), Arc::clone(&action));
+            return Ok(action);
         }
         for root in &self.search_paths {
             if identity.path(root).exists()
@@ -231,9 +248,51 @@ impl ActionRegistry {
                 return Ok(action);
             }
         }
+        if let Some(bundle) = bundle {
+            // Explains that the app bundles another version.
+            return Err(Self::bundled_action(identity, &bundle)
+                .err()
+                .unwrap_or_default());
+        }
         Err(format!(
             "Verified binary for {identity} is missing; run morflow prep or install"
         ))
+    }
+    /// An action from a pack library bundled into the app.
+    fn bundled_action(
+        identity: &ActionIdentity,
+        bundle: &crate::bundled::BundledPack,
+    ) -> Result<LoadedAction, String> {
+        if !bundle.serves(&identity.version) {
+            return Err(format!(
+                "{identity} is not bundled; this app bundles {} {}",
+                identity.pack, bundle.version
+            ));
+        }
+        let action = bundle.action(&identity.action).ok_or_else(|| {
+            format!(
+                "The bundled {} {} pack has no action '{}'",
+                identity.pack, bundle.version, identity.action
+            )
+        })?;
+        Ok(LoadedAction {
+            runtime: None,
+            name: identity.action.clone(),
+            identity: identity.clone(),
+            receipt: ArtifactReceipt {
+                plugins: Vec::new(),
+                identity: identity.clone(),
+                concrete_version: bundle.version.clone(),
+                repository: "bundled".into(),
+                sha256: String::new(),
+            },
+            path: bundle.path.clone(),
+            input_type: action.input_type,
+            output_type: action.output_type,
+            process_fn: action.process,
+            shapecheck_fn: action.shapecheck,
+            _library: Arc::clone(&bundle.library),
+        })
     }
     /// Low-level loader that inspects and caches symbols from a `.so` / `.dll` file.
     fn load_from_path(

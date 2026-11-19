@@ -1,0 +1,40 @@
+name: morflow_example
+description: Runs Morflow pipelines in a Flutter app with bundled action packs.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  morflow:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+# The action packs to bundle into the app, at exact versions. The build
+# downloads them, with the engine, from Morflow's GitHub releases.
+# (Morflow's CI adds `release_url:` to test against libraries built from this
+# checkout before they are released; see scripts/stage_release.py.)
+hooks:
+  user_defines:
+    morflow:
+      packs:
+        base: 0.3.4
+        audio_basics: 0.2.4
+        image_basics: 0.3.4
+        linalg_basics: 0.3.4
+        math_basics: 0.4.1
+        nn_basics: 0.4.1
+        tensor_basics: 0.3.4
+        tensor_stats: 0.4.1

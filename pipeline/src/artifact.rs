@@ -40,7 +40,7 @@ pub fn normalize_version(version: &str) -> Result<String, String> {
 
 impl ActionIdentity {
     pub fn new(pack: &str, version: &str, action: &str) -> Result<Self, String> {
-        Self::for_platform(pack, version, action, crate::cli::get_host_platform().0)
+        Self::for_platform(pack, version, action, crate::platform::host_platform().0)
     }
     pub fn for_platform(
         pack: &str,
@@ -59,13 +59,7 @@ impl ActionIdentity {
         })
     }
     pub fn filename(&self) -> String {
-        let ext = if self.platform.starts_with("windows-") {
-            "dll"
-        } else if self.platform.starts_with("darwin-") {
-            "dylib"
-        } else {
-            "so"
-        };
+        let ext = crate::platform::library_extension(&self.platform);
         format!(
             "{}_action-{}-{}.{}",
             self.action, self.version, self.platform, ext
@@ -136,13 +130,7 @@ pub fn action_names<'a>(
         "_action-{}-{}.{}",
         version,
         platform,
-        if platform.starts_with("windows-") {
-            "dll"
-        } else if platform.starts_with("darwin-") {
-            "dylib"
-        } else {
-            "so"
-        }
+        crate::platform::library_extension(platform)
     );
     names
         .into_iter()

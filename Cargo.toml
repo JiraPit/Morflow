@@ -116,5 +116,6 @@ members = [
     "bindings/python",
     "bindings/js",
     "bindings/java",
+    "bindings/capi",
 ]
 resolver = "2"

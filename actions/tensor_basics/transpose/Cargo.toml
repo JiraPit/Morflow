@@ -1,7 +1,7 @@
 [package]
 publish = false
 name = "transpose"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 
 [lib]
@@ -10,3 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 core_types = { package = "morflow-core-types", version = "0.4.2", path = "../../../core_types" }
 rayon = "1.10"
+
+[lints.rust]
+# Set when this action is linked into a pack library (core_types::pack).
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(morflow_pack)'] }

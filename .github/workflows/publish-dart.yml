@@ -1,0 +1,65 @@
+name: Publish Dart package
+
+# Publishes bindings/dart to pub.dev when a tag dart-v<version> is pushed,
+# after the engine release v<version> is out:
+#
+#   git tag dart-v0.3.3 && git push origin dart-v0.3.3
+#
+# pub.dev only accepts automated publishing from a pushed tag that matches the
+# package's tag pattern (dart-v{{version}}, set in its admin tab), so the
+# engine workflow cannot start this itself. The first version of the package
+# is published by hand with `dart pub publish`.
+on:
+  push:
+    tags:
+      - 'dart-v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check versions and the engine release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check the package can be published
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check_dart_release.py --tag "$GITHUB_REF_NAME"
+
+  publish:
+    name: Publish to pub.dev
+    needs: check
+    runs-on: ubuntu-latest
+    # Must match "Require GitHub Actions environment" on pub.dev.
+    environment: pub.dev
+    permissions:
+      id-token: write # pub.dev authenticates the workflow through OIDC
+    defaults:
+      run:
+        working-directory: bindings/dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Also provides the OIDC token `dart pub publish` uses.
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      # example/ is a Flutter app, and this job has only the Dart SDK, so the
+      # reusable publish workflow (which runs a plain `dart pub get`) fails.
+      - name: Get dependencies
+        run: dart pub get --no-example
+
+      - name: Publish
+        run: dart pub publish --force

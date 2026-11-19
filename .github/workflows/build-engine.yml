@@ -18,6 +18,8 @@ on:
       - 'scripts/publish-node.mjs'
       - 'scripts/publish_crates.py'
       - 'scripts/publish_maven.py'
+      - 'scripts/build_capi.py'
+      - 'scripts/native_targets.py'
   workflow_dispatch:
 
 permissions:
@@ -462,9 +464,122 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-capi:
+    # The C interface library the Dart package downloads from this release,
+    # for desktop and for Android and iOS apps.
+    name: Build C interface (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-x86_64, os: ubuntu-latest, triple: x86_64-unknown-linux-gnu }
+          - { platform: linux-aarch64, os: ubuntu-24.04-arm, triple: aarch64-unknown-linux-gnu }
+          - { platform: darwin-arm64, os: macos-latest, triple: aarch64-apple-darwin }
+          # For universal macOS apps; cross-compiled on Apple Silicon.
+          - { platform: darwin-x86_64, os: macos-latest, triple: x86_64-apple-darwin }
+          - { platform: windows-x86_64, os: windows-latest, triple: x86_64-pc-windows-msvc }
+          - { platform: android-aarch64, os: ubuntu-latest, triple: aarch64-linux-android }
+          - { platform: android-x86_64, os: ubuntu-latest, triple: x86_64-linux-android }
+          - { platform: ios-arm64, os: macos-latest, triple: aarch64-apple-ios }
+          - { platform: ios-arm64-sim, os: macos-latest, triple: aarch64-apple-ios-sim }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build the library
+        shell: bash
+        run: python3 scripts/build_capi.py --platform "${{ matrix.platform }}" --release-asset --out dist_capi
+
+      - name: Upload C interface artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "engine-capi-${{ matrix.platform }}"
+          path: dist_capi/*
+          if-no-files-found: error
+          retention-days: 7
+
+  test-dart:
+    # The Dart package and the C interface behind it. Every platform runs the
+    # tests that need no actions; Linux x86_64 also builds every action from
+    # source and runs both suites in full.
+    name: Test Dart package (${{ matrix.platform }})
+    needs: detect-engine
+    if: needs.detect-engine.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            full: true
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+            full: false
+          - os: macos-latest
+            platform: darwin-arm64
+            full: false
+          - os: windows-latest
+            platform: windows-x86_64
+            full: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build every action into a test cache
+        if: matrix.full
+        shell: bash
+        run: |
+          packages=$(python3 -c 'import sys; sys.path.insert(0, "scripts"); from pathlib import Path; from detect_changed_actions import discover_all_actions; print(" ".join("-p " + a["package"] for a in discover_all_actions(Path("."))))')
+          cargo build --release --locked $packages
+          python3 scripts/prepare_test_actions.py --profile release --cache "$RUNNER_TEMP/actions"
+          echo "MORFLOW_ACTIONS_PATH=$RUNNER_TEMP/actions" >> "$GITHUB_ENV"
+
+      - name: Test the C interface
+        shell: bash
+        run: cargo test --release --locked -p morflow-capi
+
+      - name: Analyze the Dart package
+        working-directory: bindings/dart
+        # example/ is a Flutter app, and this job has only the Dart SDK.
+        run: |
+          dart pub get --no-example
+          dart format --output=none --set-exit-if-changed lib hook test
+          dart analyze --fatal-infos lib hook test
+
+      - name: Test the Dart package
+        working-directory: bindings/dart
+        run: dart test --reporter expanded
+
   publish-engine-release:
     name: Publish GitHub Release (${{ needs.detect-engine.outputs.tag_name }})
-    needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings, package-java]
+    needs: [detect-engine, build-rust-packages, build-core, build-python-wheels, build-node-bindings, package-node, build-java-bindings, package-java, build-capi, test-dart]
     if: needs.detect-engine.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -507,7 +622,7 @@ jobs:
             echo "Creating new release $TAG..."
             gh release create "$TAG" release_assets/* \
               --title "$TITLE" \
-              --notes "Official release of **Morflow Engine & Language Bindings** v${VERSION}. Includes multi-platform CLI binaries, Python wheels, Node.js packages, and a Java JAR bundling the JNI libraries for every platform."
+              --notes "Official release of **Morflow Engine & Language Bindings** v${VERSION}. Includes multi-platform CLI binaries, Python wheels, Node.js packages, a Java JAR bundling the JNI libraries for every platform, and the C interface library (libmorflow_capi) the Dart package downloads, for desktop, Android and iOS."
           fi
 
   publish-pypi:

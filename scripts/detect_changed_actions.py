@@ -15,6 +15,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import native_targets  # noqa: E402
+
 TARGET_PLATFORMS = [
     ("linux-x86_64", "so"),
     ("linux-aarch64", "so"),
@@ -160,6 +163,44 @@ def build_job(act: dict, plat: str, ext: str) -> dict:
     return {"action": act, "target": {"platform": plat, "ext": ext, **BUILD_TARGETS[plat]}}
 
 
+def bundleable_packs(actions: list) -> dict:
+    """Pack name -> version for every pack that can be built as one pack
+    library for apps to bundle: no action needs a plugin and every
+    action has the same version (see scripts/build_pack.py)."""
+    by_pack = {}
+    for act in actions:
+        by_pack.setdefault(act["pack"], []).append(act)
+    packs = {}
+    for pack, members in by_pack.items():
+        if any(a.get("plugins") for a in members):
+            continue
+        versions = {a["version"] for a in members}
+        if len(versions) != 1:
+            print(f"Warning: {pack} actions have different versions ({', '.join(sorted(versions))}); "
+                  "its pack library is built once they match.", file=sys.stderr)
+            continue
+        packs[pack] = versions.pop()
+    return packs
+
+
+def missing_pack_libraries(pack: str, version: str, release_assets: set) -> list:
+    return [
+        platform for platform in native_targets.PLATFORMS
+        if native_targets.pack_asset(pack, version, platform) not in release_assets
+    ]
+
+
+def pack_library_job(pack: str, version: str, platform: str) -> dict:
+    return {
+        "pack_library": {"pack": pack, "version": version},
+        "target": {
+            "platform": platform,
+            "ext": native_targets.extension(platform),
+            **native_targets.PLATFORMS[platform],
+        },
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Detect changed Morflow actions for CI build.")
     parser.add_argument("--event", default="push", help="GitHub event name (push, workflow_dispatch, etc.)")
@@ -167,6 +208,8 @@ def main():
     parser.add_argument("--action", default="all", help="Target action name or 'all'")
     parser.add_argument("--force", default="false", help="Force build regardless of existing releases")
     parser.add_argument("--limit", type=int, default=50, help="Max actions per matrix batch (50 * 4 = 200 <= 256)")
+    parser.add_argument("--max-jobs", type=int, default=250,
+                        help="Max matrix jobs per batch, under GitHub's limit of 256")
     parser.add_argument("--repo", default="", help="GitHub owner/repo (e.g. JiraPit/Morflow)")
 
     args = parser.parse_args()
@@ -229,28 +272,48 @@ def main():
     print(f"Already released actions skipped: {already_released_count}")
     print(f"Total actions requiring build: {len(unbuilt_actions)}")
 
+    # Pack libraries (every action of a pack in one library), which apps
+    # bundle, released next to the pack's actions for every platform. A whole pack is built, so an
+    # action filter skips them.
+    pending_libraries = []
+    if args.action == "all":
+        for pack, version in bundleable_packs(all_actions).items():
+            if args.pack != "all" and pack != args.pack:
+                continue
+            tag = f"action_packs/{pack}/v{version}"
+            if force_build:
+                missing = list(native_targets.PLATFORMS)
+            else:
+                if tag not in release_cache:
+                    release_cache[tag] = get_release_assets(repo, tag, token)
+                missing = missing_pack_libraries(pack, version, release_cache[tag])
+            pending_libraries += [pack_library_job(pack, version, platform) for platform in missing]
+    print(f"Pack libraries requiring build: {len(pending_libraries)}")
+
     # 3. Limit batch size to stay safely within GitHub Actions matrix limit (max 256 configurations)
     # With at most 4 target platforms per action, limit=50 produces 200 configurations.
     limit = max(1, args.limit)
     selected_actions = unbuilt_actions[:limit]
-    remaining_count = len(unbuilt_actions) - len(selected_actions)
-    has_more = remaining_count > 0
-    has_actions = len(selected_actions) > 0
-
-    # Group packs for selected actions
-    packs_dict = {}
-    for act in selected_actions:
-        p = act["pack"]
-        v = act["version"]
-        packs_dict[(p, v)] = True
-
-    packs_list = [{"name": p, "version": v} for p, v in packs_dict]
-
     jobs = [
         build_job(act, plat, ext)
         for act in selected_actions
         for plat, ext in pending_platforms[id(act)]
     ]
+    room = max(0, args.max_jobs - len(jobs))
+    selected_libraries = pending_libraries[:room]
+    jobs += selected_libraries
+    remaining_count = (len(unbuilt_actions) - len(selected_actions)) + (len(pending_libraries) - len(selected_libraries))
+    has_more = remaining_count > 0
+    has_actions = len(jobs) > 0
+
+    # Group packs for selected actions and pack libraries
+    packs_dict = {}
+    for act in selected_actions:
+        packs_dict[(act["pack"], act["version"])] = True
+    for job in selected_libraries:
+        packs_dict[(job["pack_library"]["pack"], job["pack_library"]["version"])] = True
+
+    packs_list = [{"name": p, "version": v} for p, v in packs_dict]
     matrix_json = json.dumps(jobs)
     packs_json = json.dumps(packs_list)
 
@@ -258,6 +321,9 @@ def main():
     for act in selected_actions:
         platforms = ", ".join(plat for plat, _ in pending_platforms[id(act)])
         print(f"  - [{act['pack']}] {act['name']} v{act['version']} ({platforms})")
+    for job in selected_libraries:
+        library = job["pack_library"]
+        print(f"  - [{library['pack']}] pack library v{library['version']} ({job['target']['platform']})")
     print(f"Remaining for subsequent triggers: {remaining_count}")
     print(f"Has more batches: {has_more}")
 
