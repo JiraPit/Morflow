@@ -17,7 +17,7 @@ async function main() {
   console.log(`Input audio binary: ${inputBuffer.length} bytes`);
 
   // 2. Execute Morflow multi-channel split pipeline asynchronously
-  const outputs = await pipeline.runAll(inputBuffer);
+  const outputs = await pipeline.runToMap(inputBuffer);
   console.log(`Emitted outputs: ${Object.keys(outputs).join(', ')}`);
 
   // 3. Save each emitted channel directly to its own WAV file

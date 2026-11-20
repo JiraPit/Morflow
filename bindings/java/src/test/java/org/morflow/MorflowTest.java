@@ -73,12 +73,17 @@ public class MorflowTest {
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             float[] input = new float[]{1.0f, 2.0f, 3.0f, 4.0f};
-            Map<String, MorflowTensor> outputs = pipeline.runAll(MorflowTensor.fromFloatArray(input, new int[]{4}));
+            Map<String, MorflowTensor> outputs = pipeline.runToMap(MorflowTensor.fromFloatArray(input, new int[]{4}));
 
             assertNotNull(outputs.get("low"));
             assertNotNull(outputs.get("high"));
             assertArrayEquals(new float[]{1.0f, 2.0f}, outputs.get("low").toFloatArray(), 1e-5f);
             assertArrayEquals(new float[]{3.0f, 4.0f}, outputs.get("high").toFloatArray(), 1e-5f);
+
+            // The old name still works.
+            @SuppressWarnings("deprecation")
+            Map<String, MorflowTensor> old = pipeline.runAll(MorflowTensor.fromFloatArray(input, new int[]{4}));
+            assertArrayEquals(new float[]{1.0f, 2.0f}, old.get("low").toFloatArray(), 1e-5f);
         }
     }
 
@@ -272,7 +277,7 @@ public class MorflowTest {
             float[] samples = new float[128];
             MorflowTensor input = MorflowTensor.fromFloatArray(samples, new int[]{2, 64});
 
-            Map<String, MorflowTensor> outputs = pipeline.runAllArgs(
+            Map<String, MorflowTensor> outputs = pipeline.runToMapArgs(
                     input.asAudio(48000, 2, null), 2.0f, Boolean.FALSE, 0.5);
             assertNotNull(outputs);
         }
@@ -298,7 +303,7 @@ public class MorflowTest {
         """;
         try (Pipeline pipeline = Morflow.fromStr(dsl)) {
             float[] data = {1, 0, 0, 1, 1, 1};
-            Map<String, MorflowTensor> out = pipeline.runAll(MorflowTensor.fromFloatArray(data, new int[]{3, 2}));
+            Map<String, MorflowTensor> out = pipeline.runToMap(MorflowTensor.fromFloatArray(data, new int[]{3, 2}));
             assertArrayEquals(new int[]{3, 2}, out.get("q").getShape());
             assertArrayEquals(new int[]{2, 2}, out.get("r").getShape());
             assertArrayEquals(data, out.get("reconstructed").toFloatArray(), 1e-5f);

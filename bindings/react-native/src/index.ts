@@ -92,8 +92,8 @@ export class Pipeline {
     return wrapOutput(await this.native.runAsync(false, toNative(input))) as T;
   }
 
-  /** Like `run`, resolving with every named emitted output. */
-  async runAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
+  /** Like `run`, resolving with every named emitted output, keyed by output name. */
+  async runToMap<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
     input?: PipelineInput
   ): Promise<T> {
     return wrapOutputs(await this.native.runAsync(true, toNative(input))) as T;
@@ -108,7 +108,7 @@ export class Pipeline {
   }
 
   /** Like `runArgs`, resolving with every named emitted output. */
-  async runAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
+  async runToMapArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
     ...args: PipelineArg[]
   ): Promise<T> {
     return wrapOutputs(await this.native.runArgsAsync(true, args.map(toNative))) as T;
@@ -119,8 +119,8 @@ export class Pipeline {
     return wrapOutput(this.native.run(false, toNative(input))) as T;
   }
 
-  /** Like `runSync`, returning every named emitted output. */
-  runSyncAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T {
+  /** `runToMap` on the JavaScript thread. */
+  runSyncToMap<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T {
     return wrapOutputs(this.native.run(true, toNative(input))) as T;
   }
 
@@ -129,11 +129,31 @@ export class Pipeline {
     return wrapOutput(this.native.runArgs(false, args.map(toNative))) as T;
   }
 
-  /** `runAllArgs` on the JavaScript thread. */
-  runSyncAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
+  /** `runToMapArgs` on the JavaScript thread. */
+  runSyncToMapArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(
     ...args: PipelineArg[]
   ): T {
     return wrapOutputs(this.native.runArgs(true, args.map(toNative))) as T;
+  }
+
+  /** @deprecated Renamed to `runToMap`. */
+  runAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): Promise<T> {
+    return this.runToMap<T>(input);
+  }
+
+  /** @deprecated Renamed to `runToMapArgs`. */
+  runAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): Promise<T> {
+    return this.runToMapArgs<T>(...args);
+  }
+
+  /** @deprecated Renamed to `runSyncToMap`. */
+  runSyncAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T {
+    return this.runSyncToMap<T>(input);
+  }
+
+  /** @deprecated Renamed to `runSyncToMapArgs`. */
+  runSyncAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): T {
+    return this.runSyncToMapArgs<T>(...args);
   }
 
   /**

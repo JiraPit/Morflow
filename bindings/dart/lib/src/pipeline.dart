@@ -134,8 +134,8 @@ final class Pipeline implements Finalizable {
   T runSync<T extends Object>([Object? input]) =>
       using((arena) => decodeResult(morflowRun(_live, encodeInput(input, arena), 0), all: false) as T);
 
-  /// Executes the pipeline synchronously, returning all named emitted streams.
-  Map<String, T> runSyncAll<T extends Object>([Object? input]) =>
+  /// Executes the pipeline synchronously, returning all named emitted streams, keyed by output name.
+  Map<String, T> runSyncToMap<T extends Object>([Object? input]) =>
       _named(using((arena) => decodeResult(morflowRun(_live, encodeInput(input, arena), 1), all: true)));
 
   /// Executes the pipeline on a native worker thread without blocking this
@@ -149,7 +149,7 @@ final class Pipeline implements Finalizable {
 
   /// Executes the pipeline on a native worker thread, returning all named
   /// emitted streams.
-  Future<Map<String, T>> runAll<T extends Object>([Object? input]) async => _named(
+  Future<Map<String, T>> runToMap<T extends Object>([Object? input]) async => _named(
     decodeResult(
       await _start((callback, id, arena) => morflowRunAsync(_live, encodeInput(input, arena), 1, callback, id)),
       all: true,
@@ -168,8 +168,8 @@ final class Pipeline implements Finalizable {
   });
 
   /// Executes the pipeline synchronously with positional parameters,
-  /// returning all named emitted streams.
-  Map<String, T> runSyncAllArgs<T extends Object>(List<Object?> args) => _named(
+  /// returning all named emitted streams, keyed by output name.
+  Map<String, T> runSyncToMapArgs<T extends Object>(List<Object?> args) => _named(
     using((arena) {
       final values = encodeArgs(args, arena);
       return decodeResult(morflowRunArgs(_live, values, args.length, 1), all: true);
@@ -189,8 +189,8 @@ final class Pipeline implements Finalizable {
           as T;
 
   /// Executes the pipeline on a native worker thread with positional
-  /// parameters, returning all named emitted streams.
-  Future<Map<String, T>> runAllArgs<T extends Object>(List<Object?> args) async => _named(
+  /// parameters, returning all named emitted streams, keyed by output name.
+  Future<Map<String, T>> runToMapArgs<T extends Object>(List<Object?> args) async => _named(
     decodeResult(
       await _start(
         (callback, id, arena) => morflowRunArgsAsync(_live, encodeArgs(args, arena), args.length, 1, callback, id),
@@ -198,6 +198,22 @@ final class Pipeline implements Finalizable {
       all: true,
     ),
   );
+
+  /// Renamed to [runSyncToMap].
+  @Deprecated('Use runSyncToMap')
+  Map<String, T> runSyncAll<T extends Object>([Object? input]) => runSyncToMap<T>(input);
+
+  /// Renamed to [runToMap].
+  @Deprecated('Use runToMap')
+  Future<Map<String, T>> runAll<T extends Object>([Object? input]) => runToMap<T>(input);
+
+  /// Renamed to [runSyncToMapArgs].
+  @Deprecated('Use runSyncToMapArgs')
+  Map<String, T> runSyncAllArgs<T extends Object>(List<Object?> args) => runSyncToMapArgs<T>(args);
+
+  /// Renamed to [runToMapArgs].
+  @Deprecated('Use runToMapArgs')
+  Future<Map<String, T>> runAllArgs<T extends Object>(List<Object?> args) => runToMapArgs<T>(args);
 
   /// Releases the pipeline's native resources. Further runs throw a
   /// [StateError]; calling [close] again does nothing.

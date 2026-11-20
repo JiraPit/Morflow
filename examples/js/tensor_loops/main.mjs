@@ -21,7 +21,7 @@ async function main() {
   console.log('Input readings: shape [4, 3]');
 
   // 2. Execute Morflow pipeline asynchronously
-  const outputs = await pipeline.runAll({ data: readings, shape: [4, 3], dtype: 'f32' });
+  const outputs = await pipeline.runToMap({ data: readings, shape: [4, 3], dtype: 'f32' });
 
   // 3. Print each emitted tensor, one row per line
   for (const name of ['running_totals', 'step_weights', 'aligned', 'checked']) {

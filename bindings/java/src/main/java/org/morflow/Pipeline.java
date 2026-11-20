@@ -136,7 +136,7 @@ public class Pipeline implements AutoCloseable {
      * @param input Input tensor.
      * @return Map of stream name to output tensor.
      */
-    public Map<String, MorflowTensor> runAll(MorflowTensor input) {
+    public Map<String, MorflowTensor> runToMap(MorflowTensor input) {
         checkClosed();
         return nativeRunAll(nativeHandle, input);
     }
@@ -164,7 +164,7 @@ public class Pipeline implements AutoCloseable {
      * @param args Positional parameter values.
      * @return Map of stream name to output tensor.
      */
-    public Map<String, MorflowTensor> runAllArgs(Object... args) {
+    public Map<String, MorflowTensor> runToMapArgs(Object... args) {
         checkClosed();
         return nativeRunAllArgs(nativeHandle, args);
     }
@@ -175,8 +175,26 @@ public class Pipeline implements AutoCloseable {
      * @param bytes Raw byte array.
      * @return Map of stream name to output tensor.
      */
+    public Map<String, MorflowTensor> runToMap(byte[] bytes) {
+        return runToMap(MorflowTensor.fromBytes(bytes));
+    }
+
+    /** @deprecated Renamed to {@link #runToMap(MorflowTensor)}. */
+    @Deprecated
+    public Map<String, MorflowTensor> runAll(MorflowTensor input) {
+        return runToMap(input);
+    }
+
+    /** @deprecated Renamed to {@link #runToMapArgs(Object...)}. */
+    @Deprecated
+    public Map<String, MorflowTensor> runAllArgs(Object... args) {
+        return runToMapArgs(args);
+    }
+
+    /** @deprecated Renamed to {@link #runToMap(byte[])}. */
+    @Deprecated
     public Map<String, MorflowTensor> runAll(byte[] bytes) {
-        return runAll(MorflowTensor.fromBytes(bytes));
+        return runToMap(bytes);
     }
 
     /**

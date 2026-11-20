@@ -103,7 +103,7 @@ void main() {
       $parts >> matmul >> emit("reconstructed")
     """);
     final data = Float32List.fromList([1, 0, 0, 1, 1, 1]);
-    final out = pipeline.runSyncAll<MorflowTensor>(
+    final out = pipeline.runSyncToMap<MorflowTensor>(
       TensorInput(data: data, shape: [3, 2]),
     );
     expect(out['q']!.shape, [3, 2]);
