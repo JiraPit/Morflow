@@ -1,0 +1,5 @@
+# Multiplies two matrices, given as a Composite [A, B].
+import linalg_basics/latest
+
+accept Composite $pair
+$pair >> matmul >> emit

@@ -1,0 +1,5 @@
+# A soft Gaussian blur.
+import image_basics/latest
+
+accept Tensor $image
+$image >> gaussian_blur(sigma=4.0) >> emit

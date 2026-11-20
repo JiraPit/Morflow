@@ -1,0 +1,5 @@
+# Punchier colors: more saturation and contrast, a touch brighter.
+import image_basics/latest
+
+accept Tensor $image
+$image >> color_adjust(saturation=1.8, contrast=1.25, exposure=0.2) >> sharpen(strength=1.5) >> emit
