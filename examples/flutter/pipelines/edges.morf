@@ -1,0 +1,5 @@
+# Outlines: Sobel edge detection on a slightly smoothed image.
+import image_basics/latest
+
+accept Tensor $image
+$image >> gaussian_blur(sigma=1.0) >> edge_detect(mode="sobel", strength=2.0) >> emit

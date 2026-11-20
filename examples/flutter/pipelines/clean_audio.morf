@@ -1,0 +1,6 @@
+# Cleans up a recording: cuts the hiss above 3 kHz, evens out the loud and
+# quiet parts, and brings the peak to -1 dB.
+import audio_basics/latest
+
+accept Audio $audio
+$audio >> biquad_filter(type="lowpass", freq=3000.0) >> compressor(threshold_db=-20.0, ratio=4.0) >> normalize(target_db=-1.0) >> emit
