@@ -26,5 +26,10 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{h,cpp}"
   s.vendored_frameworks = Dir.chdir(__dir__) { Dir.glob("ios/Frameworks/*.xcframework") }
 
+  # Morflow's libraries are built for Apple Silicon simulators, not Intel
+  # ones, so simulator builds leave out x86_64 (as on any Apple Silicon Mac).
+  s.pod_target_xcconfig = { "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "x86_64" }
+  s.user_target_xcconfig = { "EXCLUDED_ARCHS[sdk=iphonesimulator*]" => "x86_64" }
+
   install_modules_dependencies(s)
 end
