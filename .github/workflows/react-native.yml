@@ -1,0 +1,212 @@
+name: React Native
+
+# react-native-morflow: its own tests, then the example app on an Android
+# emulator and the iOS simulator. The engine and every plugin-free pack
+# library are built from this checkout and laid out like the GitHub releases
+# (scripts/stage_release.py); the app's build downloads them from there
+# through MORFLOW_RELEASE_URL, exactly as apps do from real releases. The app
+# runs its pipelines and logs a "MORFLOW" line per check, which these jobs read.
+on:
+  push:
+    branches: [dev-react-native-support]
+    paths:
+      - 'bindings/react-native/**'
+      - 'bindings/capi/**'
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'actions/**'
+      - 'scripts/build_pack.py'
+      - 'scripts/build_capi.py'
+      - 'scripts/native_targets.py'
+      - 'scripts/stage_release.py'
+      - '.github/workflows/react-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  package:
+    name: Package tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bindings/react-native
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  android:
+    name: Android (emulator test, arm64 build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android,aarch64-linux-android
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: |
+          python3 scripts/stage_release.py --platform android-x86_64 --platform android-aarch64 --out "$RUNNER_TEMP/staged-releases"
+          echo "MORFLOW_RELEASE_URL=$RUNNER_TEMP/staged-releases" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Pack react-native-morflow for the example app
+        working-directory: bindings/react-native
+        run: |
+          npm ci --ignore-scripts
+          npm pack
+          mv react-native-morflow-*.tgz react-native-morflow.tgz
+
+      - name: Install the example app
+        working-directory: bindings/react-native/example
+        run: npm install --no-audit --no-fund
+
+      - name: Build the release APK
+        working-directory: bindings/react-native/example/android
+        run: |
+          ./gradlew assembleRelease --console=plain
+          unzip -l app/build/outputs/apk/release/app-release.apk | grep -E 'lib/(arm64-v8a|x86_64)/lib(morflow_capi|morflow_pack_[a-z_]+)\.so' | tee libs.txt
+          # The C interface and the two packs the example lists, for both ABIs.
+          test "$(wc -l < libs.txt)" -eq 6
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the example on an emulator
+        timeout-minutes: 25
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: bindings/react-native/example
+          script: |
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            adb logcat -c
+            adb shell am start -n com.morflowexample/.MainActivity
+            timeout 180 sh -c 'until adb logcat -d -s ReactNativeJS:V | grep -q "MORFLOW DONE"; do sleep 2; done' || true
+            adb logcat -d -s ReactNativeJS:V AndroidRuntime:E | grep -E "MORFLOW|FATAL|Error" || true
+            adb logcat -d -s ReactNativeJS:V | grep -q "MORFLOW DONE PASS"
+
+  ios:
+    name: iOS (simulator test, device build)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: |
+          python3 scripts/stage_release.py --platform ios-arm64-sim --platform ios-arm64 --out "$RUNNER_TEMP/staged-releases"
+          echo "MORFLOW_RELEASE_URL=$RUNNER_TEMP/staged-releases" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Pack react-native-morflow for the example app
+        working-directory: bindings/react-native
+        run: |
+          npm ci --ignore-scripts
+          npm pack
+          mv react-native-morflow-*.tgz react-native-morflow.tgz
+
+      - name: Install the example app and its pods
+        working-directory: bindings/react-native/example
+        run: |
+          npm install --no-audit --no-fund
+          cd ios && pod install
+          ls ../node_modules/react-native-morflow/ios/Frameworks
+
+      - name: Boot a simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
+          print(next(d["udid"] for r in runtimes for d in devices[r] if d["name"].startswith("iPhone")))')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Run the example on the simulator
+        timeout-minutes: 40
+        working-directory: bindings/react-native/example/ios
+        run: |
+          udid="${{ steps.simulator.outputs.udid }}"
+          xcodebuild -workspace MorflowExample.xcworkspace -scheme MorflowExample -configuration Release \
+            -sdk iphonesimulator -destination "id=$udid" -derivedDataPath build build | tail -20
+          app=build/Build/Products/Release-iphonesimulator/MorflowExample.app
+          find "$app/Frameworks" -maxdepth 1 -name 'morflow_*' | sort
+          xcrun simctl install "$udid" "$app"
+          xcrun simctl launch "$udid" org.reactjs.native.example.MorflowExample
+          for i in $(seq 1 90); do
+            xcrun simctl spawn "$udid" log show --last 5m --style compact --predicate 'eventMessage CONTAINS "MORFLOW"' > log.txt || true
+            grep -q "MORFLOW DONE" log.txt && break
+            sleep 2
+          done
+          grep MORFLOW log.txt || true
+          grep -q "MORFLOW DONE PASS" log.txt
+
+      - name: Build for devices
+        working-directory: bindings/react-native/example/ios
+        run: |
+          xcodebuild -workspace MorflowExample.xcworkspace -scheme MorflowExample -configuration Release \
+            -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -5
+          frameworks=build/Build/Products/Release-iphoneos/MorflowExample.app/Frameworks
+          for name in morflow_capi morflow_pack_audio_basics morflow_pack_math_basics; do
+            lipo -info "$frameworks/$name.framework/$name" | grep -q arm64
+          done

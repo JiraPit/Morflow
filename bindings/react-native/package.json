@@ -1,0 +1,87 @@
+{
+  "name": "react-native-morflow",
+  "version": "0.3.4",
+  "description": "Run Morflow pipelines (.morf) inside React Native apps on Android and iOS: images, audio and tensors, offline.",
+  "license": "MIT",
+  "author": "Morflow",
+  "homepage": "https://morflow.org/doc#exec-react-native",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JiraPit/Morflow.git",
+    "directory": "bindings/react-native"
+  },
+  "bugs": {
+    "url": "https://github.com/JiraPit/Morflow/issues"
+  },
+  "keywords": [
+    "react-native",
+    "morflow",
+    "audio",
+    "image",
+    "tensor",
+    "pipeline",
+    "ios",
+    "android"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "react-native": "./src/index.ts",
+      "default": "./lib/index.js"
+    },
+    "./metro": "./metro.js",
+    "./app.plugin.js": "./app.plugin.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "cpp",
+    "android/build.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/*.h",
+    "ios/*.mm",
+    "scripts/fetch-native.js",
+    "react-native-morflow.podspec",
+    "react-native.config.js",
+    "metro.js",
+    "morf-transformer.js",
+    "app.plugin.js",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node -e \"require('fs').copyFileSync('src/morf.d.ts', 'lib/morf.d.ts')\"",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test scripts/ test/",
+    "prepack": "npm run build"
+  },
+  "codegenConfig": {
+    "name": "RNMorflowSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "org.morflow.reactnative"
+    },
+    "ios": {
+      "modulesProvider": {
+        "Morflow": "MorflowModuleProvider"
+      }
+    }
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "react": "^19.3.0",
+    "react-native": "^0.88.1",
+    "typescript": "^7.0.2"
+  }
+}
