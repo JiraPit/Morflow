@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const [archive] = process.argv.slice(2);
-if (!archive) throw new Error('Usage: node scripts/publish-node.mjs <package.tgz>');
-const metadata = JSON.parse(readFileSync(new URL('../bindings/js/package.json', import.meta.url)));
+// Publishes an npm package once per version: the Node.js package by default,
+// or the package whose package.json is given (react-native-morflow).
+const [archive, manifest = new URL('../bindings/js/package.json', import.meta.url)] = process.argv.slice(2);
+if (!archive) throw new Error('Usage: node scripts/publish-node.mjs <package.tgz> [package.json]');
+const metadata = JSON.parse(readFileSync(manifest));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const registry = 'https://registry.npmjs.org';
 const query = spawnSync(npm, ['view', `${metadata.name}@${metadata.version}`, 'dist.integrity', '--json', '--registry', registry], { encoding: 'utf8' });

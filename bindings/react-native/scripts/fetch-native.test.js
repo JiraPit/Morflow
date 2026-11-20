@@ -47,8 +47,11 @@ test('names the release files the engine and packs are published as', () => {
   assert.equal(pack.asset('android-x86_64'), 'morflow_pack_audio_basics-0.2.4-android-x86_64.so');
 });
 
-test('the engine version comes from src/version.ts', () => {
-  assert.match(fetchNative.engineVersion(), /^\d+\.\d+\.\d+$/);
+test('the package, src/version.ts and the engine have one version', () => {
+  const root = path.join(__dirname, '..');
+  const engine = fs.readFileSync(path.join(root, '..', '..', 'pipeline', 'Cargo.toml'), 'utf8').match(/^version = "([^"]+)"/m)[1];
+  assert.equal(fetchNative.engineVersion(), engine);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version, engine);
 });
 
 test('lays out jniLibs for every Android ABI and removes stale libraries', async () => {
