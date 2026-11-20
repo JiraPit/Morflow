@@ -11,6 +11,12 @@ import boost from './pipelines/boost.morf';
 
 type Check = { name: string; ok: boolean; detail: string };
 
+/**
+ * Logs a line for CI. iOS release builds drop every React Native log below
+ * error level from the system log, so this uses console.error to be seen there.
+ */
+const report = (line: string) => console.error(line);
+
 async function checks(): Promise<Check[]> {
   const results: Check[] = [];
   const check = async (name: string, body: () => Promise<string>) => {
@@ -65,8 +71,8 @@ export default function App() {
 
   useEffect(() => {
     checks().then((done) => {
-      for (const r of done) console.log(`MORFLOW ${r.ok ? 'PASS' : 'FAIL'} ${r.name}: ${r.detail}`);
-      console.log(`MORFLOW DONE ${done.every((r) => r.ok) ? 'PASS' : 'FAIL'}`);
+      for (const r of done) report(`MORFLOW ${r.ok ? 'PASS' : 'FAIL'} ${r.name}: ${r.detail}`);
+      report(`MORFLOW DONE ${done.every((r) => r.ok) ? 'PASS' : 'FAIL'}`);
       setResults(done);
     });
   }, []);
