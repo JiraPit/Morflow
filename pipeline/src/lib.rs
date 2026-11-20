@@ -7,6 +7,8 @@ pub mod cli;
 pub mod engine;
 mod native;
 pub mod outputs;
+#[cfg(feature = "cli")]
+pub mod package_json;
 mod platform;
 pub mod plugins;
 #[cfg(feature = "cli")]
