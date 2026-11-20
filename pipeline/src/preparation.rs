@@ -116,6 +116,43 @@ pub fn pack_library_asset(pack: &str, version: &str, platform: &str, extension: 
     format!("morflow_pack_{pack}-{version}-{platform}.{extension}")
 }
 
+/// The release of `pack` `version` (which may be `latest`), checked to have
+/// a pack library for every app platform.
+pub fn app_pack<T: Transport>(
+    client: &ReleaseClient<T>,
+    pack: &str,
+    version: &str,
+) -> Result<PreparedRelease, String> {
+    let release = client.resolve(pack, version)?;
+    check_app_pack(&release, pack, &release.catalog.concrete_version)?;
+    Ok(release)
+}
+
+/// An error unless `release` has a pack library for every app platform.
+fn check_app_pack(release: &PreparedRelease, pack: &str, version: &str) -> Result<(), String> {
+    let checksums = &release.catalog.checksums;
+    let missing: Vec<&str> = APP_PLATFORMS
+        .iter()
+        .filter(|(platform, ext)| {
+            !checksums.contains_key(&pack_library_asset(pack, version, platform, ext))
+        })
+        .map(|(platform, _)| *platform)
+        .collect();
+    if missing.len() == APP_PLATFORMS.len() {
+        return Err(format!(
+            "{pack} {version} has no pack library, so apps cannot bundle it \
+             (its actions need a plugin, or it was released before pack libraries)"
+        ));
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "{pack} {version} has no pack library for {} yet",
+            missing.join(", ")
+        ));
+    }
+    Ok(())
+}
+
 /// The packs an app must bundle to run `pipelines`: pack name -> exact
 /// version, checked to have a pack library for every app platform. An app
 /// bundles one version of each pack, which also serves `latest`, so a pack
@@ -166,28 +203,11 @@ pub fn app_packs<T: Transport>(
         }
     }
     for (pack, version) in &packs {
-        let checksums = &release(client, &mut releases, pack, version)?
-            .catalog
-            .checksums;
-        let missing: Vec<&str> = APP_PLATFORMS
-            .iter()
-            .filter(|(platform, ext)| {
-                !checksums.contains_key(&pack_library_asset(pack, version, platform, ext))
-            })
-            .map(|(platform, _)| *platform)
-            .collect();
-        if missing.len() == APP_PLATFORMS.len() {
-            return Err(format!(
-                "{pack} {version} has no pack library, so apps cannot bundle it \
-                 (its actions need a plugin, or it was released before pack libraries)"
-            ));
-        }
-        if !missing.is_empty() {
-            return Err(format!(
-                "{pack} {version} has no pack library for {} yet",
-                missing.join(", ")
-            ));
-        }
+        check_app_pack(
+            release(client, &mut releases, pack, version)?,
+            pack,
+            version,
+        )?;
     }
     Ok(packs)
 }
@@ -538,6 +558,21 @@ mod tests {
             packs,
             BTreeMap::from([("math_basics".into(), "0.4.0".into())])
         );
+    }
+
+    #[test]
+    fn app_pack_resolves_one_pack_for_an_app() {
+        let client = app_client();
+        let version =
+            |pack, version| app_pack(&client, pack, version).map(|r| r.catalog.concrete_version);
+        assert_eq!(version("math_basics", "latest").unwrap(), "0.4.1");
+        assert_eq!(version("base", "0.3.3").unwrap(), "0.3.3");
+        assert!(version("old", "latest")
+            .unwrap_err()
+            .contains("old 1.0.0 has no pack library"));
+        assert!(version("partial", "1.0.0")
+            .unwrap_err()
+            .contains("no pack library for ios-arm64, ios-arm64-sim yet"));
     }
 
     #[test]

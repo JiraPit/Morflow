@@ -1,6 +1,6 @@
-//! Edits a Dart or Flutter app's `pubspec.yaml` for `morflow prep --target
-//! flutter`: the packs the app bundles (`hooks.user_defines.morflow.packs`)
-//! and its pipelines as Flutter assets.
+//! Reads and edits a Dart or Flutter app's `pubspec.yaml` for the
+//! `--prod-target flutter` commands: the packs the app bundles
+//! (`hooks.user_defines.morflow.packs`) and its pipelines as Flutter assets.
 //!
 //! The file is edited as text, line by line, so comments, ordering and
 //! formatting elsewhere stay exactly as the developer wrote them. Only block
@@ -31,6 +31,55 @@ pub fn update(
         )?;
         let list = doc.ensure(Some(flutter), "assets")?;
         doc.add_list_items(list, assets)?;
+    }
+    Ok(doc.text())
+}
+
+/// The section that lists an app's packs, outermost first.
+const PACKS_PATH: [&str; 4] = ["hooks", "user_defines", "morflow", "packs"];
+
+/// The packs listed in `hooks.user_defines.morflow.packs`: name -> version.
+pub fn packs(text: &str) -> Result<BTreeMap<String, String>, String> {
+    let doc = Doc::new(text);
+    let path = doc.packs_path()?;
+    let mut packs = BTreeMap::new();
+    if path.len() < PACKS_PATH.len() {
+        return Ok(packs);
+    }
+    for (_, name, version) in doc.entries(path[PACKS_PATH.len() - 1])? {
+        packs.insert(name, version);
+    }
+    Ok(packs)
+}
+
+/// `text` without the packs `names` (every pack when None), and without the
+/// sections that leaves empty.
+pub fn remove_packs(text: &str, names: Option<&[String]>) -> Result<String, String> {
+    if text.contains('\t') {
+        return Err("pubspec.yaml is indented with tabs; YAML needs spaces".into());
+    }
+    let mut doc = Doc::new(text);
+    let path = doc.packs_path()?;
+    if path.len() < PACKS_PATH.len() {
+        return Ok(text.to_owned());
+    }
+    let mut remove: Vec<usize> = doc
+        .entries(path[PACKS_PATH.len() - 1])?
+        .into_iter()
+        .filter(|(_, name, _)| names.is_none_or(|names| names.contains(name)))
+        .map(|(line, _, _)| line)
+        .collect();
+    remove.sort_unstable();
+    for line in remove.into_iter().rev() {
+        doc.lines.remove(line);
+    }
+    // Innermost first: packs:, then morflow:, user_defines: and hooks: if
+    // nothing else is left in them.
+    for depth in (0..PACKS_PATH.len()).rev() {
+        let path = doc.packs_path()?;
+        if !doc.remove_if_empty(path[depth]) {
+            break;
+        }
     }
     Ok(doc.text())
 }
@@ -256,6 +305,64 @@ impl Doc {
         self.lines
             .insert(at, format!("{}{key}:", " ".repeat(child)));
         Ok(at)
+    }
+
+    /// The lines of `hooks:`, `user_defines:`, `morflow:` and `packs:`, as far
+    /// as they exist.
+    fn packs_path(&self) -> Result<Vec<usize>, String> {
+        let mut path = Vec::new();
+        for key in PACKS_PATH {
+            match self.find(path.last().copied(), key)? {
+                Some(line) => path.push(line),
+                None => break,
+            }
+        }
+        Ok(path)
+    }
+
+    /// The `name: value` entries directly under `parent`: (line, name, value).
+    fn entries(&self, parent: usize) -> Result<Vec<(usize, String, String)>, String> {
+        let child = self.child_indent(Some(parent));
+        let (start, end, _) = self.block(Some(parent));
+        let mut entries = Vec::new();
+        for i in start..end {
+            let line = &self.lines[i];
+            if !is_content(line) || indent(line) != child {
+                continue;
+            }
+            let Some((name, rest)) = key_of(line) else {
+                return Err(format!(
+                    "Cannot read line {} of pubspec.yaml: {}",
+                    i + 1,
+                    line.trim()
+                ));
+            };
+            let (value, _) = split_comment(rest);
+            let value = value.trim_matches(|c| c == '"' || c == '\'');
+            entries.push((i, name.to_owned(), value.to_owned()));
+        }
+        Ok(entries)
+    }
+
+    /// Removes the key on `line` with the comments under it, if its block has
+    /// no content left. A blank line left doubled by a removed top-level
+    /// section goes too.
+    fn remove_if_empty(&mut self, line: usize) -> bool {
+        let (start, end, _) = self.block(Some(line));
+        if self.lines[start..end].iter().any(|l| is_content(l)) {
+            return false;
+        }
+        let own = indent(&self.lines[line]);
+        let mut stop = start;
+        while stop < end && !self.lines[stop].trim().is_empty() && indent(&self.lines[stop]) > own {
+            stop += 1;
+        }
+        self.lines.drain(line..stop);
+        let blank = |l: Option<&String>| l.is_none_or(|l| l.trim().is_empty());
+        if own == 0 && line > 0 && blank(self.lines.get(line - 1)) && blank(self.lines.get(line)) {
+            self.lines.remove(line - 1);
+        }
+        true
     }
 
     /// Sets `name: version` entries under `parent`, keeping other entries.
@@ -540,6 +647,89 @@ hooks:
                 .unwrap_err()
                 .contains("tabs")
         );
+    }
+
+    #[test]
+    fn reads_the_listed_packs() {
+        let app = update(
+            FLUTTER_APP,
+            &packs(&[("base", "0.3.4"), ("audio_basics", "0.2.4")]),
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            super::packs(&app).unwrap(),
+            packs(&[("audio_basics", "0.2.4"), ("base", "0.3.4")])
+        );
+        assert!(super::packs(FLUTTER_APP).unwrap().is_empty());
+        let quoted = "hooks:\n  user_defines:\n    morflow:\n      packs:\n        # pinned\n        base: '0.3.4' # why\n";
+        assert_eq!(super::packs(quoted).unwrap(), packs(&[("base", "0.3.4")]));
+    }
+
+    #[test]
+    fn removing_some_packs_keeps_the_others_and_their_comments() {
+        let before = "name: app
+hooks:
+  user_defines:
+    morflow:
+      packs:
+        # Audio first.
+        audio_basics: 0.2.4 # pinned
+        base: 0.3.4
+";
+        let after = remove_packs(before, Some(&["base".into(), "missing".into()])).unwrap();
+        assert_eq!(
+            after,
+            "name: app
+hooks:
+  user_defines:
+    morflow:
+      packs:
+        # Audio first.
+        audio_basics: 0.2.4 # pinned
+"
+        );
+    }
+
+    #[test]
+    fn removing_every_pack_removes_the_sections_left_empty() {
+        let app = update(
+            FLUTTER_APP,
+            &packs(&[("base", "0.3.4"), ("audio_basics", "0.2.4")]),
+            &[],
+        )
+        .unwrap();
+        assert_eq!(remove_packs(&app, None).unwrap(), FLUTTER_APP);
+        let names = ["base".to_string(), "audio_basics".to_string()];
+        assert_eq!(remove_packs(&app, Some(&names)).unwrap(), FLUTTER_APP);
+        // Settings beside the packs stay, and so do the sections that hold them.
+        let before = "hooks:
+  user_defines:
+    other:
+      x: 1
+    morflow:
+      release_url: https://mirror.example.com
+      packs:
+        # Bundled packs.
+        base: 0.3.4
+
+flutter:
+  uses-material-design: true
+";
+        assert_eq!(
+            remove_packs(before, None).unwrap(),
+            "hooks:
+  user_defines:
+    other:
+      x: 1
+    morflow:
+      release_url: https://mirror.example.com
+
+flutter:
+  uses-material-design: true
+"
+        );
+        assert_eq!(remove_packs(FLUTTER_APP, None).unwrap(), FLUTTER_APP);
     }
 
     #[test]

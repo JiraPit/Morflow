@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 use rich_rust::prelude::*;
 use rich_rust::r#box::ROUNDED;
 use rich_rust::renderables::table::Cell;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -63,10 +64,21 @@ enum Commands {
     },
 
     /// Cleans and removes all cached action binaries from the action path
+    #[command(
+        after_help = "For an app: morflow clean --prod-target flutter removes every pack from the app's pubspec.yaml (hooks.user_defines.morflow.packs)."
+    )]
     Clean {
         /// Custom action cache directory to clean (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
-        #[arg(short, long)]
+        #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
+
+        /// Remove every pack an app bundles from pubspec.yaml in the current directory instead of cleaning the action cache
+        #[arg(long, value_enum)]
+        prod_target: Option<AppTarget>,
+
+        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        #[arg(short, long, requires = "prod_target")]
+        yes: bool,
     },
 
     /// Views the raw SPEC.md documentation for a specified action
@@ -94,22 +106,58 @@ enum Commands {
     /// Lists all action paths installed locally in the action cache
     List {
         /// Custom action cache directory to inspect (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
-        #[arg(short, long)]
+        #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
+
+        /// List the packs an app bundles, from pubspec.yaml in the current directory, instead of the action cache
+        #[arg(long, value_enum)]
+        prod_target: Option<AppTarget>,
     },
 
     /// Installs a specific action binary into the local action cache
+    #[command(
+        after_help = "For an app: morflow install audio_basics --prod-target flutter adds the pack to the app's pubspec.yaml (hooks.user_defines.morflow.packs), so the app bundles it. Apps bundle whole packs, at one exact version; latest is resolved to it."
+    )]
     Install {
-        /// Full action or pack path (e.g. image_basics/latest/color_adjust, audio_basics/latest)
+        /// Full action or pack path (e.g. image_basics/latest/color_adjust, audio_basics/latest); with --prod-target, a pack (audio_basics, audio_basics/0.2.4)
         action: String,
 
         /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
-        #[arg(short, long)]
+        #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
         /// Force re-download even if action is already installed
-        #[arg(short, long)]
+        #[arg(short, long, conflicts_with = "prod_target")]
         force: bool,
+
+        /// Add the pack to an app's pubspec.yaml in the current directory instead of the action cache
+        #[arg(long, value_enum)]
+        prod_target: Option<AppTarget>,
+
+        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        #[arg(short, long, requires = "prod_target")]
+        yes: bool,
+    },
+
+    /// Removes installed actions from the local action cache
+    #[command(
+        after_help = "Examples:\n  morflow uninstall image_basics/latest/color_adjust\n  morflow uninstall audio_basics/0.2.4\n  morflow uninstall audio_basics\nFor an app: morflow uninstall audio_basics --prod-target flutter removes the pack from the app's pubspec.yaml."
+    )]
+    Uninstall {
+        /// An action, a pack version or a whole pack (e.g. image_basics/latest/color_adjust, audio_basics/0.2.4, audio_basics)
+        action: String,
+
+        /// Custom action cache directory (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
+        #[arg(short, long, conflicts_with = "prod_target")]
+        path: Option<PathBuf>,
+
+        /// Remove the pack from an app's pubspec.yaml in the current directory instead of the action cache
+        #[arg(long, value_enum)]
+        prod_target: Option<AppTarget>,
+
+        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        #[arg(short, long, requires = "prod_target")]
+        yes: bool,
     },
 
     /// Check syntax, variables, prepared dependencies, types, and shapes
@@ -315,13 +363,8 @@ fn prefixed(file: &Path, files: &[PathBuf], error: String) -> String {
 /// app's pubspec.yaml and adds the pipelines to its assets, after showing the
 /// change and asking.
 fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Error>> {
-    use std::io::{BufRead, IsTerminal, Write};
-
+    let (pubspec_path, before) = app_pubspec()?;
     let root = env::current_dir()?;
-    let pubspec_path = root.join("pubspec.yaml");
-    if !pubspec_path.is_file() {
-        return Err("There is no pubspec.yaml here; run morflow prep --prod-target flutter in your app's root directory".into());
-    }
     let mut asts = Vec::new();
     for file in files {
         asts.push(parse_pipeline_file(file).map_err(|e| prefixed(file, files, e))?);
@@ -347,7 +390,6 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
         }
     }
 
-    let before = fs::read_to_string(&pubspec_path)?;
     let flutter_app = before.lines().any(|l| l.starts_with("flutter:"));
     let after = crate::pubspec::update(&before, &packs, if flutter_app { &assets } else { &[] })?;
     let listed = packs
@@ -360,35 +402,8 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
         if listed.is_empty() { "none" } else { &listed }
     );
 
-    if before == after {
-        println!("pubspec.yaml is already up to date.");
-    } else {
-        println!("\nChanges to pubspec.yaml:\n");
-        let color = std::io::stdout().is_terminal();
-        for line in crate::pubspec::diff(&before, &after, 3).lines() {
-            match (color, line.chars().next()) {
-                (true, Some('+')) => println!("\x1b[32m{line}\x1b[0m"),
-                (true, Some('-')) => println!("\x1b[31m{line}\x1b[0m"),
-                (true, Some('@')) => println!("\x1b[36m{line}\x1b[0m"),
-                _ => println!("{line}"),
-            }
-        }
-        println!();
-        if !yes {
-            if !std::io::stdin().is_terminal() {
-                return Err("Not applied: pass --yes to change pubspec.yaml without asking".into());
-            }
-            print!("Apply these changes? [Y/n] ");
-            std::io::stdout().flush()?;
-            let mut answer = String::new();
-            std::io::stdin().lock().read_line(&mut answer)?;
-            if !matches!(answer.trim().to_lowercase().as_str(), "" | "y" | "yes") {
-                println!("pubspec.yaml left unchanged.");
-                return Ok(());
-            }
-        }
-        fs::write(&pubspec_path, &after)?;
-        println!("Updated pubspec.yaml.");
+    if !apply_pubspec(&pubspec_path, &before, &after, yes)? {
+        return Ok(());
     }
 
     if !crate::pubspec::depends_on(&after, "morflow") {
@@ -406,6 +421,213 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
     }
     if !packs.is_empty() {
         println!("flutter run and flutter build now bundle these packs for every platform.");
+    }
+    Ok(())
+}
+
+/// The app's pubspec.yaml in the current directory, and its text.
+fn app_pubspec() -> Result<(PathBuf, String), String> {
+    let path = env::current_dir()
+        .map_err(|e| e.to_string())?
+        .join("pubspec.yaml");
+    if !path.is_file() {
+        return Err("There is no pubspec.yaml here; run this in your app's root directory".into());
+    }
+    let text = fs::read_to_string(&path).map_err(|e| format!("Cannot read pubspec.yaml: {e}"))?;
+    Ok((path, text))
+}
+
+/// Shows the change from `before` to `after` and writes it after asking, or
+/// right away with `yes`. False when the developer declines.
+fn apply_pubspec(
+    path: &Path,
+    before: &str,
+    after: &str,
+    yes: bool,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    use std::io::{BufRead, IsTerminal, Write};
+
+    if before == after {
+        println!("pubspec.yaml is already up to date.");
+        return Ok(true);
+    }
+    println!("\nChanges to pubspec.yaml:\n");
+    let color = std::io::stdout().is_terminal();
+    for line in crate::pubspec::diff(before, after, 3).lines() {
+        match (color, line.chars().next()) {
+            (true, Some('+')) => println!("\x1b[32m{line}\x1b[0m"),
+            (true, Some('-')) => println!("\x1b[31m{line}\x1b[0m"),
+            (true, Some('@')) => println!("\x1b[36m{line}\x1b[0m"),
+            _ => println!("{line}"),
+        }
+    }
+    println!();
+    if !yes {
+        if !std::io::stdin().is_terminal() {
+            return Err("Not applied: pass --yes to change pubspec.yaml without asking".into());
+        }
+        print!("Apply these changes? [Y/n] ");
+        std::io::stdout().flush()?;
+        let mut answer = String::new();
+        std::io::stdin().lock().read_line(&mut answer)?;
+        if !matches!(answer.trim().to_lowercase().as_str(), "" | "y" | "yes") {
+            println!("pubspec.yaml left unchanged.");
+            return Ok(false);
+        }
+    }
+    fs::write(path, after)?;
+    println!("Updated pubspec.yaml.");
+    Ok(true)
+}
+
+/// A pack, pack/version or pack/version/action: (pack, version, action).
+fn pack_target(input: &str) -> Result<(String, Option<String>, Option<String>), String> {
+    let input = input.replace("::", "/");
+    let parts: Vec<&str> = input.split('/').collect();
+    if parts.len() > 3 {
+        return Err(format!(
+            "Invalid target '{input}'; use a pack, pack/version or pack/version/action, e.g. audio_basics, audio_basics/0.2.4"
+        ));
+    }
+    component(parts[0])?;
+    let version = parts.get(1).map(|v| normalize_version(v)).transpose()?;
+    let action = parts
+        .get(2)
+        .map(|a| component(a).map(|()| a.to_string()))
+        .transpose()?;
+    Ok((parts[0].into(), version, action))
+}
+
+/// `morflow install <pack> --prod-target flutter`: lists the pack in pubspec.yaml.
+fn install_app_pack(target: &str, yes: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let (pubspec_path, before) = app_pubspec()?;
+    let (pack, version, action) = pack_target(target)?;
+    let client = ReleaseClient::new(resolve_repo())?;
+    let release =
+        crate::preparation::app_pack(&client, &pack, version.as_deref().unwrap_or("latest"))?;
+    let concrete = release.catalog.concrete_version.clone();
+    if let Some(action) = &action {
+        if !release
+            .catalog
+            .actions(get_host_platform().0)
+            .contains(action)
+        {
+            return Err(format!("{pack} {concrete} has no action {action}").into());
+        }
+        println!("Apps bundle whole packs, so this adds all of {pack}, including {action}.");
+    }
+    let listed = crate::pubspec::packs(&before)?;
+    if let Some(old) = listed.get(&pack).filter(|old| **old != concrete) {
+        println!("pubspec.yaml lists {pack} {old}; this changes it to {concrete}.");
+    }
+    let after = crate::pubspec::update(
+        &before,
+        &BTreeMap::from([(pack.clone(), concrete.clone())]),
+        &[],
+    )?;
+    if apply_pubspec(&pubspec_path, &before, &after, yes)? && before != after {
+        println!("flutter run and flutter build now bundle {pack} {concrete} for every platform.");
+        if !crate::pubspec::depends_on(&after, "morflow") {
+            println!("Add the Morflow package too: flutter pub add morflow");
+        }
+    }
+    Ok(())
+}
+
+/// `morflow uninstall <pack> --prod-target flutter`: removes the pack from pubspec.yaml.
+fn uninstall_app_pack(target: &str, yes: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let (pubspec_path, before) = app_pubspec()?;
+    let (pack, version, action) = pack_target(target)?;
+    if action.is_some() {
+        return Err(format!(
+            "Apps bundle whole packs, so one action cannot be removed; morflow uninstall {pack} --prod-target flutter removes the whole pack"
+        )
+        .into());
+    }
+    let listed = crate::pubspec::packs(&before)?;
+    let Some(old) = listed.get(&pack) else {
+        return Err(format!(
+            "{pack} is not in pubspec.yaml's packs; morflow list --prod-target flutter shows the packs the app bundles"
+        )
+        .into());
+    };
+    if let Some(version) = version.filter(|v| v != "latest" && v != old) {
+        return Err(format!("pubspec.yaml lists {pack} {old}, not {version}").into());
+    }
+    let after = crate::pubspec::remove_packs(&before, Some(std::slice::from_ref(&pack)))?;
+    if apply_pubspec(&pubspec_path, &before, &after, yes)? {
+        println!("The app no longer bundles {pack}; pipelines that use it will not load.");
+    }
+    Ok(())
+}
+
+/// `morflow clean --prod-target flutter`: removes every pack from pubspec.yaml.
+fn clean_app_packs(yes: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let (pubspec_path, before) = app_pubspec()?;
+    if crate::pubspec::packs(&before)?.is_empty() {
+        println!("pubspec.yaml lists no packs.");
+        return Ok(());
+    }
+    let after = crate::pubspec::remove_packs(&before, None)?;
+    if apply_pubspec(&pubspec_path, &before, &after, yes)? {
+        println!("The app no longer bundles any packs; run morflow prep --prod-target flutter <pipelines> to add the ones it needs.");
+    }
+    Ok(())
+}
+
+/// `morflow list --prod-target flutter`: the packs pubspec.yaml lists.
+fn list_app_packs() -> Result<(), Box<dyn std::error::Error>> {
+    let (pubspec_path, text) = app_pubspec()?;
+    let rows = crate::pubspec::packs(&text)?
+        .into_iter()
+        .map(|(pack, version)| vec![pack.clone(), version, format!("{pack}/latest")])
+        .collect();
+    print_catalog(
+        "App packs",
+        &format!("{} · hooks.user_defines.morflow.packs", pubspec_path.display()),
+        &["Pack", "Version", "Import path"],
+        rows,
+        "No packs listed. Run morflow prep --prod-target flutter <pipelines> or morflow install <pack> --prod-target flutter.",
+    );
+    Ok(())
+}
+
+/// Removes the cached actions `target` names: one action, a pack version or a whole pack.
+fn uninstall_cached(target: &str, path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+    let (pack, version, action) = pack_target(target)?;
+    let root = resolve_action_cache_dir(path);
+    // Exclude preparation/loading while removing artifacts, as clean does.
+    let _maintenance = CacheGuard::acquire(&root, "maintenance")?;
+    let mut removed = Vec::new();
+    for receipt in installed_receipts(&root)? {
+        let id = &receipt.identity;
+        let matches = id.pack == pack
+            && version
+                .as_ref()
+                .is_none_or(|v| *v == id.version || *v == receipt.concrete_version)
+            && action.as_ref().is_none_or(|a| *a == id.action);
+        if !matches {
+            continue;
+        }
+        let file = id.path(&root);
+        for path in [receipt_path(&file), spec_path(&file), file] {
+            if path.exists() {
+                fs::remove_file(path)?;
+            }
+        }
+        removed.push(format!(
+            "{}/{}/{} ({})",
+            id.pack, id.version, id.action, receipt.concrete_version
+        ));
+    }
+    if removed.is_empty() {
+        return Err(format!(
+            "Nothing installed matches {target}; morflow list shows installed actions"
+        )
+        .into());
+    }
+    for action in &removed {
+        println!("Removed {action}");
     }
     Ok(())
 }
@@ -552,8 +774,31 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Install {
             action,
+            prod_target: Some(AppTarget::Flutter),
+            yes,
+            ..
+        } => install_app_pack(&action, yes)?,
+        Commands::Uninstall {
+            action,
+            prod_target: Some(AppTarget::Flutter),
+            yes,
+            ..
+        } => uninstall_app_pack(&action, yes)?,
+        Commands::Uninstall { action, path, .. } => uninstall_cached(&action, path)?,
+        Commands::List {
+            prod_target: Some(AppTarget::Flutter),
+            ..
+        } => list_app_packs()?,
+        Commands::Clean {
+            prod_target: Some(AppTarget::Flutter),
+            yes,
+            ..
+        } => clean_app_packs(yes)?,
+        Commands::Install {
+            action,
             path,
             force,
+            ..
         } => {
             let client = ReleaseClient::new(resolve_repo())?;
             let root = resolve_action_cache_dir(path);
@@ -584,7 +829,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Commands::List { path } => {
+        Commands::List { path, .. } => {
             let root = resolve_action_cache_dir(path);
             let _maintenance = CacheGuard::shared(&root, "maintenance")?;
             let mut rows = Vec::new();
@@ -722,7 +967,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
                 "No actions in this pack.",
             );
         }
-        Commands::Clean { path } => {
+        Commands::Clean { path, .. } => {
             let root = resolve_action_cache_dir(path);
             if !root.exists() {
                 println!("Cache is empty");
@@ -1082,6 +1327,58 @@ mod tests {
         assert!(matches!(cli.command, Commands::Catalog { pack: None }));
         let cli = Cli::try_parse_from(["morflow", "catalog", "audio_basics"]).unwrap();
         assert!(matches!(cli.command, Commands::Catalog { pack: Some(_) }));
+    }
+
+    #[test]
+    fn app_commands_take_prod_target_and_not_cache_options() {
+        let parse = |args: &[&str]| Cli::try_parse_from([&["morflow"], args].concat());
+        for args in [
+            &["install", "audio_basics", "--prod-target", "flutter", "-y"][..],
+            &[
+                "uninstall",
+                "audio_basics",
+                "--prod-target",
+                "flutter",
+                "--yes",
+            ],
+            &["list", "--prod-target", "flutter"],
+            &["clean", "--prod-target", "flutter", "-y"],
+            &["uninstall", "audio_basics/0.2.4"],
+        ] {
+            assert!(parse(args).is_ok(), "{args:?}");
+        }
+        for args in [
+            &["install", "audio_basics/latest", "--yes"][..],
+            &["clean", "-y"],
+            &["install", "a", "--prod-target", "flutter", "--force"],
+            &["list", "--prod-target", "flutter", "--path", "cache"],
+            &["uninstall", "a", "--prod-target", "flutter", "-p", "cache"],
+        ] {
+            assert!(parse(args).is_err(), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn pack_targets_name_a_pack_and_optionally_a_version_and_action() {
+        assert_eq!(
+            pack_target("audio_basics").unwrap(),
+            ("audio_basics".into(), None, None)
+        );
+        assert_eq!(
+            pack_target("audio_basics/v0.2.4").unwrap(),
+            ("audio_basics".into(), Some("0.2.4".into()), None)
+        );
+        assert_eq!(
+            pack_target("audio_basics::latest::gain").unwrap(),
+            (
+                "audio_basics".into(),
+                Some("latest".into()),
+                Some("gain".into())
+            )
+        );
+        for bad in ["", "a/b/c/d", "audio_basics/nope", "../x", "a/latest/../b"] {
+            assert!(pack_target(bad).is_err(), "{bad}");
+        }
     }
 
     #[test]
