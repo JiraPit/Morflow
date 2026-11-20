@@ -121,9 +121,10 @@ export class Pipeline {
   runSync<T extends MorflowOutput = MorflowTensor>(input?: PipelineInput): T;
 
   /**
-   * Executes the pipeline synchronously, returning all named emitted streams.
+   * Executes the pipeline synchronously, returning all named emitted streams
+   * as an object keyed by output name.
    */
-  runSyncAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T;
+  runSyncToMap<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T;
 
   /**
    * Executes the pipeline asynchronously on a worker thread pool, returning a Promise.
@@ -132,9 +133,10 @@ export class Pipeline {
   run<T extends MorflowOutput = MorflowTensor>(input?: PipelineInput): Promise<T>;
 
   /**
-   * Executes the pipeline asynchronously, returning all named emitted streams as a Promise.
+   * Executes the pipeline asynchronously, returning a Promise with all named
+   * emitted streams as an object keyed by output name.
    */
-  runAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): Promise<T>;
+  runToMap<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): Promise<T>;
 
   /**
    * Executes the pipeline synchronously with positional parameters bound in
@@ -145,9 +147,9 @@ export class Pipeline {
 
   /**
    * Executes the pipeline synchronously with positional parameters, returning
-   * all named emitted streams.
+   * all named emitted streams as an object keyed by output name.
    */
-  runSyncAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): T;
+  runSyncToMapArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): T;
 
   /**
    * Executes the pipeline asynchronously with positional parameters bound in
@@ -157,8 +159,17 @@ export class Pipeline {
 
   /**
    * Executes the pipeline asynchronously with positional parameters, returning
-   * a Promise with all named emitted streams.
+   * a Promise with all named emitted streams as an object keyed by output name.
    */
+  runToMapArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): Promise<T>;
+
+  /** @deprecated Renamed to `runSyncToMap`. */
+  runSyncAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): T;
+  /** @deprecated Renamed to `runToMap`. */
+  runAll<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(input?: PipelineInput): Promise<T>;
+  /** @deprecated Renamed to `runSyncToMapArgs`. */
+  runSyncAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): T;
+  /** @deprecated Renamed to `runToMapArgs`. */
   runAllArgs<T extends Record<string, MorflowOutput> = Record<string, MorflowTensor>>(...args: PipelineArg[]): Promise<T>;
 }
 

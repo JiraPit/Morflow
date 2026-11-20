@@ -20,7 +20,7 @@ public class Main {
         System.out.println("Input readings: shape [4, 3]");
 
         // 2. Execute Morflow pipeline
-        Map<String, MorflowTensor> outputs = pipeline.runAll(MorflowTensor.fromFloatArray(readings, new int[] {4, 3}));
+        Map<String, MorflowTensor> outputs = pipeline.runToMap(MorflowTensor.fromFloatArray(readings, new int[] {4, 3}));
 
         // 3. Print each emitted tensor, one row per line
         for (String name : new String[] {"running_totals", "step_weights", "aligned", "checked"}) {

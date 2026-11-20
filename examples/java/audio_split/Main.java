@@ -16,7 +16,7 @@ public class Main {
         System.out.println("Input audio binary: " + inputBytes.length + " bytes");
 
         // 2. Execute Morflow multi-channel split pipeline
-        Map<String, MorflowTensor> outputs = pipeline.runAll(inputBytes);
+        Map<String, MorflowTensor> outputs = pipeline.runToMap(inputBytes);
         System.out.println("Emitted outputs: " + String.join(", ", outputs.keySet()));
 
         // 3. Save each emitted channel directly to its own WAV file

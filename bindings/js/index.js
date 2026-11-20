@@ -197,7 +197,7 @@ class MorflowPipelineWrapper {
    * @param {ArrayBufferView | Buffer | { data: ArrayBufferView | ArrayBuffer, shape: number[], dtype?: string } | Array<any>} [input]
    * @returns {Record<string, any>}
    */
-  runSyncAll(input) {
+  runSyncToMap(input) {
     return wrapOutputs(this._native.runSyncAll(toNative(input)));
   }
 
@@ -215,7 +215,7 @@ class MorflowPipelineWrapper {
    * @param {ArrayBufferView | Buffer | { data: ArrayBufferView | ArrayBuffer, shape: number[], dtype?: string } | Array<any>} [input]
    * @returns {Promise<Record<string, any>>}
    */
-  async runAll(input) {
+  async runToMap(input) {
     return wrapOutputs(await this._native.runAll(toNative(input)));
   }
 
@@ -237,7 +237,7 @@ class MorflowPipelineWrapper {
    * @param {...(ArrayBufferView | Buffer | Array<any> | number | string | boolean | { data: ArrayBufferView | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
    * @returns {Record<string, any>}
    */
-  runSyncAllArgs(...args) {
+  runSyncToMapArgs(...args) {
     return wrapOutputs(this._native.runSyncAllArgs(args.map(toNative)));
   }
 
@@ -257,8 +257,28 @@ class MorflowPipelineWrapper {
    * @param {...(ArrayBufferView | Buffer | Array<any> | number | string | boolean | { data: ArrayBufferView | ArrayBuffer, shape: number[], dtype?: string, payloadType?: string })} args
    * @returns {Promise<Record<string, any>>}
    */
-  async runAllArgs(...args) {
+  async runToMapArgs(...args) {
     return wrapOutputs(await this._native.runAllArgs(args.map(toNative)));
+  }
+
+  /** @deprecated Renamed to `runSyncToMap`. */
+  runSyncAll(input) {
+    return this.runSyncToMap(input);
+  }
+
+  /** @deprecated Renamed to `runToMap`. */
+  runAll(input) {
+    return this.runToMap(input);
+  }
+
+  /** @deprecated Renamed to `runSyncToMapArgs`. */
+  runSyncAllArgs(...args) {
+    return this.runSyncToMapArgs(...args);
+  }
+
+  /** @deprecated Renamed to `runToMapArgs`. */
+  runAllArgs(...args) {
+    return this.runToMapArgs(...args);
   }
 }
 

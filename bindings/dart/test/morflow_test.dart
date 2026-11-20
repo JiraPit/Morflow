@@ -78,17 +78,17 @@ void main() {
       expect(values[7], 11.0); // row 2, col 3
     }, skip: needsActions);
 
-    test('multiple named outputs (runSyncAll & runAll)', () async {
+    test('multiple named outputs (runSyncToMap & runToMap)', () async {
       final pipeline = morflow.fromStr(r'''
         accept Tensor $audio
         $audio[0:2] >> base/latest/identity >> emit("low")
         $audio[2:4] >> base/latest/identity >> emit("high")
       ''');
       final input = Float32List.fromList([1.0, 2.0, 3.0, 4.0]);
-      final syncOut = pipeline.runSyncAll<MorflowTensor>(input);
+      final syncOut = pipeline.runSyncToMap<MorflowTensor>(input);
       expect(syncOut['low']!.toFloat32Array(), [1.0, 2.0]);
       expect(syncOut['high']!.toFloat32Array(), [3.0, 4.0]);
-      final asyncOut = await pipeline.runAll<MorflowTensor>(input);
+      final asyncOut = await pipeline.runToMap<MorflowTensor>(input);
       expect(asyncOut['low']!.toFloat32Array(), [1.0, 2.0]);
       expect(asyncOut['high']!.toFloat32Array(), [3.0, 4.0]);
     }, skip: needsActions);
@@ -271,7 +271,7 @@ void main() {
         accept Scalar $mix = 0.0
         $audio >> to_wav >> emit
       ''');
-      final outputs = pipeline.runSyncAllArgs<MorflowTensor>([
+      final outputs = pipeline.runSyncToMapArgs<MorflowTensor>([
         TensorInput(data: Uint8List(2 * 64 * 4), shape: [2, 64], dtype: 'f32', payloadType: 'audio', sampleRate: 44100),
         2.0,
         false,
@@ -303,7 +303,7 @@ void main() {
             $parts >> matmul >> emit("reconstructed")
       ''');
       final data = Float32List.fromList([1, 0, 0, 1, 1, 1]);
-      final out = pipeline.runSyncAll<MorflowTensor>(TensorInput(data: data.buffer, shape: [3, 2], dtype: 'f32'));
+      final out = pipeline.runSyncToMap<MorflowTensor>(TensorInput(data: data.buffer, shape: [3, 2], dtype: 'f32'));
       expect(out['q']!.shape, [3, 2]);
       expect(out['r']!.shape, [2, 2]);
       expect(out['reconstructed']!.shape, [3, 2]);
@@ -529,9 +529,18 @@ void main() {
       final pipeline = morflow.fromStr(twoOutputs);
       final input = Float32List.fromList([1, 2]);
       for (final outputs in [
+        pipeline.runSyncToMap<MorflowTensor>(input),
+        await pipeline.runToMap<MorflowTensor>(input),
+        pipeline.runSyncToMapArgs<MorflowTensor>([input]),
+        await pipeline.runToMapArgs<MorflowTensor>([input]),
+        // The old names still work.
+        // ignore: deprecated_member_use_from_same_package
         pipeline.runSyncAll<MorflowTensor>(input),
+        // ignore: deprecated_member_use_from_same_package
         await pipeline.runAll<MorflowTensor>(input),
+        // ignore: deprecated_member_use_from_same_package
         pipeline.runSyncAllArgs<MorflowTensor>([input]),
+        // ignore: deprecated_member_use_from_same_package
         await pipeline.runAllArgs<MorflowTensor>([input]),
       ]) {
         expect(outputs.keys, unorderedEquals(['a', 'b']));

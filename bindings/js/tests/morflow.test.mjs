@@ -88,7 +88,7 @@ test('Morflow - multi-dimensional TensorInput', () => {
   assert.equal(f32Out[7], 11.0); // row 2, col 3
 });
 
-test('Morflow - multiple named outputs (runSyncAll & runAll)', async () => {
+test('Morflow - multiple named outputs (runSyncToMap & runToMap)', async () => {
   const dsl = `
     accept Tensor $audio
     $audio[0:2] >> base/latest/identity >> emit("low")
@@ -98,18 +98,24 @@ test('Morflow - multiple named outputs (runSyncAll & runAll)', async () => {
   const input = new Float32Array([1.0, 2.0, 3.0, 4.0]);
 
   // Sync test
-  const syncOut = pipeline.runSyncAll(input);
+  const syncOut = pipeline.runSyncToMap(input);
   assert.ok(syncOut.low);
   assert.ok(syncOut.high);
   assert.deepEqual(Array.from(syncOut.low.toFloat32Array()), [1.0, 2.0]);
   assert.deepEqual(Array.from(syncOut.high.toFloat32Array()), [3.0, 4.0]);
 
   // Async test
-  const asyncOut = await pipeline.runAll(input);
+  const asyncOut = await pipeline.runToMap(input);
   assert.ok(asyncOut.low);
   assert.ok(asyncOut.high);
   assert.deepEqual(Array.from(asyncOut.low.toFloat32Array()), [1.0, 2.0]);
   assert.deepEqual(Array.from(asyncOut.high.toFloat32Array()), [3.0, 4.0]);
+
+  // The old names still work.
+  assert.deepEqual(Array.from(pipeline.runSyncAll(input).low.toFloat32Array()), [1.0, 2.0]);
+  assert.deepEqual(Array.from((await pipeline.runAll(input)).high.toFloat32Array()), [3.0, 4.0]);
+  assert.deepEqual(Array.from(pipeline.runSyncAllArgs(input).low.toFloat32Array()), [1.0, 2.0]);
+  assert.deepEqual(Array.from((await pipeline.runAllArgs(input)).high.toFloat32Array()), [3.0, 4.0]);
 });
 
 test('Morflow - error handling on invalid pipeline syntax', () => {
@@ -301,7 +307,7 @@ test('Morflow - StrArg, BoolArg and Scalar positional parameters', () => {
     $audio >> to_wav >> emit
   `);
   const data = Buffer.alloc(2 * 64 * 4);
-  const outputs = pipeline.runSyncAllArgs(
+  const outputs = pipeline.runSyncToMapArgs(
     { data, shape: [2, 64], dtype: 'f32', payloadType: 'audio', sampleRate: 44100 },
     2.0,
     false,
@@ -329,7 +335,7 @@ test('Morflow - select QR Composite components', () => {
         $parts >> matmul >> emit("reconstructed")
   `);
   const data = new Float32Array([1, 0, 0, 1, 1, 1]);
-  const out = pipeline.runSyncAll({data: Buffer.from(data.buffer), shape: [3, 2], dtype: 'f32'});
+  const out = pipeline.runSyncToMap({data: Buffer.from(data.buffer), shape: [3, 2], dtype: 'f32'});
   assert.deepEqual(out.q.shape, [3, 2]);
   assert.deepEqual(out.r.shape, [2, 2]);
   assert.deepEqual(out.reconstructed.shape, [3, 2]);
