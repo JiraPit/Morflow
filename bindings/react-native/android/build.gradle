@@ -1,0 +1,53 @@
+// The Android side of react-native-morflow:
+// - the C++ module itself is built into the app by React Native's autolinking
+//   (react-native.config.js points it at CMakeLists.txt);
+// - this library adds Morflow's native libraries to the app: libmorflow_capi.so
+//   and one libmorflow_pack_<pack>.so per pack the app's package.json lists
+//   under morflow.packs, for arm64-v8a and x86_64.
+apply plugin: "com.android.library"
+apply plugin: "com.facebook.react"
+
+def safeExtGet(name, fallback) {
+  rootProject.ext.has(name) ? rootProject.ext.get(name) : fallback
+}
+
+// The app's root directory, where its package.json is: the parent of android/.
+def appRoot = System.getenv("MORFLOW_APP_ROOT") ? file(System.getenv("MORFLOW_APP_ROOT")) : rootProject.projectDir.parentFile
+def morflowLibs = layout.buildDirectory.dir("morflow/jniLibs")
+
+android {
+  namespace "org.morflow.reactnative"
+  compileSdkVersion safeExtGet("compileSdkVersion", 36)
+
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+  }
+
+  sourceSets {
+    main {
+      jniLibs.srcDirs += [morflowLibs.get().asFile]
+    }
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+}
+
+// Downloads (or takes from the cache) the libraries for the listed packs and
+// checks them against their releases' checksums.
+def morflowNativeLibraries = tasks.register("morflowNativeLibraries", Exec) {
+  description = "Puts Morflow's native libraries for the packs in package.json into jniLibs"
+  inputs.file(new File(appRoot, "package.json"))
+  inputs.file(file("../src/version.ts"))
+  outputs.dir(morflowLibs)
+  commandLine safeExtGet("nodeExecutable", "node"), file("../scripts/fetch-native.js").absolutePath,
+    "android", "--app", appRoot.absolutePath, "--out", morflowLibs.get().asFile.absolutePath
+}
+
+tasks.named("preBuild").configure { dependsOn(morflowNativeLibraries) }

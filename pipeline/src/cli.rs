@@ -35,18 +35,18 @@ enum Commands {
         long_about = "Prepare the actions and plugins declared in a .morf pipeline for offline use. Verify published checksums and check that declared plugin versions satisfy action requirements. Each latest declaration is resolved again; exact versions remain installed alongside it. External system libraries are loaded during execution, not preparation."
     )]
     #[command(
-        after_help = "For an app: run morflow prep --prod-target flutter <pipelines...> in a Flutter or Dart app's root directory. It lists the action packs the pipelines need in pubspec.yaml (hooks.user_defines.morflow.packs), which the app then bundles on every platform, and adds the pipelines to the app's assets. Nothing is downloaded into the action cache."
+        after_help = "For an app: run morflow prep --prod-target <flutter|react-native> <pipelines...> in the app's root directory. It lists the action packs the pipelines need in the app's pubspec.yaml (hooks.user_defines.morflow.packs) or package.json (morflow.packs), which the app then bundles on every platform; a Flutter app also gets the pipelines as assets. Nothing is downloaded into the action cache."
     )]
     Prep {
         /// Paths to .morf pipeline definition files
         #[arg(required = true, value_name = "FILE")]
         files: Vec<PathBuf>,
 
-        /// Prepare an app that bundles its actions, editing pubspec.yaml in the current directory instead of filling the action cache
+        /// Prepare an app that bundles its actions, editing its pubspec.yaml or package.json in the current directory instead of filling the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
-        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        /// Apply the changes to the app without asking (with --prod-target)
         #[arg(short, long, requires = "prod_target")]
         yes: bool,
 
@@ -65,18 +65,18 @@ enum Commands {
 
     /// Cleans and removes all cached action binaries from the action path
     #[command(
-        after_help = "For an app: morflow clean --prod-target flutter removes every pack from the app's pubspec.yaml (hooks.user_defines.morflow.packs)."
+        after_help = "For an app: morflow clean --prod-target <flutter|react-native> removes every pack from the app's pubspec.yaml or package.json."
     )]
     Clean {
         /// Custom action cache directory to clean (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// Remove every pack an app bundles from pubspec.yaml in the current directory instead of cleaning the action cache
+        /// Remove every pack an app bundles from its pubspec.yaml or package.json in the current directory instead of cleaning the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
-        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        /// Apply the changes to the app without asking (with --prod-target)
         #[arg(short, long, requires = "prod_target")]
         yes: bool,
     },
@@ -109,14 +109,14 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// List the packs an app bundles, from pubspec.yaml in the current directory, instead of the action cache
+        /// List the packs an app bundles, from its pubspec.yaml or package.json in the current directory, instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
     },
 
     /// Installs a specific action binary into the local action cache
     #[command(
-        after_help = "For an app: morflow install audio_basics --prod-target flutter adds the pack to the app's pubspec.yaml (hooks.user_defines.morflow.packs), so the app bundles it. Apps bundle whole packs, at one exact version; latest is resolved to it."
+        after_help = "For an app: morflow install audio_basics --prod-target <flutter|react-native> adds the pack to the app's pubspec.yaml or package.json, so the app bundles it. Apps bundle whole packs, at one exact version; latest is resolved to it."
     )]
     Install {
         /// Full action or pack path (e.g. image_basics/latest/color_adjust, audio_basics/latest); with --prod-target, a pack (audio_basics, audio_basics/0.2.4)
@@ -130,18 +130,18 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         force: bool,
 
-        /// Add the pack to an app's pubspec.yaml in the current directory instead of the action cache
+        /// Add the pack to an app's pubspec.yaml or package.json in the current directory instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
-        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        /// Apply the changes to the app without asking (with --prod-target)
         #[arg(short, long, requires = "prod_target")]
         yes: bool,
     },
 
     /// Removes installed actions from the local action cache
     #[command(
-        after_help = "Examples:\n  morflow uninstall image_basics/latest/color_adjust\n  morflow uninstall audio_basics/0.2.4\n  morflow uninstall audio_basics\nFor an app: morflow uninstall audio_basics --prod-target flutter removes the pack from the app's pubspec.yaml."
+        after_help = "Examples:\n  morflow uninstall image_basics/latest/color_adjust\n  morflow uninstall audio_basics/0.2.4\n  morflow uninstall audio_basics\nFor an app: morflow uninstall audio_basics --prod-target <flutter|react-native> removes the pack from the app's pubspec.yaml or package.json."
     )]
     Uninstall {
         /// An action, a pack version or a whole pack (e.g. image_basics/latest/color_adjust, audio_basics/0.2.4, audio_basics)
@@ -151,11 +151,11 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// Remove the pack from an app's pubspec.yaml in the current directory instead of the action cache
+        /// Remove the pack from an app's pubspec.yaml or package.json in the current directory instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
-        /// Apply pubspec.yaml changes without asking (with --prod-target)
+        /// Apply the changes to the app without asking (with --prod-target)
         #[arg(short, long, requires = "prod_target")]
         yes: bool,
     },
@@ -336,6 +336,77 @@ fn spec_target(action: &str) -> Result<ActionIdentity, String> {
 enum AppTarget {
     /// A Flutter or Dart app (Android, iOS, Linux, macOS, Windows), which bundles its packs
     Flutter,
+    /// A React Native app (Android, iOS), which bundles its packs
+    ReactNative,
+}
+
+impl AppTarget {
+    /// The value of --prod-target.
+    fn flag(self) -> &'static str {
+        match self {
+            AppTarget::Flutter => "flutter",
+            AppTarget::ReactNative => "react-native",
+        }
+    }
+
+    /// The file that lists the app's packs, in the app's root directory.
+    fn manifest(self) -> &'static str {
+        match self {
+            AppTarget::Flutter => "pubspec.yaml",
+            AppTarget::ReactNative => "package.json",
+        }
+    }
+
+    /// Where in the manifest the packs are listed.
+    fn packs_key(self) -> &'static str {
+        match self {
+            AppTarget::Flutter => "hooks.user_defines.morflow.packs",
+            AppTarget::ReactNative => "morflow.packs",
+        }
+    }
+
+    fn packs(self, text: &str) -> Result<BTreeMap<String, String>, String> {
+        match self {
+            AppTarget::Flutter => crate::pubspec::packs(text),
+            AppTarget::ReactNative => crate::package_json::packs(text),
+        }
+    }
+
+    fn add_packs(self, text: &str, packs: &BTreeMap<String, String>) -> Result<String, String> {
+        match self {
+            AppTarget::Flutter => crate::pubspec::update(text, packs, &[]),
+            AppTarget::ReactNative => crate::package_json::update(text, packs),
+        }
+    }
+
+    fn remove_packs(self, text: &str, names: Option<&[String]>) -> Result<String, String> {
+        match self {
+            AppTarget::Flutter => crate::pubspec::remove_packs(text, names),
+            AppTarget::ReactNative => crate::package_json::remove_packs(text, names),
+        }
+    }
+
+    /// How to add the Morflow package, if the manifest does not depend on it.
+    fn missing_package(self, text: &str) -> Option<&'static str> {
+        match self {
+            AppTarget::Flutter => (!crate::pubspec::depends_on(text, "morflow"))
+                .then_some("Add the Morflow package too: flutter pub add morflow"),
+            AppTarget::ReactNative => {
+                (!crate::package_json::depends_on(text, crate::package_json::PACKAGE))
+                    .then_some("Add the Morflow package too: npm install react-native-morflow")
+            }
+        }
+    }
+
+    /// That the app's builds now bundle `what`.
+    fn bundled(self, what: &str) -> String {
+        match self {
+            AppTarget::Flutter => {
+                format!("flutter run and flutter build now bundle {what} for every platform.")
+            }
+            AppTarget::ReactNative => format!("Android and iOS builds now bundle {what}."),
+        }
+    }
 }
 
 fn parse_pipeline_file(file: &Path) -> Result<parser::ast::Pipeline, String> {
@@ -359,11 +430,15 @@ fn prefixed(file: &Path, files: &[PathBuf], error: String) -> String {
     }
 }
 
-/// `morflow prep --prod-target flutter`: lists the packs the pipelines need in the
-/// app's pubspec.yaml and adds the pipelines to its assets, after showing the
-/// change and asking.
-fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (pubspec_path, before) = app_pubspec()?;
+/// `morflow prep --prod-target <target>`: lists the packs the pipelines need
+/// in the app's manifest (and, for Flutter, adds the pipelines to its assets),
+/// after showing the change and asking.
+fn prep_app(
+    target: AppTarget,
+    files: &[PathBuf],
+    yes: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (manifest_path, before) = app_manifest(target)?;
     let root = env::current_dir()?;
     let mut asts = Vec::new();
     for file in files {
@@ -372,14 +447,14 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
     let client = ReleaseClient::new(resolve_repo())?;
     let packs = crate::preparation::app_packs(&asts, &client)?;
 
-    // Pipelines inside the app become Flutter assets, at their path from the root.
+    // Each pipeline's path from the app's root, for Flutter assets and imports.
     let canonical_root = root.canonicalize()?;
-    let mut assets = Vec::new();
+    let mut inside = Vec::new();
     let mut outside = Vec::new();
     for file in files {
         let path = file.canonicalize()?;
         match path.strip_prefix(&canonical_root) {
-            Ok(relative) => assets.push(
+            Ok(relative) => inside.push(
                 relative
                     .components()
                     .map(|c| c.as_os_str().to_string_lossy())
@@ -390,8 +465,14 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
         }
     }
 
-    let flutter_app = before.lines().any(|l| l.starts_with("flutter:"));
-    let after = crate::pubspec::update(&before, &packs, if flutter_app { &assets } else { &[] })?;
+    let flutter_app =
+        target == AppTarget::Flutter && before.lines().any(|l| l.starts_with("flutter:"));
+    let after = match target {
+        AppTarget::Flutter => {
+            crate::pubspec::update(&before, &packs, if flutter_app { &inside } else { &[] })?
+        }
+        AppTarget::ReactNative => crate::package_json::update(&before, &packs)?,
+    };
     let listed = packs
         .iter()
         .map(|(p, v)| format!("{p} {v}"))
@@ -402,44 +483,76 @@ fn prep_app(files: &[PathBuf], yes: bool) -> Result<(), Box<dyn std::error::Erro
         if listed.is_empty() { "none" } else { &listed }
     );
 
-    if !apply_pubspec(&pubspec_path, &before, &after, yes)? {
+    if !apply_manifest(target, &manifest_path, &before, &after, yes)? {
         return Ok(());
     }
 
-    if !crate::pubspec::depends_on(&after, "morflow") {
-        println!("Add the Morflow package too: flutter pub add morflow");
+    if let Some(hint) = target.missing_package(&after) {
+        println!("{hint}");
     }
-    for file in &outside {
-        println!("{file} is outside this app, so it was not added to its assets; move it into the app to ship it.");
-    }
-    if flutter_app {
-        if let Some(asset) = assets.first() {
-            println!(
-                "Load each pipeline from the app's assets, such as:\n  morflow.fromStr(await rootBundle.loadString('{asset}'))"
-            );
+    match target {
+        AppTarget::Flutter => {
+            for file in &outside {
+                println!("{file} is outside this app, so it was not added to its assets; move it into the app to ship it.");
+            }
+            if let Some(asset) = inside.first().filter(|_| flutter_app) {
+                println!(
+                    "Load each pipeline from the app's assets, such as:\n  morflow.fromStr(await rootBundle.loadString('{asset}'))"
+                );
+            }
+        }
+        AppTarget::ReactNative => {
+            if !metro_uses_morflow(&root) {
+                println!(
+                    "To import .morf files, wrap your Metro config with withMorflow from react-native-morflow/metro (see https://morflow.org/doc#exec-react-native)."
+                );
+            }
+            if let Some(file) = inside.first() {
+                let name = Path::new(file).file_stem().map_or("pipeline".into(), |s| {
+                    s.to_string_lossy().replace(['-', '.'], "_")
+                });
+                println!(
+                    "Import each pipeline and compile it, such as:\n  import {name} from './{file}';\n  const pipeline = morflow.fromStr({name});"
+                );
+            }
         }
     }
     if !packs.is_empty() {
-        println!("flutter run and flutter build now bundle these packs for every platform.");
+        println!("{}", target.bundled("these packs"));
     }
     Ok(())
 }
 
-/// The app's pubspec.yaml in the current directory, and its text.
-fn app_pubspec() -> Result<(PathBuf, String), String> {
-    let path = env::current_dir()
-        .map_err(|e| e.to_string())?
-        .join("pubspec.yaml");
+/// Whether the app's Metro config uses react-native-morflow/metro.
+fn metro_uses_morflow(root: &Path) -> bool {
+    [
+        "metro.config.js",
+        "metro.config.cjs",
+        "metro.config.mjs",
+        "metro.config.ts",
+    ]
+    .iter()
+    .filter_map(|name| fs::read_to_string(root.join(name)).ok())
+    .any(|text| text.contains("react-native-morflow/metro"))
+}
+
+/// The app's manifest in the current directory, and its text.
+fn app_manifest(target: AppTarget) -> Result<(PathBuf, String), String> {
+    let name = target.manifest();
+    let path = env::current_dir().map_err(|e| e.to_string())?.join(name);
     if !path.is_file() {
-        return Err("There is no pubspec.yaml here; run this in your app's root directory".into());
+        return Err(format!(
+            "There is no {name} here; run this in your app's root directory"
+        ));
     }
-    let text = fs::read_to_string(&path).map_err(|e| format!("Cannot read pubspec.yaml: {e}"))?;
+    let text = fs::read_to_string(&path).map_err(|e| format!("Cannot read {name}: {e}"))?;
     Ok((path, text))
 }
 
 /// Shows the change from `before` to `after` and writes it after asking, or
 /// right away with `yes`. False when the developer declines.
-fn apply_pubspec(
+fn apply_manifest(
+    target: AppTarget,
     path: &Path,
     before: &str,
     after: &str,
@@ -447,11 +560,12 @@ fn apply_pubspec(
 ) -> Result<bool, Box<dyn std::error::Error>> {
     use std::io::{BufRead, IsTerminal, Write};
 
+    let name = target.manifest();
     if before == after {
-        println!("pubspec.yaml is already up to date.");
+        println!("{name} is already up to date.");
         return Ok(true);
     }
-    println!("\nChanges to pubspec.yaml:\n");
+    println!("\nChanges to {name}:\n");
     let color = std::io::stdout().is_terminal();
     for line in crate::pubspec::diff(before, after, 3).lines() {
         match (color, line.chars().next()) {
@@ -464,19 +578,19 @@ fn apply_pubspec(
     println!();
     if !yes {
         if !std::io::stdin().is_terminal() {
-            return Err("Not applied: pass --yes to change pubspec.yaml without asking".into());
+            return Err(format!("Not applied: pass --yes to change {name} without asking").into());
         }
         print!("Apply these changes? [Y/n] ");
         std::io::stdout().flush()?;
         let mut answer = String::new();
         std::io::stdin().lock().read_line(&mut answer)?;
         if !matches!(answer.trim().to_lowercase().as_str(), "" | "y" | "yes") {
-            println!("pubspec.yaml left unchanged.");
+            println!("{name} left unchanged.");
             return Ok(false);
         }
     }
     fs::write(path, after)?;
-    println!("Updated pubspec.yaml.");
+    println!("Updated {name}.");
     Ok(true)
 }
 
@@ -498,10 +612,14 @@ fn pack_target(input: &str) -> Result<(String, Option<String>, Option<String>), 
     Ok((parts[0].into(), version, action))
 }
 
-/// `morflow install <pack> --prod-target flutter`: lists the pack in pubspec.yaml.
-fn install_app_pack(target: &str, yes: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (pubspec_path, before) = app_pubspec()?;
-    let (pack, version, action) = pack_target(target)?;
+/// `morflow install <pack> --prod-target <target>`: lists the pack in the app's manifest.
+fn install_app_pack(
+    target: AppTarget,
+    input: &str,
+    yes: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (manifest_path, before) = app_manifest(target)?;
+    let (pack, version, action) = pack_target(input)?;
     let client = ReleaseClient::new(resolve_repo())?;
     let release =
         crate::preparation::app_pack(&client, &pack, version.as_deref().unwrap_or("latest"))?;
@@ -516,78 +634,88 @@ fn install_app_pack(target: &str, yes: bool) -> Result<(), Box<dyn std::error::E
         }
         println!("Apps bundle whole packs, so this adds all of {pack}, including {action}.");
     }
-    let listed = crate::pubspec::packs(&before)?;
+    let listed = target.packs(&before)?;
     if let Some(old) = listed.get(&pack).filter(|old| **old != concrete) {
-        println!("pubspec.yaml lists {pack} {old}; this changes it to {concrete}.");
+        println!(
+            "{} lists {pack} {old}; this changes it to {concrete}.",
+            target.manifest()
+        );
     }
-    let after = crate::pubspec::update(
-        &before,
-        &BTreeMap::from([(pack.clone(), concrete.clone())]),
-        &[],
-    )?;
-    if apply_pubspec(&pubspec_path, &before, &after, yes)? && before != after {
-        println!("flutter run and flutter build now bundle {pack} {concrete} for every platform.");
-        if !crate::pubspec::depends_on(&after, "morflow") {
-            println!("Add the Morflow package too: flutter pub add morflow");
+    let after = target.add_packs(&before, &BTreeMap::from([(pack.clone(), concrete.clone())]))?;
+    if apply_manifest(target, &manifest_path, &before, &after, yes)? && before != after {
+        println!("{}", target.bundled(&format!("{pack} {concrete}")));
+        if let Some(hint) = target.missing_package(&after) {
+            println!("{hint}");
         }
     }
     Ok(())
 }
 
-/// `morflow uninstall <pack> --prod-target flutter`: removes the pack from pubspec.yaml.
-fn uninstall_app_pack(target: &str, yes: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (pubspec_path, before) = app_pubspec()?;
-    let (pack, version, action) = pack_target(target)?;
+/// `morflow uninstall <pack> --prod-target <target>`: removes the pack from the app's manifest.
+fn uninstall_app_pack(
+    target: AppTarget,
+    input: &str,
+    yes: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (manifest_path, before) = app_manifest(target)?;
+    let (pack, version, action) = pack_target(input)?;
+    let flag = target.flag();
     if action.is_some() {
         return Err(format!(
-            "Apps bundle whole packs, so one action cannot be removed; morflow uninstall {pack} --prod-target flutter removes the whole pack"
+            "Apps bundle whole packs, so one action cannot be removed; morflow uninstall {pack} --prod-target {flag} removes the whole pack"
         )
         .into());
     }
-    let listed = crate::pubspec::packs(&before)?;
+    let listed = target.packs(&before)?;
     let Some(old) = listed.get(&pack) else {
         return Err(format!(
-            "{pack} is not in pubspec.yaml's packs; morflow list --prod-target flutter shows the packs the app bundles"
+            "{pack} is not in {}'s packs; morflow list --prod-target {flag} shows the packs the app bundles",
+            target.manifest()
         )
         .into());
     };
     if let Some(version) = version.filter(|v| v != "latest" && v != old) {
-        return Err(format!("pubspec.yaml lists {pack} {old}, not {version}").into());
+        return Err(format!("{} lists {pack} {old}, not {version}", target.manifest()).into());
     }
-    let after = crate::pubspec::remove_packs(&before, Some(std::slice::from_ref(&pack)))?;
-    if apply_pubspec(&pubspec_path, &before, &after, yes)? {
+    let after = target.remove_packs(&before, Some(std::slice::from_ref(&pack)))?;
+    if apply_manifest(target, &manifest_path, &before, &after, yes)? {
         println!("The app no longer bundles {pack}; pipelines that use it will not load.");
     }
     Ok(())
 }
 
-/// `morflow clean --prod-target flutter`: removes every pack from pubspec.yaml.
-fn clean_app_packs(yes: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (pubspec_path, before) = app_pubspec()?;
-    if crate::pubspec::packs(&before)?.is_empty() {
-        println!("pubspec.yaml lists no packs.");
+/// `morflow clean --prod-target <target>`: removes every pack from the app's manifest.
+fn clean_app_packs(target: AppTarget, yes: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let (manifest_path, before) = app_manifest(target)?;
+    if target.packs(&before)?.is_empty() {
+        println!("{} lists no packs.", target.manifest());
         return Ok(());
     }
-    let after = crate::pubspec::remove_packs(&before, None)?;
-    if apply_pubspec(&pubspec_path, &before, &after, yes)? {
-        println!("The app no longer bundles any packs; run morflow prep --prod-target flutter <pipelines> to add the ones it needs.");
+    let after = target.remove_packs(&before, None)?;
+    if apply_manifest(target, &manifest_path, &before, &after, yes)? {
+        println!(
+            "The app no longer bundles any packs; run morflow prep --prod-target {} <pipelines> to add the ones it needs.",
+            target.flag()
+        );
     }
     Ok(())
 }
 
-/// `morflow list --prod-target flutter`: the packs pubspec.yaml lists.
-fn list_app_packs() -> Result<(), Box<dyn std::error::Error>> {
-    let (pubspec_path, text) = app_pubspec()?;
-    let rows = crate::pubspec::packs(&text)?
+/// `morflow list --prod-target <target>`: the packs the app's manifest lists.
+fn list_app_packs(target: AppTarget) -> Result<(), Box<dyn std::error::Error>> {
+    let (manifest_path, text) = app_manifest(target)?;
+    let rows = target
+        .packs(&text)?
         .into_iter()
         .map(|(pack, version)| vec![pack.clone(), version, format!("{pack}/latest")])
         .collect();
+    let flag = target.flag();
     print_catalog(
         "App packs",
-        &format!("{} · hooks.user_defines.morflow.packs", pubspec_path.display()),
+        &format!("{} · {}", manifest_path.display(), target.packs_key()),
         &["Pack", "Version", "Import path"],
         rows,
-        "No packs listed. Run morflow prep --prod-target flutter <pipelines> or morflow install <pack> --prod-target flutter.",
+        &format!("No packs listed. Run morflow prep --prod-target {flag} <pipelines> or morflow install <pack> --prod-target {flag}."),
     );
     Ok(())
 }
@@ -740,10 +868,10 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         )?,
         Commands::Prep {
             files,
-            prod_target: Some(AppTarget::Flutter),
+            prod_target: Some(target),
             yes,
             ..
-        } => prep_app(&files, yes)?,
+        } => prep_app(target, &files, yes)?,
         Commands::Prep {
             files,
             path,
@@ -774,26 +902,26 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Install {
             action,
-            prod_target: Some(AppTarget::Flutter),
+            prod_target: Some(target),
             yes,
             ..
-        } => install_app_pack(&action, yes)?,
+        } => install_app_pack(target, &action, yes)?,
         Commands::Uninstall {
             action,
-            prod_target: Some(AppTarget::Flutter),
+            prod_target: Some(target),
             yes,
             ..
-        } => uninstall_app_pack(&action, yes)?,
+        } => uninstall_app_pack(target, &action, yes)?,
         Commands::Uninstall { action, path, .. } => uninstall_cached(&action, path)?,
         Commands::List {
-            prod_target: Some(AppTarget::Flutter),
+            prod_target: Some(target),
             ..
-        } => list_app_packs()?,
+        } => list_app_packs(target)?,
         Commands::Clean {
-            prod_target: Some(AppTarget::Flutter),
+            prod_target: Some(target),
             yes,
             ..
-        } => clean_app_packs(yes)?,
+        } => clean_app_packs(target, yes)?,
         Commands::Install {
             action,
             path,
@@ -1344,6 +1472,8 @@ mod tests {
             &["list", "--prod-target", "flutter"],
             &["clean", "--prod-target", "flutter", "-y"],
             &["uninstall", "audio_basics/0.2.4"],
+            &["prep", "a.morf", "--prod-target", "react-native", "--yes"],
+            &["list", "--prod-target", "react-native"],
         ] {
             assert!(parse(args).is_ok(), "{args:?}");
         }

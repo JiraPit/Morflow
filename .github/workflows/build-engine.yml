@@ -681,6 +681,40 @@ jobs:
       - name: Publish verified package
         run: node scripts/publish-node.mjs dist_npm/*.tgz
 
+  publish-react-native:
+    name: Publish React Native package to npm
+    # react-native-morflow's version is the engine version, and apps download
+    # the C interface from the engine release, so it is published after it.
+    needs: [detect-engine, publish-engine-release]
+    if: needs.detect-engine.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Install npm with Trusted Publishing support
+        run: npm install --global npm@11
+
+      - name: Test and pack
+        working-directory: bindings/react-native
+        run: |
+          npm ci --ignore-scripts
+          npm test
+          npm pack
+          mv react-native-morflow-*.tgz "$RUNNER_TEMP/react-native-morflow.tgz"
+
+      - name: Publish verified package
+        run: node scripts/publish-node.mjs "$RUNNER_TEMP/react-native-morflow.tgz" bindings/react-native/package.json
+
   publish-maven:
     name: Publish Java package to Maven Central
     needs: [detect-engine, publish-engine-release]

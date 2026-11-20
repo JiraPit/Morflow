@@ -1,0 +1,4 @@
+import audio_basics/latest
+
+accept Audio $audio
+$audio >> gain(linear=2.0) >> to_wav >> emit
