@@ -57,7 +57,7 @@ cargo add morflow
 <dependency>
     <groupId>org.morflow</groupId>
     <artifactId>morflow</artifactId>
-    <version>0.3.4</version>
+    <version>0.3.5</version>
 </dependency>
 ```
 
