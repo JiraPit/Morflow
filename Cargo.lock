@@ -1851,7 +1851,7 @@ dependencies = [
 
 [[package]]
 name = "morflow"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "abi_stable",
  "ariadne",
@@ -1873,7 +1873,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-capi"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -1893,7 +1893,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-jni"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "abi_stable",
  "jni",
@@ -1903,7 +1903,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-node"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "abi_stable",
  "morflow",
@@ -1940,7 +1940,7 @@ dependencies = [
 
 [[package]]
 name = "morflow-py"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "abi_stable",
  "morflow",
