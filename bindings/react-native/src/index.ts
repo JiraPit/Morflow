@@ -3,7 +3,7 @@
  * and iOS. The API matches the Node.js package (`morflow` on npm), with
  * `Uint8Array` where Node.js uses `Buffer`.
  */
-/// <reference path="./morf.d.ts" />
+/// <reference path="./morf.d.ts" preserve="true" />
 import { toNative, wrapOutput, wrapOutputs } from './convert';
 import type { MorflowOutput, MorflowTensor, PipelineArg, PipelineInput } from './types';
 import { engineVersion } from './version';
