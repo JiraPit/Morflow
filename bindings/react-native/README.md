@@ -38,6 +38,9 @@ Install the Morflow CLI from [morflow.org](https://morflow.org/doc#cli-installat
 
 ```sh
 morflow prep --prod-target react-native pipelines/boost.morf
+
+# Or every pipeline in a folder
+morflow prep --prod-target react-native pipelines
 ```
 
 It shows what it will add to your `package.json` and asks before changing anything. Press Enter to accept.
