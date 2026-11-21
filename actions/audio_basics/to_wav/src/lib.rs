@@ -112,22 +112,38 @@ pub fn encode_wav_binary(
     let byte_rate = sample_rate * channels as u32 * bytes_per_sample as u32;
     let block_align = (channels * bytes_per_sample) as u16;
 
-    let mut wav = Vec::with_capacity(44 + data_size);
+    // Integer PCM uses the classic 16-byte fmt chunk. IEEE float is not PCM,
+    // so the WAVE spec asks for an 18-byte fmt chunk (with cbSize = 0) and a
+    // fact chunk holding the number of sample frames.
+    let is_float = audio_format == 3;
+    let fmt_size: u32 = if is_float { 18 } else { 16 };
+    let fact_len: usize = if is_float { 12 } else { 0 };
+    let header_len = 12 + 8 + fmt_size as usize + fact_len + 8;
+
+    let mut wav = Vec::with_capacity(header_len + data_size);
 
     // 1. RIFF Header
     wav.extend_from_slice(b"RIFF");
-    wav.extend_from_slice(&((36 + data_size) as u32).to_le_bytes());
+    wav.extend_from_slice(&((header_len - 8 + data_size) as u32).to_le_bytes());
     wav.extend_from_slice(b"WAVE");
 
     // 2. fmt chunk
     wav.extend_from_slice(b"fmt ");
-    wav.extend_from_slice(&16u32.to_le_bytes()); // Subchunk1Size = 16
+    wav.extend_from_slice(&fmt_size.to_le_bytes());
     wav.extend_from_slice(&audio_format.to_le_bytes());
     wav.extend_from_slice(&(channels as u16).to_le_bytes());
     wav.extend_from_slice(&sample_rate.to_le_bytes());
     wav.extend_from_slice(&byte_rate.to_le_bytes());
     wav.extend_from_slice(&block_align.to_le_bytes());
     wav.extend_from_slice(&bits_per_sample.to_le_bytes());
+    if is_float {
+        wav.extend_from_slice(&0u16.to_le_bytes()); // cbSize: no extension
+
+        // fact chunk: sample frames per channel
+        wav.extend_from_slice(b"fact");
+        wav.extend_from_slice(&4u32.to_le_bytes());
+        wav.extend_from_slice(&(num_samples as u32).to_le_bytes());
+    }
 
     // 3. data chunk header
     wav.extend_from_slice(b"data");
@@ -290,14 +306,26 @@ mod tests {
 
         let result = process(payload);
         if let Payload::Data { buffer } = result {
-            assert_eq!(buffer.len(), 44 + 2 * 4);
+            // Float WAV: 18-byte fmt chunk with cbSize, then a fact chunk.
+            assert_eq!(buffer.len(), 58 + 2 * 4);
+            let riff_size = u32::from_le_bytes(buffer[4..8].try_into().unwrap());
+            assert_eq!(riff_size as usize, buffer.len() - 8);
+            let fmt_size = u32::from_le_bytes(buffer[16..20].try_into().unwrap());
             let audio_format = u16::from_le_bytes(buffer[20..22].try_into().unwrap());
             let bits = u16::from_le_bytes(buffer[34..36].try_into().unwrap());
+            let cb_size = u16::from_le_bytes(buffer[36..38].try_into().unwrap());
+            assert_eq!(fmt_size, 18);
             assert_eq!(audio_format, 3); // IEEE Float
             assert_eq!(bits, 32);
+            assert_eq!(cb_size, 0);
+            assert_eq!(&buffer[38..42], b"fact");
+            assert_eq!(u32::from_le_bytes(buffer[42..46].try_into().unwrap()), 4);
+            assert_eq!(u32::from_le_bytes(buffer[46..50].try_into().unwrap()), 2); // sample frames
+            assert_eq!(&buffer[50..54], b"data");
+            assert_eq!(u32::from_le_bytes(buffer[54..58].try_into().unwrap()), 8);
 
-            let f0 = f32::from_le_bytes(buffer[44..48].try_into().unwrap());
-            let f1 = f32::from_le_bytes(buffer[48..52].try_into().unwrap());
+            let f0 = f32::from_le_bytes(buffer[58..62].try_into().unwrap());
+            let f1 = f32::from_le_bytes(buffer[62..66].try_into().unwrap());
             assert_eq!(f0, 0.75);
             assert_eq!(f1, -0.75);
         } else {

@@ -765,6 +765,41 @@ mod tests {
     }
 
     #[test]
+    fn test_to_audio_from_float_wav_with_fact_chunk() {
+        // The layout to_wav writes for 32-bit float: an 18-byte fmt chunk
+        // (cbSize = 0), a fact chunk, then the data. Mono, 2 frames.
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"RIFF");
+        buf.extend_from_slice(&(50u32 + 8).to_le_bytes());
+        buf.extend_from_slice(b"WAVE");
+        buf.extend_from_slice(b"fmt ");
+        buf.extend_from_slice(&18u32.to_le_bytes());
+        buf.extend_from_slice(&3u16.to_le_bytes()); // IEEE float
+        buf.extend_from_slice(&1u16.to_le_bytes());
+        buf.extend_from_slice(&22050u32.to_le_bytes());
+        buf.extend_from_slice(&(22050u32 * 4).to_le_bytes());
+        buf.extend_from_slice(&4u16.to_le_bytes());
+        buf.extend_from_slice(&32u16.to_le_bytes());
+        buf.extend_from_slice(&0u16.to_le_bytes()); // cbSize
+        buf.extend_from_slice(b"fact");
+        buf.extend_from_slice(&4u32.to_le_bytes());
+        buf.extend_from_slice(&2u32.to_le_bytes());
+        buf.extend_from_slice(b"data");
+        buf.extend_from_slice(&8u32.to_le_bytes());
+        buf.extend_from_slice(&0.75f32.to_le_bytes());
+        buf.extend_from_slice(&(-0.25f32).to_le_bytes());
+
+        let result = process(Payload::Data { buffer: core_types::RVec::from(buf) });
+        if let Payload::Audio(audio) = result {
+            assert_eq!(audio.sample_rate, 22050);
+            assert_eq!(audio.channels(), 1);
+            assert_eq!(audio.to_vec_f32(), vec![0.75, -0.25]);
+        } else {
+            panic!("Expected Payload::Audio, got {:?}", result);
+        }
+    }
+
+    #[test]
     fn test_to_audio_from_raw_pcm() {
         let raw_i16 = vec![32767i16, -32768i16]; // 1 stereo frame (left 1.0, right -1.0)
         let mut byte_vec = Vec::new();

@@ -335,7 +335,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "biquad_filter"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -574,7 +574,7 @@ dependencies = [
 
 [[package]]
 name = "compressor"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -785,7 +785,7 @@ dependencies = [
 
 [[package]]
 name = "delay"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "gain"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -1613,7 +1613,7 @@ dependencies = [
 
 [[package]]
 name = "limiter"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "noise_gate"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2122,7 +2122,7 @@ dependencies = [
 
 [[package]]
 name = "normalize"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -2858,7 +2858,7 @@ dependencies = [
 
 [[package]]
 name = "resample"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3292,7 +3292,7 @@ dependencies = [
 
 [[package]]
 name = "stereo_widen"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3300,7 +3300,7 @@ dependencies = [
 
 [[package]]
 name = "stft"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3551,7 +3551,7 @@ dependencies = [
 
 [[package]]
 name = "to_audio"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3567,7 +3567,7 @@ dependencies = [
 
 [[package]]
 name = "to_pcm"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
@@ -3583,7 +3583,7 @@ dependencies = [
 
 [[package]]
 name = "to_wav"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "morflow-core-types",
  "rayon",
