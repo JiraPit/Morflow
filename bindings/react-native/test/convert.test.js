@@ -77,3 +77,10 @@ test('composite and named outputs', () => {
   assert.equal(named.a.length, 1);
   assert.equal(wrapOutput(undefined), undefined);
 });
+
+test('the built typings keep the .morf module declaration', () => {
+  // tsc drops a triple-slash reference unless it says preserve="true"; without
+  // it, `import boost from './boost.morf'` fails to type-check in apps.
+  const typings = require('node:fs').readFileSync(require.resolve('../lib/index.d.ts'), 'utf8');
+  assert.match(typings, /^\/\/\/ <reference path="[^"]*morf\.d\.ts" preserve="true" \/>/m);
+});

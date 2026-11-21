@@ -24,7 +24,7 @@ export interface MorflowTensor {
   toUint32Array(): Uint32Array;
   toBigInt64Array(): BigInt64Array;
   toBigUint64Array(): BigUint64Array;
-  /** The raw bytes, such as a WAV or PNG file from `to_wav` or `to_png`. */
+  /** The raw bytes, such as a WAV file from `to_wav`. */
   toBuffer(): Uint8Array;
 }
 
