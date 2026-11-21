@@ -38,7 +38,7 @@ enum Commands {
         after_help = "For an app: run morflow prep --prod-target <flutter|react-native> <pipelines...> in the app's root directory. It lists the action packs the pipelines need in the app's pubspec.yaml (hooks.user_defines.morflow.packs) or package.json (morflow.packs), which the app then bundles on every platform; a Flutter app also gets the pipelines as assets. Nothing is downloaded into the action cache."
     )]
     Prep {
-        /// Paths to .morf pipeline definition files
+        /// .morf pipeline files, folders (every .morf file inside, subfolders included) or wildcard patterns such as "pipelines/*.morf"
         #[arg(required = true, value_name = "FILE")]
         files: Vec<PathBuf>,
 
@@ -419,6 +419,77 @@ fn parse_pipeline_file(file: &Path) -> Result<parser::ast::Pipeline, String> {
             .collect::<Vec<_>>()
             .join("\n")
     })
+}
+
+/// The pipeline files that `prep`'s arguments name. A folder gives every
+/// `.morf` file inside it, subfolders included; a wildcard pattern that the
+/// shell left alone (quoted, or on Windows) is expanded here. Files without
+/// the .morf extension, such as a README, are skipped with a note, so
+/// `morflow prep pipelines/*` works even when the folder holds more than
+/// pipelines.
+fn pipeline_files(args: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    fn is_morf(path: &Path) -> bool {
+        path.extension().is_some_and(|ext| ext == "morf")
+    }
+    fn add_dir(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+        let mut entries = fs::read_dir(dir)
+            .and_then(|entries| {
+                entries
+                    .map(|e| e.map(|e| e.path()))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .map_err(|e| format!("Cannot read {}: {e}", dir.display()))?;
+        entries.sort();
+        for path in entries {
+            if path.is_dir() {
+                add_dir(&path, out)?;
+            } else if is_morf(&path) {
+                out.push(path);
+            }
+        }
+        Ok(())
+    }
+
+    let mut files = Vec::new();
+    let mut skipped = Vec::new();
+    for arg in args {
+        let text = arg.to_string_lossy();
+        let matches = if !arg.exists() && text.contains(['*', '?', '[']) {
+            let found = glob::glob(&text)
+                .map_err(|e| format!("Bad pattern {text}: {e}"))?
+                .filter_map(Result::ok)
+                .collect::<Vec<_>>();
+            if found.is_empty() {
+                return Err(format!("No files match {text}"));
+            }
+            found
+        } else {
+            vec![arg.clone()]
+        };
+        for path in matches {
+            if path.is_dir() {
+                add_dir(&path, &mut files)?;
+            } else if is_morf(&path) || !path.exists() {
+                // A missing path stays, so prep reports it.
+                files.push(path);
+            } else {
+                skipped.push(path);
+            }
+        }
+    }
+    let mut seen = std::collections::HashSet::new();
+    files.retain(|f| seen.insert(f.canonicalize().unwrap_or_else(|_| f.clone())));
+    if !skipped.is_empty() {
+        let names = skipped
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect::<Vec<_>>();
+        eprintln!("Skipped (not .morf files): {}", names.join(", "));
+    }
+    if files.is_empty() {
+        return Err("No .morf files to prepare. Pipeline files need the .morf extension.".into());
+    }
+    Ok(files)
 }
 
 /// `error`, naming `file` when several files were given.
@@ -871,7 +942,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             prod_target: Some(target),
             yes,
             ..
-        } => prep_app(target, &files, yes)?,
+        } => prep_app(target, &pipeline_files(&files)?, yes)?,
         Commands::Prep {
             files,
             path,
@@ -882,6 +953,7 @@ fn run_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
             let client = ReleaseClient::new(resolve_repo())?;
             let root = resolve_action_cache_dir(path);
             let plugin_root = crate::plugins::cache_dir(plugins_path);
+            let files = pipeline_files(&files)?;
             for file in &files {
                 let ast = parse_pipeline_file(file)?;
                 let result = crate::preparation::prepare(&ast, &client, &root, &plugin_root, force)
@@ -1363,6 +1435,60 @@ fn run_plugin_command(command: PluginCommands) -> Result<(), Box<dyn std::error:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prep_takes_folders_and_wildcards() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("pipelines/more")).unwrap();
+        for name in [
+            "pipelines/b.morf",
+            "pipelines/a.morf",
+            "pipelines/more/c.morf",
+            "pipelines/README.md",
+        ] {
+            fs::write(root.join(name), "").unwrap();
+        }
+        let p = |name: &str| root.join(name);
+        let expect = vec![
+            p("pipelines/a.morf"),
+            p("pipelines/b.morf"),
+            p("pipelines/more/c.morf"),
+        ];
+
+        // A folder: every .morf file inside, in order, subfolders included.
+        assert_eq!(pipeline_files(&[p("pipelines")]).unwrap(), expect);
+        // What a shell makes of pipelines/*: the README is skipped.
+        let shell = [
+            p("pipelines/README.md"),
+            p("pipelines/a.morf"),
+            p("pipelines/b.morf"),
+            p("pipelines/more"),
+        ];
+        assert_eq!(pipeline_files(&shell).unwrap(), expect);
+        // The same pattern left unexpanded, quoted or on Windows.
+        assert_eq!(pipeline_files(&[p("pipelines/*")]).unwrap(), expect);
+        assert_eq!(
+            pipeline_files(&[p("pipelines/*.morf")]).unwrap(),
+            expect[..2]
+        );
+        // Naming a file twice prepares it once.
+        assert_eq!(
+            pipeline_files(&[p("pipelines/a.morf"), p("pipelines")]).unwrap(),
+            expect
+        );
+        // A missing file is kept so prep reports it; no .morf files at all is an error.
+        assert_eq!(
+            pipeline_files(&[p("gone.morf")]).unwrap(),
+            vec![p("gone.morf")]
+        );
+        assert!(pipeline_files(&[p("pipelines/README.md")])
+            .unwrap_err()
+            .contains("No .morf files"));
+        assert!(pipeline_files(&[p("nothing/*.morf")])
+            .unwrap_err()
+            .contains("No files match"));
+    }
     #[test]
     fn plugin_search_matches_case_insensitively_and_obeys_limit() {
         assert_eq!(search_plugins("OpenCV", 5), vec!["opencv-bridge"]);

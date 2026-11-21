@@ -18,7 +18,7 @@ default = ["cli"]
 # The developer CLI (prep, install, check, search, …) and its download and
 # terminal dependencies. Applications that only run pipelines, such as mobile
 # apps through bindings/capi, build without it.
-cli = ["dep:clap", "dep:ureq", "dep:rich_rust", "dep:ariadne", "dep:chumsky"]
+cli = ["dep:clap", "dep:ureq", "dep:rich_rust", "dep:ariadne", "dep:chumsky", "dep:glob"]
 
 [dependencies]
 core_types = { package = "morflow-core-types", version = "0.4.4", path = "../core_types" }
@@ -32,6 +32,7 @@ dirs = "6.0"
 rich_rust = { version = "0.2.3", features = ["markdown"], optional = true }
 ariadne = { version = "0.5", optional = true }
 chumsky = { version = "0.9", optional = true }
+glob = { version = "0.3", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"

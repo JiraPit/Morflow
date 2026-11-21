@@ -1858,6 +1858,7 @@ dependencies = [
  "chumsky",
  "clap",
  "dirs",
+ "glob",
  "libloading 0.8.9",
  "morflow-core-types",
  "morflow-parser",

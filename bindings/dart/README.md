@@ -27,6 +27,9 @@ Install the Morflow CLI from [morflow.org](https://morflow.org/doc#cli-installat
 
 ```sh
 morflow prep --prod-target flutter pipelines/boost.morf
+
+# Or every pipeline in a folder
+morflow prep --prod-target flutter pipelines
 ```
 
 It shows what it will add to your `pubspec.yaml` and asks before changing anything. Press Enter to accept.
