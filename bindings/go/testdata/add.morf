@@ -1,0 +1,4 @@
+import math_basics/latest
+
+accept Composite $pair
+$pair >> add >> emit

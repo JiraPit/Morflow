@@ -1,0 +1,4 @@
+import tensor_basics/latest
+
+accept Tensor $data
+$data >> reshape(shape="2, 1000") >> emit

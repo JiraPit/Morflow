@@ -1,0 +1,7 @@
+import linalg_basics/latest
+
+accept Tensor[3,2] $matrix
+$matrix >> qr >> $parts
+$parts[0] >> emit("q")
+$parts[1] >> emit("r")
+$parts >> matmul >> emit("reconstructed")

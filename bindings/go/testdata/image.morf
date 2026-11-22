@@ -1,0 +1,5 @@
+from base/latest import to_tensor
+from image_basics/latest import to_image
+
+accept Image $image
+$image >> to_tensor >> to_image >> emit

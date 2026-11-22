@@ -1,0 +1,4 @@
+import tensor_stats/latest
+
+accept Tensor $data
+$data >> sum(axis=0) >> emit

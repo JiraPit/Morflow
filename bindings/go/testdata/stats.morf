@@ -1,0 +1,7 @@
+import tensor_stats/latest
+
+accept Tensor $data
+accept BoolArg $unbiased = true
+accept StrArg $order = "inf"
+$data >> std(unbiased=$unbiased) >> emit("spread")
+$data >> norm(p=$order) >> emit("size")
