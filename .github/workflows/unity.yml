@@ -10,20 +10,11 @@ name: Unity
 #
 # Needs the repository secrets UNITY_LICENSE (the contents of a Unity .ulf
 # license file), UNITY_EMAIL and UNITY_PASSWORD; see https://game.ci/docs.
+# Unity issues .ulf files only for Enterprise and Industry seats (a Personal
+# license cannot be activated in CI), so this runs only when started by hand
+# from the Actions tab. Without it, test the package locally: see
+# bindings/unity/DEVELOPMENT.md.
 on:
-  push:
-    branches: [dev-unity-support]
-    paths:
-      - 'bindings/unity/**'
-      - 'bindings/capi/**'
-      - 'pipeline/**'
-      - 'core_types/**'
-      - 'actions/**'
-      - 'scripts/build_pack.py'
-      - 'scripts/build_capi.py'
-      - 'scripts/native_targets.py'
-      - 'scripts/stage_release.py'
-      - '.github/workflows/unity.yml'
   workflow_dispatch:
 
 permissions:
