@@ -1,0 +1,8 @@
+{
+  "packs": {
+    "audio_basics": "0.2.5",
+    "base": "0.3.4",
+    "math_basics": "0.4.1",
+    "nn_basics": "0.4.1"
+  }
+}

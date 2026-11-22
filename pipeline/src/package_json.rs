@@ -1,125 +1,177 @@
-//! Reads and edits a React Native app's `package.json` for the
-//! `--prod-target react-native` commands: the packs the app bundles, under
-//! `"morflow": { "packs": { "<pack>": "<version>" } }`.
+//! Reads and edits the JSON files that list an app's packs for the
+//! `--prod-target` commands that use JSON:
+//! - a React Native app's `package.json`, under
+//!   `"morflow": { "packs": { "<pack>": "<version>" } }`;
+//! - a Unity project's `ProjectSettings/Morflow.json`, under
+//!   `"packs": { "<pack>": "<version>" }`.
 //!
-//! The file is parsed keeping its key order and written back with its own
-//! indentation, the way npm writes package.json, so only the `morflow` entry
-//! changes.
+//! A file is parsed keeping its key order and written back with its own
+//! indentation, the way npm writes package.json, so only the packs change.
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 /// The package that runs pipelines in a React Native app.
 pub const PACKAGE: &str = "react-native-morflow";
 
-/// The packs listed under `morflow.packs`: name -> version.
-pub fn packs(text: &str) -> Result<BTreeMap<String, String>, String> {
-    let root = parse(text)?;
-    let Some(packs) = packs_object(&root)? else {
-        return Ok(BTreeMap::new());
-    };
-    packs
-        .iter()
-        .map(|(name, version)| match version {
-            Value::String(version) => Ok((name.clone(), version.clone())),
-            other => Err(format!(
-                "morflow.packs.{name} in package.json must be a version string such as \"0.3.4\", not {other}"
-            )),
-        })
-        .collect()
+/// A JSON file that lists packs, and where in it they are.
+pub struct PackList {
+    /// The file's name, for messages.
+    pub file: &'static str,
+    /// The keys leading to the packs object, outermost first.
+    pub keys: &'static [&'static str],
 }
 
-/// `text` with `packs` set under `morflow.packs`, keeping other packs.
+/// A React Native app's package.json.
+pub const PACKAGE_JSON: PackList = PackList {
+    file: "package.json",
+    keys: &["morflow", "packs"],
+};
+
+/// A Unity project's Morflow settings.
+pub const UNITY_SETTINGS: PackList = PackList {
+    file: "Morflow.json",
+    keys: &["packs"],
+};
+
+/// The packs in `package.json`: name -> version.
+pub fn packs(text: &str) -> Result<BTreeMap<String, String>, String> {
+    PACKAGE_JSON.packs(text)
+}
+
+/// `package.json` with `packs` added, keeping other packs.
 pub fn update(text: &str, packs: &BTreeMap<String, String>) -> Result<String, String> {
-    let mut root = parse(text)?;
-    if packs.is_empty() {
-        return Ok(text.to_owned());
+    PACKAGE_JSON.update(text, packs)
+}
+
+/// `package.json` without the packs `names` (every pack when None).
+pub fn remove_packs(text: &str, names: Option<&[String]>) -> Result<String, String> {
+    PACKAGE_JSON.remove_packs(text, names)
+}
+
+impl PackList {
+    /// The packs listed: name -> version.
+    pub fn packs(&self, text: &str) -> Result<BTreeMap<String, String>, String> {
+        let root = self.parse(text)?;
+        let Some(packs) = self.packs_object(&root)? else {
+            return Ok(BTreeMap::new());
+        };
+        packs
+            .iter()
+            .map(|(name, version)| match version {
+                Value::String(version) => Ok((name.clone(), version.clone())),
+                other => Err(format!(
+                    "{}.{name} in {} must be a version string such as \"0.3.4\", not {other}",
+                    self.path(),
+                    self.file
+                )),
+            })
+            .collect()
     }
-    let object = root.as_object_mut().expect("parse checks the root");
-    let morflow = object
-        .entry("morflow")
-        .or_insert_with(|| Value::Object(Map::new()));
-    let morflow = morflow
-        .as_object_mut()
-        .ok_or("\"morflow\" in package.json must be an object")?;
-    let list = morflow
-        .entry("packs")
-        .or_insert_with(|| Value::Object(Map::new()))
-        .as_object_mut()
-        .ok_or("\"morflow.packs\" in package.json must be an object")?;
-    let mut changed = false;
-    for (name, version) in packs {
-        if list.get(name).and_then(Value::as_str) != Some(version) {
-            list.insert(name.clone(), Value::String(version.clone()));
-            changed = true;
+
+    /// `text` with `packs` set, keeping other packs.
+    pub fn update(&self, text: &str, packs: &BTreeMap<String, String>) -> Result<String, String> {
+        let mut root = self.parse(text)?;
+        if packs.is_empty() {
+            return Ok(text.to_owned());
+        }
+        let mut object = root.as_object_mut().expect("parse checks the root");
+        for (depth, key) in self.keys.iter().enumerate() {
+            object = object
+                .entry(*key)
+                .or_insert_with(|| Value::Object(Map::new()))
+                .as_object_mut()
+                .ok_or_else(|| self.not_an_object(depth))?;
+        }
+        let mut changed = false;
+        for (name, version) in packs {
+            if object.get(name).and_then(Value::as_str) != Some(version) {
+                object.insert(name.clone(), Value::String(version.clone()));
+                changed = true;
+            }
+        }
+        if !changed {
+            return Ok(text.to_owned());
+        }
+        write(&root, text)
+    }
+
+    /// `text` without the packs `names` (every pack when None). An emptied
+    /// packs object, and then each emptied object around it, are removed too.
+    pub fn remove_packs(&self, text: &str, names: Option<&[String]>) -> Result<String, String> {
+        let mut root = self.parse(text)?;
+        let Some(list) = self.packs_object(&root)? else {
+            return Ok(text.to_owned());
+        };
+        let keep = |name: &String| names.is_some_and(|names| !names.contains(name));
+        if list.keys().all(keep) && names.is_some() {
+            return Ok(text.to_owned());
+        }
+        remove(
+            root.as_object_mut().expect("parse checks the root"),
+            self.keys,
+            &keep,
+        );
+        write(&root, text)
+    }
+
+    fn parse(&self, text: &str) -> Result<Value, String> {
+        let root: Value =
+            serde_json::from_str(text).map_err(|e| format!("Cannot read {}: {e}", self.file))?;
+        if !root.is_object() {
+            return Err(format!("{} must hold a JSON object", self.file));
+        }
+        Ok(root)
+    }
+
+    /// The packs object, if there is one.
+    fn packs_object<'a>(&self, root: &'a Value) -> Result<Option<&'a Map<String, Value>>, String> {
+        let mut object = root.as_object().expect("parse checks the root");
+        for (depth, key) in self.keys.iter().enumerate() {
+            match object.get(*key) {
+                None => return Ok(None),
+                Some(Value::Object(inner)) => object = inner,
+                Some(_) => return Err(self.not_an_object(depth)),
+            }
+        }
+        Ok(Some(object))
+    }
+
+    /// The dotted path to the packs, such as `morflow.packs`.
+    fn path(&self) -> String {
+        self.keys.join(".")
+    }
+
+    fn not_an_object(&self, depth: usize) -> String {
+        format!(
+            "\"{}\" in {} must be an object",
+            self.keys[..=depth].join("."),
+            self.file
+        )
+    }
+}
+
+/// Removes the packs `keep` rejects from the object at `keys` below
+/// `object`, then each object on the way that is left empty.
+fn remove(object: &mut Map<String, Value>, keys: &[&str], keep: &dyn Fn(&String) -> bool) {
+    let Some((key, rest)) = keys.split_first() else {
+        object.retain(|name, _| keep(name));
+        return;
+    };
+    if let Some(inner) = object.get_mut(*key).and_then(Value::as_object_mut) {
+        remove(inner, rest, keep);
+        if inner.is_empty() {
+            object.shift_remove(*key);
         }
     }
-    if !changed {
-        return Ok(text.to_owned());
-    }
-    write(&root, text)
-}
-
-/// `text` without the packs `names` (every pack when None). An emptied
-/// `packs`, and then an emptied `morflow`, are removed too.
-pub fn remove_packs(text: &str, names: Option<&[String]>) -> Result<String, String> {
-    let mut root = parse(text)?;
-    if packs_object(&root)?.is_none_or(|packs| packs.is_empty() && names.is_some()) {
-        return Ok(text.to_owned());
-    }
-    let object = root.as_object_mut().expect("parse checks the root");
-    let morflow = object
-        .get_mut("morflow")
-        .and_then(Value::as_object_mut)
-        .expect("packs_object checks morflow");
-    let list = morflow
-        .get_mut("packs")
-        .and_then(Value::as_object_mut)
-        .expect("packs_object checks packs");
-    let before = list.len();
-    list.retain(|name, _| names.is_some_and(|names| !names.contains(name)));
-    if list.len() == before && names.is_some() {
-        return Ok(text.to_owned());
-    }
-    if list.is_empty() {
-        morflow.shift_remove("packs");
-    }
-    if morflow.is_empty() {
-        object.shift_remove("morflow");
-    }
-    write(&root, text)
 }
 
 /// Whether `dependencies` names `package`.
 pub fn depends_on(text: &str, package: &str) -> bool {
-    parse(text).is_ok_and(|root| {
+    serde_json::from_str::<Value>(text).is_ok_and(|root| {
         root.get("dependencies")
             .and_then(Value::as_object)
             .is_some_and(|deps| deps.contains_key(package))
     })
-}
-
-fn parse(text: &str) -> Result<Value, String> {
-    let root: Value =
-        serde_json::from_str(text).map_err(|e| format!("Cannot read package.json: {e}"))?;
-    if !root.is_object() {
-        return Err("package.json must hold a JSON object".into());
-    }
-    Ok(root)
-}
-
-/// The `morflow.packs` object, if there is one.
-fn packs_object(root: &Value) -> Result<Option<&Map<String, Value>>, String> {
-    let Some(morflow) = root.get("morflow") else {
-        return Ok(None);
-    };
-    let morflow = morflow
-        .as_object()
-        .ok_or("\"morflow\" in package.json must be an object")?;
-    match morflow.get("packs") {
-        None => Ok(None),
-        Some(Value::Object(packs)) => Ok(Some(packs)),
-        Some(_) => Err("\"morflow.packs\" in package.json must be an object".into()),
-    }
 }
 
 /// `root` as JSON indented like `original`, ending with a newline if it did.
@@ -270,5 +322,30 @@ mod tests {
             PACKAGE
         ));
         assert!(!depends_on("not json", PACKAGE));
+    }
+
+    #[test]
+    fn unity_settings_keep_packs_at_the_top() {
+        let empty = "{}\n";
+        let after = UNITY_SETTINGS
+            .update(empty, &packs_of(&[("audio_basics", "0.2.5")]))
+            .unwrap();
+        assert_eq!(
+            after,
+            "{\n  \"packs\": {\n    \"audio_basics\": \"0.2.5\"\n  }\n}\n"
+        );
+        assert_eq!(
+            UNITY_SETTINGS.packs(&after).unwrap(),
+            packs_of(&[("audio_basics", "0.2.5")])
+        );
+        assert_eq!(UNITY_SETTINGS.remove_packs(&after, None).unwrap(), "{}\n");
+        assert!(UNITY_SETTINGS
+            .packs("{\"packs\": [1]}")
+            .unwrap_err()
+            .contains("\"packs\" in Morflow.json must be an object"));
+        assert!(UNITY_SETTINGS
+            .packs("{\"packs\": {\"base\": 1}}")
+            .unwrap_err()
+            .contains("packs.base in Morflow.json"));
     }
 }

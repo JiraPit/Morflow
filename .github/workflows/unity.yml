@@ -1,0 +1,276 @@
+name: Unity
+
+# org.morflow.unity: the package's EditMode tests, then the example project
+# (bindings/unity/Example~) built for Linux, Android, macOS, iOS and Windows
+# and run. The engine and every plugin-free pack library are built from this
+# checkout and laid out like the GitHub releases (scripts/stage_release.py);
+# the package downloads them from there through -morflowReleaseUrl, exactly
+# as projects do from real releases. The example runs its pipelines and logs a
+# "MORFLOW" line per check, which these jobs read.
+#
+# Needs the repository secrets UNITY_LICENSE (the contents of a Unity .ulf
+# license file), UNITY_EMAIL and UNITY_PASSWORD; see https://game.ci/docs.
+on:
+  push:
+    branches: [dev-unity-support]
+    paths:
+      - 'bindings/unity/**'
+      - 'bindings/capi/**'
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'actions/**'
+      - 'scripts/build_pack.py'
+      - 'scripts/build_capi.py'
+      - 'scripts/native_targets.py'
+      - 'scripts/stage_release.py'
+      - '.github/workflows/unity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: bindings/unity/Example~
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+jobs:
+  linux:
+    name: Linux (tests, standalone) on Unity ${{ matrix.unity }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        unity: ['2022.3.76f1', '6000.0.85f2']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Inside the workspace, which GameCI's container sees as /github/workspace.
+      - name: Stage releases
+        run: python3 scripts/stage_release.py --platform linux-x86_64 --out target/staged-releases
+
+      - name: Run the EditMode tests
+        uses: game-ci/unity-test-runner@v4
+        with:
+          unityVersion: ${{ matrix.unity }}
+          projectPath: ${{ env.PROJECT }}
+          testMode: editmode
+          customParameters: -morflowReleaseUrl /github/workspace/target/staged-releases
+
+      - name: Build the Linux player
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: ${{ matrix.unity }}
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: StandaloneLinux64
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/Linux/Example -morflowReleaseUrl /github/workspace/target/staged-releases
+
+      - name: Run the Linux player with no action cache
+        working-directory: ${{ env.PROJECT }}/Builds/Linux
+        run: |
+          sudo chown -R "$USER" .
+          ls Example_Data/Plugins | grep -E '^lib(morflow_capi|morflow_pack_[a-z_]+)\.so$' | tee libs.txt
+          test "$(wc -l < libs.txt)" -eq 5
+          mkdir -p "$RUNNER_TEMP/empty-cache"
+          MORFLOW_ACTIONS_PATH="$RUNNER_TEMP/empty-cache" timeout 180 ./Example -batchmode -nographics -logFile player.log || true
+          grep MORFLOW player.log || true
+          grep -q "MORFLOW DONE PASS" player.log
+
+  android:
+    name: Android (emulator test, arm64 build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android,aarch64-linux-android
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: python3 scripts/stage_release.py --platform android-x86_64 --platform android-aarch64 --out target/staged-releases
+
+      - name: Build the APK
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: '6000.0.85f2'
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: Android
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/Android/Example.apk -morflowReleaseUrl /github/workspace/target/staged-releases
+
+      - name: Check the APK's libraries
+        working-directory: ${{ env.PROJECT }}/Builds/Android
+        run: |
+          unzip -l Example.apk | grep -E 'lib/(arm64-v8a|x86_64)/lib(morflow_capi|morflow_pack_[a-z_]+)\.so' | tee libs.txt
+          # The engine and the example's four packs, for both ABIs.
+          test "$(wc -l < libs.txt)" -eq 10
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the example on an emulator
+        timeout-minutes: 25
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: ${{ env.PROJECT }}/Builds/Android
+          script: |
+            adb install -r Example.apk
+            adb logcat -c
+            adb shell am start -n org.morflow.example/com.unity3d.player.UnityPlayerGameActivity
+            timeout 180 sh -c 'until adb logcat -d -s Unity:V | grep -q "MORFLOW DONE"; do sleep 2; done' || true
+            adb logcat -d -s Unity:V AndroidRuntime:E | grep -E "MORFLOW|FATAL|Exception" || true
+            adb logcat -d -s Unity:V | grep -q "MORFLOW DONE PASS"
+
+  apple:
+    name: macOS (standalone) and iOS (simulator test, device build)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        run: |
+          python3 scripts/stage_release.py --platform darwin-arm64 --platform darwin-x86_64 \
+            --platform ios-arm64 --platform ios-arm64-sim --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Build the macOS player
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: '6000.0.85f2'
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: StandaloneOSX
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/macOS/Example.app -morflowReleaseUrl ${{ github.workspace }}/target/staged-releases
+
+      - name: Run the macOS player with no action cache
+        working-directory: ${{ env.PROJECT }}/Builds/macOS
+        run: |
+          for lib in Example.app/Contents/PlugIns/lib*.dylib; do
+            lipo -info "$lib" | tee -a lipo.txt
+          done
+          # Universal: Apple silicon and Intel.
+          test "$(grep -c 'x86_64 arm64\|arm64 x86_64' lipo.txt)" -eq 5
+          mkdir -p "$RUNNER_TEMP/empty-cache"
+          MORFLOW_ACTIONS_PATH="$RUNNER_TEMP/empty-cache" timeout 180 Example.app/Contents/MacOS/* -batchmode -nographics -logFile player.log || true
+          grep MORFLOW player.log || true
+          grep -q "MORFLOW DONE PASS" player.log
+
+      - name: Export the iOS project for the simulator
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: '6000.0.85f2'
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: iOS
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/iOSSimulator -iosSimulator -morflowReleaseUrl ${{ github.workspace }}/target/staged-releases
+
+      - name: Run the example on the simulator
+        working-directory: ${{ env.PROJECT }}/Builds/iOSSimulator
+        run: |
+          xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build | tail -20
+          app=$(find build/Build/Products -name '*.app' -maxdepth 2 | head -1)
+          ls "$app/Frameworks" | grep -E '^morflow_(capi|pack_[a-z_]+)\.framework$' | tee frameworks.txt
+          test "$(wc -l < frameworks.txt)" -eq 5
+          udid=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r,l in d.items() if "iOS" in r for x in l if "iPhone" in x["name"]))')
+          xcrun simctl boot "$udid"
+          xcrun simctl install "$udid" "$app"
+          timeout 180 xcrun simctl launch --console-pty "$udid" org.morflow.example > log.txt 2>&1 &
+          for i in $(seq 1 90); do grep -q "MORFLOW DONE" log.txt && break; sleep 2; done
+          grep MORFLOW log.txt || true
+          grep -q "MORFLOW DONE PASS" log.txt
+
+      - name: Export the iOS project for devices
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: '6000.0.85f2'
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: iOS
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/iOS -morflowReleaseUrl ${{ github.workspace }}/target/staged-releases
+
+      - name: Build for devices
+        working-directory: ${{ env.PROJECT }}/Builds/iOS
+        run: |
+          xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build | tail -20
+          frameworks=$(find build/Build/Products -name '*.app' -maxdepth 2 | head -1)/Frameworks
+          for name in $(ls "$frameworks" | grep -E '^morflow_' | sed 's/\.framework$//'); do
+            lipo -info "$frameworks/$name.framework/$name" | grep -q arm64
+            otool -D "$frameworks/$name.framework/$name" | grep -q "@rpath/$name.framework/$name"
+          done
+
+  windows:
+    name: Windows (standalone)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage releases
+        shell: bash
+        run: python3 scripts/stage_release.py --platform windows-x86_64 --out "$GITHUB_WORKSPACE/target/staged-releases"
+
+      - name: Build the Windows player
+        uses: game-ci/unity-builder@v4
+        with:
+          unityVersion: '6000.0.85f2'
+          projectPath: ${{ env.PROJECT }}
+          targetPlatform: StandaloneWindows64
+          buildMethod: Builder.Build
+          customParameters: -buildOutput Builds/Windows/Example.exe -morflowReleaseUrl c:/github/workspace/target/staged-releases
+
+      - name: Run the Windows player with no action cache
+        shell: bash
+        working-directory: ${{ env.PROJECT }}/Builds/Windows
+        run: |
+          mkdir -p "$RUNNER_TEMP/empty-cache"
+          MORFLOW_ACTIONS_PATH="$RUNNER_TEMP/empty-cache" timeout 180 ./Example.exe -batchmode -nographics -logFile player.log || true
+          grep MORFLOW player.log || true
+          grep -q "MORFLOW DONE PASS" player.log

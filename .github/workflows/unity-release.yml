@@ -1,0 +1,28 @@
+name: Unity release check
+
+# Projects install the Unity package from a unity-v<version> tag's Git URL.
+# This checks that the tagged package names that version and runs an engine
+# that is released for every platform.
+on:
+  push:
+    tags: ['unity-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check the tagged package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/check_unity_release.py --tag "$GITHUB_REF_NAME"

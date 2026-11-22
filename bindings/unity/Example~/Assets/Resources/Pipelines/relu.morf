@@ -1,0 +1,4 @@
+import nn_basics/latest
+
+accept Scalar $value
+$value >> relu >> emit
