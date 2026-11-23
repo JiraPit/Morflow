@@ -1,0 +1,6 @@
+import audio_basics/latest
+
+accept Bytes $wav
+accept IntArg $rate = 16000
+accept FloatArg $gain = 1.0
+$wav >> to_audio >> gain(linear=$gain) >> resample(to_rate=$rate) >> to_wav >> emit

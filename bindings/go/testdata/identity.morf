@@ -1,0 +1,4 @@
+from base/latest import identity
+
+accept Tensor $t
+$t >> identity >> emit

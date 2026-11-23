@@ -1,0 +1,28 @@
+name: Go release check
+
+# Go programs fetch the Go package from a bindings/go/v<version> tag through
+# the Go module proxy. This checks that the tagged package is described in its
+# CHANGELOG and runs an engine that is released for every desktop platform.
+on:
+  push:
+    tags: ['bindings/go/v*']
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check the tagged package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/check_go_release.py --tag "$GITHUB_REF_NAME"

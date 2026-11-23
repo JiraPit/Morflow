@@ -9,12 +9,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile', choices=['debug', 'release'], default='debug')
     parser.add_argument('--cache', type=Path)
+    parser.add_argument('--pack', action='append', help='Only this pack (repeatable; default: every pack)')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parent.parent
     cache = args.cache or repo / 'target' / args.profile / 'actions'
     _, ext = host_platform()
     prefix = '' if ext == 'dll' else 'lib'
     for manifest in sorted((repo / 'actions').glob('*/*/Cargo.toml')):
+        if args.pack and manifest.parent.parent.name not in args.pack:
+            continue
         binary = repo / 'target' / args.profile / f'{prefix}{action_metadata(manifest)["library"]}.{ext}'
         package_action(manifest, binary, cache, latest=True)
     print(f'Local test fixtures ready in {cache}')

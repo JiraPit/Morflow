@@ -1,0 +1,114 @@
+name: Go
+
+# The Go package (bindings/go) on Linux (x86_64 and ARM64), macOS and
+# Windows. The engine library is built from this checkout and laid out like
+# the GitHub releases (scripts/stage_release.py); the package downloads it
+# from there through MORFLOW_RELEASE_URL, exactly as programs do from real
+# releases. The actions the tests use are built from this checkout too.
+on:
+  push:
+    branches: [dev-go-support]
+    paths:
+      - 'bindings/go/**'
+      - 'bindings/capi/**'
+      - 'pipeline/**'
+      - 'core_types/**'
+      - 'scripts/build_capi.py'
+      - 'scripts/native_targets.py'
+      - 'scripts/stage_release.py'
+      - '.github/workflows/go.yml'
+  pull_request:
+    paths:
+      - 'bindings/go/**'
+      - '.github/workflows/go.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - os: macos-latest
+            platform: darwin-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: bindings/go/go.mod
+          cache-dependency-path: bindings/go/go.sum
+
+      # The Go package needs only the engine library; one small pack keeps
+      # the staged release complete.
+      - name: Stage the engine release
+        run: |
+          python3 scripts/stage_release.py --platform ${{ matrix.platform }} --pack base --out "$RUNNER_TEMP/staged-releases"
+          echo "MORFLOW_RELEASE_URL=$RUNNER_TEMP/staged-releases" >> "$GITHUB_ENV"
+
+      # Built from this checkout and packaged into a local action cache, like
+      # the engine workflow's SDK tests, so no GitHub API calls are needed.
+      - name: Build the actions the tests use
+        run: |
+          packs="base audio_basics image_basics linalg_basics math_basics nn_basics tensor_basics tensor_stats"
+          packages=$(python3 -c 'import sys, tomllib; from pathlib import Path; print(" ".join("-p " + tomllib.loads(m.read_text())["package"]["name"] for p in sys.argv[1:] for m in sorted(Path("actions", p).glob("*/Cargo.toml"))))' $packs)
+          cargo build --release --locked $packages
+          python3 scripts/prepare_test_actions.py --profile release --cache "$RUNNER_TEMP/actions" $(printf -- '--pack %s ' $packs)
+          echo "MORFLOW_ACTIONS_PATH=$RUNNER_TEMP/actions" >> "$GITHUB_ENV"
+
+      - name: Vet
+        working-directory: bindings/go
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+
+      - name: Test without cgo
+        working-directory: bindings/go
+        env:
+          CGO_ENABLED: '0'
+          MORFLOW_REQUIRE_ENGINE: '1'
+        run: go test -count=1 -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
+
+      - name: Test with the race detector
+        if: runner.os != 'Windows'
+        working-directory: bindings/go
+        env:
+          CGO_ENABLED: '1'
+          MORFLOW_REQUIRE_ENGINE: '1'
+        run: go test -count=1 -race ./...
+
+      - name: Cross-compile without cgo
+        if: matrix.platform == 'linux-x86_64'
+        working-directory: bindings/go
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          for target in linux/amd64 linux/arm64 darwin/arm64 darwin/amd64 windows/amd64; do
+            GOOS=${target%/*} GOARCH=${target#*/} go build -o /dev/null ./... && echo "$target ok"
+          done
