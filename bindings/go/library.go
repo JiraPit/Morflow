@@ -132,7 +132,7 @@ func (r *releases) download(tag, asset, what string) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("morflow: bad release URL %s: %w", location, err)
 			}
-			path = filepath.FromSlash(u.Path)
+			path = fileURLPath(u)
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -156,6 +156,22 @@ func (r *releases) download(tag, asset, what string) ([]byte, error) {
 		return nil, fmt.Errorf("morflow: could not download %s from %s: %w", what, location, err)
 	}
 	return data, nil
+}
+
+var windowsDrive = regexp.MustCompile(`^/?[A-Za-z]:`)
+
+// fileURLPath is the local path a file: URL names. On Windows that is
+// file:///C:/releases, whose URL path is /C:/releases; file://C:/releases,
+// which puts the drive where the host goes, is accepted too.
+func fileURLPath(u *url.URL) string {
+	path := u.Path
+	if windowsDrive.MatchString(u.Host) {
+		path = u.Host + path
+	}
+	if windowsDrive.MatchString(path) && strings.HasPrefix(path, "/") {
+		path = path[1:]
+	}
+	return filepath.FromSlash(path)
 }
 
 var unsafeChars = regexp.MustCompile(`[^A-Za-z0-9._-]`)

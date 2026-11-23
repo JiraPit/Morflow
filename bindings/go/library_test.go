@@ -61,11 +61,37 @@ func publish(t *testing.T, root, tag, asset string, data []byte, checksum string
 	os.WriteFile(filepath.Join(dir, "checksums.txt"), []byte(checksum+"  "+asset+"\n"), 0o644)
 }
 
+// fileURL is the file: URL of a local folder, file:///C:/… on Windows.
+func fileURL(path string) string {
+	path = filepath.ToSlash(path)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return (&url.URL{Scheme: "file", Path: path}).String()
+}
+
+func TestFileURLPaths(t *testing.T) {
+	for raw, want := range map[string]string{
+		"file:///srv/releases":     "/srv/releases",
+		"file:///C:/releases":      "C:/releases",
+		"file://C:/releases":       "C:/releases",
+		"file:///c:/Users/a%20b/x": "c:/Users/a b/x",
+	} {
+		u, err := url.Parse(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := fileURLPath(u); got != filepath.FromSlash(want) {
+			t.Fatalf("%s: got %s, want %s", raw, got, filepath.FromSlash(want))
+		}
+	}
+}
+
 func TestFetchFromAFolderAndCache(t *testing.T) {
 	root, cache := t.TempDir(), t.TempDir()
 	publish(t, root, "v1.0.0", "lib.so", []byte("library"), "")
 
-	for _, base := range []string{root, (&url.URL{Scheme: "file", Path: filepath.ToSlash(root)}).String()} {
+	for _, base := range []string{root, fileURL(root)} {
 		cache := filepath.Join(cache, safeName(base))
 		r := newReleases(base, cache)
 		file, err := r.fetch("v1.0.0", "lib.so", filepath.Join("linux-x86_64", "lib.so"))
