@@ -20,7 +20,7 @@ namespace MorflowUnity
     public static class Morflow
     {
         /// <summary>The engine release this package runs.</summary>
-        public const string EngineVersion = "0.3.5";
+        public const string EngineVersion = "0.3.6";
 
         /// <summary>This package's version.</summary>
         public const string PackageVersion = "0.1.0";

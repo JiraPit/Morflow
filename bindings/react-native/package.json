@@ -1,6 +1,6 @@
 {
   "name": "react-native-morflow",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Run Morflow pipelines (.morf) inside React Native apps on Android and iOS: images, audio and tensors, offline.",
   "license": "MIT",
   "author": "Morflow",

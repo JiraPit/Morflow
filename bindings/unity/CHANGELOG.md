@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Runs engine 0.3.6.
+
 ## 0.1.0
 
 - First release. Runs Morflow pipelines in the Unity Editor and in Windows, macOS, Linux, Android and iOS builds, with engine 0.3.5.

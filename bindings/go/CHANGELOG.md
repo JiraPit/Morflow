@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6
+
+- Runs engine 0.3.6.
+
 ## 0.3.5
 
 - First release. Runs Morflow pipelines from Go on Linux (x86-64 and ARM64), macOS (Apple silicon and Intel) and Windows (x86-64), with engine 0.3.5.

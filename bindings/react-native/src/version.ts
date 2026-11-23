@@ -3,4 +3,4 @@
  * interface library from the GitHub release `v<engineVersion>`, and its
  * version must match.
  */
-export const engineVersion = '0.3.5';
+export const engineVersion = '0.3.6';

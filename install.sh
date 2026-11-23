@@ -19,7 +19,7 @@ REPO="${MORFLOW_REPO:-JiraPit/Morflow}"
 INSTALL_DIR="${MORFLOW_INSTALL_DIR:-$HOME/.morflow/bin}"
 VERSION="${MORFLOW_VERSION:-}"
 # Must match the engine CLI version in pipeline/Cargo.toml.
-FALLBACK_VERSION="0.3.5"
+FALLBACK_VERSION="0.3.6"
 
 # Parse optional arguments when invoked as `bash -s -- [args]`
 while [ $# -gt 0 ]; do

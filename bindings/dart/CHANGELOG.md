@@ -1,3 +1,7 @@
+## 0.3.6
+
+- Runs engine 0.3.6.
+
 ## 0.3.5
 
 - `runAll`, `runAllArgs`, `runSyncAll` and `runSyncAllArgs` are renamed to `runToMap`, `runToMapArgs`, `runSyncToMap` and `runSyncToMapArgs`, which say what they return: every named output, keyed by name. The old names still work but are deprecated.
