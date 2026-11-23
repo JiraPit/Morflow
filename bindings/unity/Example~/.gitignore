@@ -1,0 +1,13 @@
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/Builds/
+/obj/
+*.csproj
+*.sln
+# Downloaded by the Morflow package from ProjectSettings/Morflow.json
+/Assets/Plugins/
+/Assets/Plugins.meta
+/.utmp/
+/Packages/packages-lock.json

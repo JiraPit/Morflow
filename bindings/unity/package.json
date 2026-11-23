@@ -1,0 +1,23 @@
+{
+  "name": "org.morflow.unity",
+  "version": "0.1.0",
+  "displayName": "Morflow",
+  "description": "Run Morflow pipelines (.morf) in Unity on Windows, macOS, Linux, Android and iOS: images, audio and tensors, offline. The engine and the action packs your pipelines use are bundled into every build.",
+  "unity": "2022.3",
+  "license": "MIT",
+  "documentationUrl": "https://morflow.org/doc/#exec-unity",
+  "changelogUrl": "https://github.com/JiraPit/Morflow/blob/main/bindings/unity/CHANGELOG.md",
+  "licensesUrl": "https://github.com/JiraPit/Morflow/blob/main/bindings/unity/LICENSE",
+  "keywords": [
+    "morflow",
+    "audio",
+    "image",
+    "tensor",
+    "pipeline",
+    "preprocessing"
+  ],
+  "author": {
+    "name": "Morflow",
+    "url": "https://morflow.org"
+  }
+}

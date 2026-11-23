@@ -35,14 +35,14 @@ enum Commands {
         long_about = "Prepare the actions and plugins declared in a .morf pipeline for offline use. Verify published checksums and check that declared plugin versions satisfy action requirements. Each latest declaration is resolved again; exact versions remain installed alongside it. External system libraries are loaded during execution, not preparation."
     )]
     #[command(
-        after_help = "For an app: run morflow prep --prod-target <flutter|react-native> <pipelines...> in the app's root directory. It lists the action packs the pipelines need in the app's pubspec.yaml (hooks.user_defines.morflow.packs) or package.json (morflow.packs), which the app then bundles on every platform; a Flutter app also gets the pipelines as assets. Nothing is downloaded into the action cache."
+        after_help = "For an app: run morflow prep --prod-target <flutter|react-native|unity> <pipelines...> in the app's root directory. It lists the action packs the pipelines need in the app's pubspec.yaml (hooks.user_defines.morflow.packs), package.json (morflow.packs) or a Unity project's ProjectSettings/Morflow.json (packs), which the app then bundles on every platform; a Flutter app also gets the pipelines as assets. Nothing is downloaded into the action cache."
     )]
     Prep {
         /// .morf pipeline files, folders (every .morf file inside, subfolders included) or wildcard patterns such as "pipelines/*.morf"
         #[arg(required = true, value_name = "FILE")]
         files: Vec<PathBuf>,
 
-        /// Prepare an app that bundles its actions, editing its pubspec.yaml or package.json in the current directory instead of filling the action cache
+        /// Prepare an app that bundles its actions, editing its pubspec.yaml, package.json or Unity settings in the current directory instead of filling the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
@@ -65,14 +65,14 @@ enum Commands {
 
     /// Cleans and removes all cached action binaries from the action path
     #[command(
-        after_help = "For an app: morflow clean --prod-target <flutter|react-native> removes every pack from the app's pubspec.yaml or package.json."
+        after_help = "For an app: morflow clean --prod-target <flutter|react-native|unity> removes every pack from the app's pubspec.yaml, package.json or Unity settings."
     )]
     Clean {
         /// Custom action cache directory to clean (defaults to MORFLOW_ACTIONS_PATH or ~/.morflow/actions)
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// Remove every pack an app bundles from its pubspec.yaml or package.json in the current directory instead of cleaning the action cache
+        /// Remove every pack an app bundles from its pubspec.yaml, package.json or Unity settings in the current directory instead of cleaning the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
@@ -109,14 +109,14 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// List the packs an app bundles, from its pubspec.yaml or package.json in the current directory, instead of the action cache
+        /// List the packs an app bundles, from its pubspec.yaml, package.json or Unity settings in the current directory, instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
     },
 
     /// Installs a specific action binary into the local action cache
     #[command(
-        after_help = "For an app: morflow install audio_basics --prod-target <flutter|react-native> adds the pack to the app's pubspec.yaml or package.json, so the app bundles it. Apps bundle whole packs, at one exact version; latest is resolved to it."
+        after_help = "For an app: morflow install audio_basics --prod-target <flutter|react-native|unity> adds the pack to the app's pubspec.yaml, package.json or Unity settings, so the app bundles it. Apps bundle whole packs, at one exact version; latest is resolved to it."
     )]
     Install {
         /// Full action or pack path (e.g. image_basics/latest/color_adjust, audio_basics/latest); with --prod-target, a pack (audio_basics, audio_basics/0.2.4)
@@ -130,7 +130,7 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         force: bool,
 
-        /// Add the pack to an app's pubspec.yaml or package.json in the current directory instead of the action cache
+        /// Add the pack to an app's pubspec.yaml, package.json or Unity settings in the current directory instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
@@ -141,7 +141,7 @@ enum Commands {
 
     /// Removes installed actions from the local action cache
     #[command(
-        after_help = "Examples:\n  morflow uninstall image_basics/latest/color_adjust\n  morflow uninstall audio_basics/0.2.4\n  morflow uninstall audio_basics\nFor an app: morflow uninstall audio_basics --prod-target <flutter|react-native> removes the pack from the app's pubspec.yaml or package.json."
+        after_help = "Examples:\n  morflow uninstall image_basics/latest/color_adjust\n  morflow uninstall audio_basics/0.2.4\n  morflow uninstall audio_basics\nFor an app: morflow uninstall audio_basics --prod-target <flutter|react-native|unity> removes the pack from the app's pubspec.yaml, package.json or Unity settings."
     )]
     Uninstall {
         /// An action, a pack version or a whole pack (e.g. image_basics/latest/color_adjust, audio_basics/0.2.4, audio_basics)
@@ -151,7 +151,7 @@ enum Commands {
         #[arg(short, long, conflicts_with = "prod_target")]
         path: Option<PathBuf>,
 
-        /// Remove the pack from an app's pubspec.yaml or package.json in the current directory instead of the action cache
+        /// Remove the pack from an app's pubspec.yaml, package.json or Unity settings in the current directory instead of the action cache
         #[arg(long, value_enum)]
         prod_target: Option<AppTarget>,
 
@@ -338,6 +338,8 @@ enum AppTarget {
     Flutter,
     /// A React Native app (Android, iOS), which bundles its packs
     ReactNative,
+    /// A Unity project (Editor, Windows, macOS, Linux, Android, iOS), which bundles its packs
+    Unity,
 }
 
 impl AppTarget {
@@ -346,14 +348,16 @@ impl AppTarget {
         match self {
             AppTarget::Flutter => "flutter",
             AppTarget::ReactNative => "react-native",
+            AppTarget::Unity => "unity",
         }
     }
 
-    /// The file that lists the app's packs, in the app's root directory.
+    /// The file that lists the app's packs, from the app's root directory.
     fn manifest(self) -> &'static str {
         match self {
             AppTarget::Flutter => "pubspec.yaml",
             AppTarget::ReactNative => "package.json",
+            AppTarget::Unity => UNITY_SETTINGS_FILE,
         }
     }
 
@@ -362,6 +366,7 @@ impl AppTarget {
         match self {
             AppTarget::Flutter => "hooks.user_defines.morflow.packs",
             AppTarget::ReactNative => "morflow.packs",
+            AppTarget::Unity => "packs",
         }
     }
 
@@ -369,6 +374,7 @@ impl AppTarget {
         match self {
             AppTarget::Flutter => crate::pubspec::packs(text),
             AppTarget::ReactNative => crate::package_json::packs(text),
+            AppTarget::Unity => crate::package_json::UNITY_SETTINGS.packs(text),
         }
     }
 
@@ -376,6 +382,7 @@ impl AppTarget {
         match self {
             AppTarget::Flutter => crate::pubspec::update(text, packs, &[]),
             AppTarget::ReactNative => crate::package_json::update(text, packs),
+            AppTarget::Unity => crate::package_json::UNITY_SETTINGS.update(text, packs),
         }
     }
 
@@ -383,6 +390,7 @@ impl AppTarget {
         match self {
             AppTarget::Flutter => crate::pubspec::remove_packs(text, names),
             AppTarget::ReactNative => crate::package_json::remove_packs(text, names),
+            AppTarget::Unity => crate::package_json::UNITY_SETTINGS.remove_packs(text, names),
         }
     }
 
@@ -395,6 +403,8 @@ impl AppTarget {
                 (!crate::package_json::depends_on(text, crate::package_json::PACKAGE))
                     .then_some("Add the Morflow package too: npm install react-native-morflow")
             }
+            AppTarget::Unity => (!unity_uses_morflow(&env::current_dir().unwrap_or_default()))
+                .then_some(UNITY_PACKAGE_HINT),
         }
     }
 
@@ -405,6 +415,7 @@ impl AppTarget {
                 format!("flutter run and flutter build now bundle {what} for every platform.")
             }
             AppTarget::ReactNative => format!("Android and iOS builds now bundle {what}."),
+            AppTarget::Unity => format!("Play mode and every build now bundle {what}."),
         }
     }
 }
@@ -542,7 +553,7 @@ fn prep_app(
         AppTarget::Flutter => {
             crate::pubspec::update(&before, &packs, if flutter_app { &inside } else { &[] })?
         }
-        AppTarget::ReactNative => crate::package_json::update(&before, &packs)?,
+        AppTarget::ReactNative | AppTarget::Unity => target.add_packs(&before, &packs)?,
     };
     let listed = packs
         .iter()
@@ -587,6 +598,17 @@ fn prep_app(
                 );
             }
         }
+        AppTarget::Unity => {
+            let in_assets = |file: &String| file.starts_with("Assets/");
+            for file in inside.iter().filter(|f| !in_assets(f)).chain(&outside) {
+                println!("{file} is outside Assets, so builds will not include it; move it into Assets to ship it.");
+            }
+            if inside.iter().any(in_assets) {
+                println!(
+                    "Each .morf file in Assets imports as a pipeline asset. Give a script a field for it and compile it, such as:\n  public MorflowPipelineAsset pipeline;\n  var compiled = Morflow.FromAsset(pipeline);"
+                );
+            }
+        }
     }
     if !packs.is_empty() {
         println!("{}", target.bundled("these packs"));
@@ -607,10 +629,36 @@ fn metro_uses_morflow(root: &Path) -> bool {
     .any(|text| text.contains("react-native-morflow/metro"))
 }
 
+/// Where a Unity project lists the packs it bundles.
+const UNITY_SETTINGS_FILE: &str = "ProjectSettings/Morflow.json";
+/// The Unity package that runs pipelines.
+const UNITY_PACKAGE: &str = "org.morflow.unity";
+const UNITY_PACKAGE_HINT: &str = "Add the Morflow package too: in Unity, open Window > Package Manager, choose + > Install package from git URL and enter https://github.com/JiraPit/Morflow.git?path=bindings/unity";
+
+fn is_unity_project(root: &Path) -> bool {
+    root.join("Assets").is_dir() && root.join("ProjectSettings/ProjectVersion.txt").is_file()
+}
+
+/// Whether the Unity project at `root` depends on the Morflow package.
+fn unity_uses_morflow(root: &Path) -> bool {
+    fs::read_to_string(root.join("Packages/manifest.json"))
+        .is_ok_and(|text| crate::package_json::depends_on(&text, UNITY_PACKAGE))
+}
+
 /// The app's manifest in the current directory, and its text.
 fn app_manifest(target: AppTarget) -> Result<(PathBuf, String), String> {
     let name = target.manifest();
-    let path = env::current_dir().map_err(|e| e.to_string())?.join(name);
+    let root = env::current_dir().map_err(|e| e.to_string())?;
+    let path = root.join(name);
+    if target == AppTarget::Unity {
+        if !is_unity_project(&root) {
+            return Err("This is not a Unity project's folder (it needs Assets and ProjectSettings/ProjectVersion.txt); run this in your project's folder".into());
+        }
+        // The first change creates it.
+        if !path.exists() {
+            return Ok((path, "{}\n".into()));
+        }
+    }
     if !path.is_file() {
         return Err(format!(
             "There is no {name} here; run this in your app's root directory"

@@ -1,0 +1,4 @@
+import math_basics/latest
+
+accept Tensor $t
+$t >> abs >> emit

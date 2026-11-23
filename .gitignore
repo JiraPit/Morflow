@@ -33,6 +33,8 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+# The Unity example project: the ~ keeps Unity from importing it with the package
+!bindings/unity/Example~
 
 # Java build outputs
 *.class
