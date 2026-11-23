@@ -4,7 +4,7 @@ name: Go
 # Windows. The engine library is built from this checkout and laid out like
 # the GitHub releases (scripts/stage_release.py); the package downloads it
 # from there through MORFLOW_RELEASE_URL, exactly as programs do from real
-# releases. The CLI from this checkout prepares the actions the tests use.
+# releases. The actions the tests use are built from this checkout too.
 on:
   push:
     branches: [dev-go-support]
@@ -70,10 +70,15 @@ jobs:
           python3 scripts/stage_release.py --platform ${{ matrix.platform }} --pack base --out "$RUNNER_TEMP/staged-releases"
           echo "MORFLOW_RELEASE_URL=$RUNNER_TEMP/staged-releases" >> "$GITHUB_ENV"
 
-      - name: Prepare the test pipelines with this checkout's CLI
+      # Built from this checkout and packaged into a local action cache, like
+      # the engine workflow's SDK tests, so no GitHub API calls are needed.
+      - name: Build the actions the tests use
         run: |
-          cargo build --release -p morflow
-          ./target/release/morflow prep bindings/go/testdata bindings/go/example
+          packs="base audio_basics image_basics linalg_basics math_basics nn_basics tensor_basics tensor_stats"
+          packages=$(python3 -c 'import sys, tomllib; from pathlib import Path; print(" ".join("-p " + tomllib.loads(m.read_text())["package"]["name"] for p in sys.argv[1:] for m in sorted(Path("actions", p).glob("*/Cargo.toml"))))' $packs)
+          cargo build --release --locked $packages
+          python3 scripts/prepare_test_actions.py --profile release --cache "$RUNNER_TEMP/actions" $(printf -- '--pack %s ' $packs)
+          echo "MORFLOW_ACTIONS_PATH=$RUNNER_TEMP/actions" >> "$GITHUB_ENV"
 
       - name: Vet
         working-directory: bindings/go
